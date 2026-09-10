@@ -13,9 +13,8 @@ import { UsersModule } from './users/users.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // npm --prefix chạy script với cwd = thư mục này; deployment/local/.env nằm ở
-      // gốc repo, 3 cấp lên (srcroot/boundaries/task-manager-api → gốc).
-      envFilePath: ['../../../deployment/local/.env'],
+      // Repo đã tách khỏi repo gốc (DECISIONS.md 2026-09-10) — .env ở gốc repo này.
+      envFilePath: ['.env'],
     }),
     PrismaModule,
     AuthModule,

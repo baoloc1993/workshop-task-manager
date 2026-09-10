@@ -1,6 +1,10 @@
+import { Transform } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsDateString, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class CreateTaskDto {
+  // dogfood pha I: "    " (toàn khoảng trắng) lọt qua MinLength(1)
+  // vì đếm ký tự thô, tạo việc rỗng nội dung — trim trước khi validate độ dài.
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MinLength(1)
   content: string;

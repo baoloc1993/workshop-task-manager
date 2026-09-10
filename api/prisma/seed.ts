@@ -1,6 +1,7 @@
 // Dữ liệu mẫu — nguồn: context/PRD.md §7 "Dữ liệu mẫu". Đây là chỗ DUY NHẤT tạo User
 // ở vòng 1 (không có endpoint "tạo nhân viên" — xem context/DECISIONS.md 2026-09-10
 // và context/ROADMAP.md §3 backlog).
+import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';

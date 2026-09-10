@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
@@ -10,7 +10,14 @@ export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
   // AC-2 + AC-3 — tạo việc bằng tay, giao đích danh cho một hoặc nhiều người.
-  create(owner: AuthUser, dto: CreateTaskDto) {
+  async create(owner: AuthUser, dto: CreateTaskDto) {
+    // dogfood pha I: assigneeIds chứa id không tồn tại rơi thẳng
+    // xuống ràng buộc khoá ngoại của Postgres → lộ 500 thay vì lỗi tử tế cho client.
+    const foundCount = await this.prisma.user.count({ where: { id: { in: dto.assigneeIds } } });
+    if (foundCount !== dto.assigneeIds.length) {
+      throw new BadRequestException('Có người trong danh sách giao việc không tồn tại');
+    }
+
     return this.prisma.task.create({
       data: {
         content: dto.content,

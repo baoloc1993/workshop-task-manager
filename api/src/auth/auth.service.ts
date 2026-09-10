@@ -34,6 +34,14 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
     if (!user) throw new NotFoundException('Không tìm thấy người này');
 
+    // Cấp mã mới cho CÙNG một người thì mã cũ chưa dùng phải hết hiệu lực ngay —
+    // dogfood pha I: không thu hồi thì hai mã sống song song,
+    // chủ xưởng "bỏ quên" màn QR cũ (không đưa cho ai) vẫn còn dùng được 15 phút.
+    await this.prisma.devicePairing.updateMany({
+      where: { userId: user.id, usedAt: null, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const expiresAt = new Date(Date.now() + PAIRING_TTL_MIN * 60_000);
 
