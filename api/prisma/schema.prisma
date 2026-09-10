@@ -1,0 +1,126 @@
+// Mô hình dữ liệu lõi — chốt ở context/ARCHITECTURE.md §6 (pha V, đường intake).
+// Vòng 1 chỉ dùng một phần các trường/thực thể — xem context/CAPABILITIES-MAP.md §2
+// và context/DECISIONS.md (2026-09-10, "schema Prisma dựng đủ 5 thực thể ngay ở vòng 1").
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: URL kết nối không còn khai ở đây — chuyển sang prisma.config.ts (CLI/migrate)
+// và driver adapter truyền vào PrismaClient (runtime). Xem src/prisma/prisma.service.ts.
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  owner
+  worker
+  bat_coordinator
+}
+
+enum Line {
+  may_va
+  bat
+}
+
+enum TaskStatus {
+  new
+  acked
+  in_progress
+  done
+}
+
+enum TaskSource {
+  voice
+  manual
+}
+
+enum TaskEventKind {
+  acked
+  started
+  done
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  role      Role
+  line      Line?
+  active    Boolean  @default(true)
+  email     String?  @unique // chỉ owner dùng — email/mật khẩu (PRD.md §7)
+  password  String? // hash bcrypt — chỉ owner
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  devicePairings  DevicePairing[]
+  assignments     TaskAssignee[]
+  createdTasks    Task[]          @relation("TaskCreatedBy")
+  assignedByTasks TaskAssignee[]  @relation("AssignedBy")
+  taskEvents      TaskEvent[]
+
+  @@map("users")
+}
+
+model Task {
+  id           String     @id @default(uuid())
+  content      String
+  line         Line
+  measurements String? // chỉ dùng cho line = bat (vòng 4)
+  dueAt        DateTime?  @map("due_at")
+  priority     Int        @default(0)
+  status       TaskStatus @default(new)
+  source       TaskSource @default(manual)
+  createdById  String     @map("created_by")
+  createdBy    User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  deletedAt    DateTime?  @map("deleted_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  assignees TaskAssignee[]
+  events    TaskEvent[]
+
+  @@map("tasks")
+}
+
+model TaskAssignee {
+  taskId     String   @map("task_id")
+  userId     String   @map("user_id")
+  assignedById String @map("assigned_by")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  task       Task @relation(fields: [taskId], references: [id])
+  user       User @relation(fields: [userId], references: [id])
+  assignedBy User @relation("AssignedBy", fields: [assignedById], references: [id])
+
+  @@id([taskId, userId])
+  @@map("task_assignees")
+}
+
+model DevicePairing {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  code        String    @unique // mã một lần, hết hạn 15 phút (PAIRING_CODE_TTL_MIN)
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  deviceLabel String?   @map("device_label")
+  deviceToken String?   @map("device_token") // Expo push token
+  lastSeenAt  DateTime? @map("last_seen_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("device_pairings")
+}
+
+model TaskEvent {
+  id     String        @id @default(uuid())
+  taskId String        @map("task_id")
+  task   Task          @relation(fields: [taskId], references: [id])
+  userId String        @map("user_id")
+  user   User          @relation(fields: [userId], references: [id])
+  kind   TaskEventKind
+  at     DateTime      @default(now())
+
+  @@unique([taskId, userId, kind])
+  @@map("task_events")
+}

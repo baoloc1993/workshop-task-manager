@@ -1,0 +1,39 @@
+# Secret — never commit
+.env
+.env.*
+*.pem
+*.key
+
+# OS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Node
+node_modules/
+.next/
+.turbo/
+dist/
+build/
+out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# Test / coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Local database
+*.sqlite
+*.sqlite3
+*.db
+
+# Editor
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json
