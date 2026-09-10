@@ -1,0 +1,97 @@
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Banner, Button, Card, Text } from 'react-native-paper';
+import { api } from '../api/client';
+import type { DevicePairing } from '../api/types';
+import { colors, space } from '../theme/tokens';
+
+// S15 — "Máy của thợ" (PROTOTYPE.md §1). AC-5: thu hồi máy cũ, cấp lại mã mới.
+export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
+  const [devices, setDevices] = useState<DevicePairing[] | null>(null);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(() => {
+    api
+      .get<DevicePairing[]>('/auth/devices')
+      .then(setDevices)
+      .catch(() => setError(true));
+  }, []);
+
+  useFocusEffect(load);
+
+  async function handleRevoke(id: string) {
+    try {
+      await api.post(`/auth/devices/${id}/revoke`);
+      load();
+    } catch {
+      setError(true);
+    }
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+          Không tải được danh sách máy.
+        </Banner>
+      </View>
+    );
+  }
+
+  if (devices && devices.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text variant="bodyLarge" style={styles.emptyText}>
+          Chưa ai ghép máy.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={{ padding: space.md }}
+      data={devices ?? []}
+      keyExtractor={(d) => d.id}
+      renderItem={({ item }) => (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge">{item.user.name}</Text>
+            <Text variant="bodyLarge" style={styles.meta}>
+              {item.deviceLabel ?? 'Máy chưa đặt tên'} · ghép ngày{' '}
+              {item.usedAt ? new Date(item.usedAt).toLocaleDateString('vi-VN') : '—'}
+            </Text>
+            {item.revokedAt ? (
+              <Text variant="bodyLarge" style={styles.revoked}>
+                Đã thu hồi
+              </Text>
+            ) : (
+              <Button mode="outlined" onPress={() => handleRevoke(item.id)} style={styles.revokeButton}>
+                Thu hồi máy
+              </Button>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+      ListFooterComponent={
+        <Button mode="contained" onPress={onIssueNew} style={styles.newButton} contentStyle={{ height: 64 }}>
+          Cấp mã mới
+        </Button>
+      }
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  banner: { margin: space.md, backgroundColor: colors.errorContainer },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
+  emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
+  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  meta: { marginTop: space.xs, color: colors.onSurfaceVariant },
+  revoked: { marginTop: space.sm, color: colors.error },
+  revokeButton: { marginTop: space.sm, alignSelf: 'flex-start' },
+  newButton: { marginTop: space.md, borderRadius: 999 },
+});
