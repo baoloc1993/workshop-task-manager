@@ -1,18 +1,33 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Button, Text } from 'react-native-paper';
+import { Button, Text, TextInput } from 'react-native-paper';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../api/client';
 import { colors, space } from '../theme/tokens';
 
 // S8 — "Quét mã để vào app" (PROTOTYPE.md §1). Người mới, chưa có phiên nào.
+//
+// Dogfood pha I: màn xin quyền camera có thể đứng yên dù quyền
+// hệ thống đã cấp (Expo Go + Android không luôn đồng bộ lại state của hook ngay —
+// đặc biệt khi quyền được cấp ngoài luồng requestPermission() của chính màn này).
+// Hai lớp vá: (1) tự kiểm tra lại quyền mỗi khi màn lấy lại focus, không chỉ dựa
+// vào kết quả của lần bấm request gần nhất; (2) luôn có ô nhập mã 6 số bằng tay —
+// mã QR chỉ LÀ 6 số đó mã hoá lại, nên nhập tay là đường lùi thật, không phải giả.
 export function ScanQrScreen() {
   const { loginByPairingCode } = useAuth();
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission, getPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      getPermission();
+    }, [getPermission]),
+  );
 
   async function handleScanned(code: string) {
     if (scanned || joining) return;
@@ -31,9 +46,33 @@ export function ScanQrScreen() {
     }
   }
 
-  if (!permission) return <View style={styles.container} />;
+  const manualEntry = (
+    <View style={styles.manualBlock}>
+      <Text variant="bodyLarge" style={styles.text}>
+        Hoặc nhập mã 6 số chủ xưởng đọc cho bạn
+      </Text>
+      <TextInput
+        mode="outlined"
+        value={manualCode}
+        onChangeText={(t) => setManualCode(t.replace(/[^0-9]/g, '').slice(0, 6))}
+        keyboardType="number-pad"
+        maxLength={6}
+        style={styles.manualInput}
+        placeholder="000000"
+      />
+      <Button
+        mode="contained"
+        onPress={() => handleScanned(manualCode)}
+        disabled={manualCode.length !== 6 || joining}
+        loading={joining}
+        contentStyle={{ height: 64 }}
+      >
+        Vào app
+      </Button>
+    </View>
+  );
 
-  if (!permission.granted) {
+  if (!permission || !permission.granted) {
     return (
       <View style={styles.container}>
         <Text variant="bodyLarge" style={styles.text}>
@@ -42,6 +81,12 @@ export function ScanQrScreen() {
         <Button mode="contained" onPress={requestPermission} contentStyle={{ height: 64 }}>
           Cho phép dùng camera
         </Button>
+        {manualEntry}
+        {error && (
+          <Text variant="bodyLarge" style={styles.error}>
+            {error}
+          </Text>
+        )}
       </View>
     );
   }
@@ -68,6 +113,7 @@ export function ScanQrScreen() {
           Đang ghép máy…
         </Text>
       )}
+      {manualEntry}
     </View>
   );
 }
@@ -78,4 +124,6 @@ const styles = StyleSheet.create({
   cameraFrame: { width: 280, height: 280, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.surfaceContainerHigh },
   text: { marginTop: space.md, textAlign: 'center' },
   error: { marginTop: space.md, color: colors.error, textAlign: 'center' },
+  manualBlock: { marginTop: space.lg, width: '100%', alignItems: 'stretch' },
+  manualInput: { marginBottom: space.md, textAlign: 'center' },
 });

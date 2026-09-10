@@ -39,7 +39,9 @@ export function CreateTaskScreen({ onDone }: { onDone: () => void }) {
       setBanner(`Đã giao việc cho ${names}. Điện thoại của họ vừa rung.`);
       setContent('');
       setSelected(new Set());
-      onDone();
+      // Giữ banner đủ lâu để đọc trước khi quay về home — không cắt ngang
+      // ngay lập tức (bug dogfood pha I: quay về home mà không thấy xác nhận gì).
+      setTimeout(onDone, 1500);
     } catch {
       setError('Không giao được việc — thử lại.');
     } finally {

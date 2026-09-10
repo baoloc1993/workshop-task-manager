@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 const TOKEN_KEY = 'workshop-app.token';
+const USER_KEY = 'workshop-app.user';
 
 export class ApiError extends Error {
   constructor(
@@ -38,6 +39,32 @@ export async function clearToken() {
     return;
   }
   await SecureStore.deleteItemAsync(TOKEN_KEY);
+}
+
+// Lưu kèm hồ sơ nhỏ (id/name/role, KHÔNG phải "profile" hay "việc" — ARCHITECTURE.md
+// §10 chỉ cấm lưu việc xuống máy) để khôi phục phiên khi app bị hệ điều hành kill —
+// dogfood pha I: thiếu bước này làm mất phiên hoàn toàn, phải
+// gõ lại email/mật khẩu mỗi lần mở app, trái PRD §7 "không phải đăng nhập lại".
+export async function saveUser(user: { id: string; name: string; role: string }) {
+  const raw = JSON.stringify(user);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(USER_KEY, raw);
+    return;
+  }
+  await SecureStore.setItemAsync(USER_KEY, raw);
+}
+
+export async function getUser<T>(): Promise<T | null> {
+  const raw = Platform.OS === 'web' ? localStorage.getItem(USER_KEY) : await SecureStore.getItemAsync(USER_KEY);
+  return raw ? (JSON.parse(raw) as T) : null;
+}
+
+export async function clearUser() {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(USER_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(USER_KEY);
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

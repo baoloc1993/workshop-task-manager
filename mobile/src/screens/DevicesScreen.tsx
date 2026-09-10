@@ -68,7 +68,12 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
                 Đã thu hồi
               </Text>
             ) : (
-              <Button mode="outlined" onPress={() => handleRevoke(item.id)} style={styles.revokeButton}>
+              <Button
+                mode="outlined"
+                onPress={() => handleRevoke(item.id)}
+                style={styles.revokeButton}
+                contentStyle={{ height: 64 }}
+              >
                 Thu hồi máy
               </Button>
             )}

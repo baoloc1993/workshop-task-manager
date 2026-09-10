@@ -12,6 +12,7 @@ const TTL_MIN = 15;
 export function IssueQrScreen() {
   const [unpaired, setUnpaired] = useState<WorkerListItem[] | null>(null);
   const [pairing, setPairing] = useState<CreatePairingResponse | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [remainingSec, setRemainingSec] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +38,7 @@ export function IssueQrScreen() {
 
   async function handlePick(userId: string) {
     setError(null);
+    setCurrentUserId(userId);
     try {
       const res = await api.post<CreatePairingResponse>('/auth/pairings', { userId });
       setPairing(res);
@@ -67,12 +69,18 @@ export function IssueQrScreen() {
             Mã hết hạn — xin cấp mã mới.
           </Text>
         )}
+        {error && (
+          <Text variant="bodyLarge" style={styles.expired}>
+            {error}
+          </Text>
+        )}
         <Button
           mode="contained"
-          onPress={() => {
-            setPairing(null);
-            loadUnpaired();
-          }}
+          // Cấp lại mã cho CHÍNH người đang xem — ở lại đúng màn này, không rời
+          // về danh sách (dogfood pha I: rời màn giữa chừng làm mất ngữ cảnh
+          // "đang cấp mã cho ai", và câu lỗi cũ "Không tải được danh sách" sai
+          // hẳn với hành động người dùng vừa bấm).
+          onPress={() => currentUserId && handlePick(currentUserId)}
           style={styles.button}
           contentStyle={{ height: 64 }}
         >
@@ -99,7 +107,7 @@ export function IssueQrScreen() {
       ) : (
         <View style={styles.list}>
           {(unpaired ?? []).map((u) => (
-            <List.Item key={u.id} title={u.name} onPress={() => handlePick(u.id)} />
+            <List.Item key={u.id} title={u.name} onPress={() => handlePick(u.id)} style={styles.listItem} />
           ))}
         </View>
       )}
@@ -113,6 +121,9 @@ const styles = StyleSheet.create({
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   list: { backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  // dogfood pha I: List.Item mặc định ~49.5dp, dưới ngân sách
+  // vùng chạm 64px cố ý nâng cho persona 55 tuổi lão thị (DESIGN-SYSTEM.md §1b).
+  listItem: { minHeight: 64, justifyContent: 'center' },
   qrContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
   qrBox: { padding: space.lg, backgroundColor: '#FFFFFF', borderRadius: 12 },
   timer: { marginTop: space.md, color: colors.primary },
