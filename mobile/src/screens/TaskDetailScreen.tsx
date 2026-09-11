@@ -1,21 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
-import { Banner, Text } from 'react-native-paper';
-import { api } from '../api/client';
+import { Banner, Button, Text } from 'react-native-paper';
+import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, space } from '../theme/tokens';
+import { colors, space, tapMin } from '../theme/tokens';
+import { StatusChip } from '../tasks/StatusChip';
+import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
 
-// S7 — chi tiết việc. Vòng 1 chưa có nút trạng thái (xem MyTasksScreen).
+// S7 — chi tiết việc. CAP-TASK-11/12/13 (AC-8/9/10): một nút lớn theo đúng trạng thái hiện
+// tại. CAP-TASK-09 (AC-11): khối "Việc này đã đi qua" hiện mốc thời gian ngầm, tự ghi.
 export function TaskDetailScreen({ taskId }: { taskId: string }) {
   const [task, setTask] = useState<Task | null>(null);
   const [error, setError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api
       .get<Task>(`/tasks/${taskId}`)
-      .then(setTask)
+      .then((t) => {
+        setTask(t);
+        setError(false);
+      })
       .catch(() => setError(true));
   }, [taskId]);
+
+  useFocusEffect(load);
+
+  async function handleAction() {
+    if (!task) return;
+    const action = nextAction(task.status);
+    if (!action || submitting) return; // đang gửi — khoá, chống bấm hai lần (ARCHITECTURE.md §6)
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const updated = await api.patch<Task>(actionEndpoint(task.id, action));
+      setTask(updated);
+    } catch (e) {
+      setActionError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (error) {
     return (
@@ -29,8 +56,23 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
 
   if (!task) return <View style={styles.container} />;
 
+  const action = nextAction(task.status);
+  const ackAt = task.events.find((e) => e.kind === 'acked')?.at;
+  const startAt = task.events.find((e) => e.kind === 'started')?.at;
+  const doneAt = task.events.find((e) => e.kind === 'done')?.at;
+
   return (
     <View style={styles.container}>
+      {actionError && (
+        <Banner
+          visible
+          icon="alert-circle"
+          style={styles.banner}
+          actions={[{ label: 'Đóng', onPress: () => setActionError(null) }]}
+        >
+          {actionError}
+        </Banner>
+      )}
       {task.measurements && (
         <Text variant="headlineSmall" style={styles.measurements}>
           {task.measurements}
@@ -47,14 +89,47 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       <Text variant="bodyLarge" style={styles.meta}>
         Giao cho: {task.assignees.map((a) => a.user.name).join(', ')}
       </Text>
+      <View style={styles.chipRow}>
+        <StatusChip task={task} />
+      </View>
+
+      {action && (
+        <Button
+          mode="contained"
+          onPress={handleAction}
+          loading={submitting}
+          disabled={submitting}
+          contentStyle={{ height: tapMin }}
+          style={styles.actionButton}
+        >
+          {submitting ? 'Đang gửi…' : actionLabel(action)}
+        </Button>
+      )}
+
+      <Text variant="labelLarge" style={styles.sec}>
+        Việc này đã đi qua
+      </Text>
+      <Text variant="bodyLarge" style={styles.time}>
+        Giao việc · {formatTime(task.createdAt)}
+        {'\n'}
+        Nhận việc · {ackAt ? formatTime(ackAt) : 'chưa có'}
+        {'\n'}
+        Bắt đầu làm · {startAt ? formatTime(startAt) : 'chưa có'}
+        {'\n'}
+        Xong · {doneAt ? formatTime(doneAt) : 'chưa có'}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: space.md, backgroundColor: colors.surface },
-  banner: { backgroundColor: colors.errorContainer },
+  banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   measurements: { marginBottom: space.md, color: colors.primary },
   content: { marginBottom: space.sm },
   meta: { marginTop: space.xs, color: colors.onSurfaceVariant },
+  chipRow: { marginTop: space.md },
+  actionButton: { borderRadius: 999, marginTop: space.md },
+  sec: { color: colors.onSurfaceVariant, marginTop: space.lg, marginBottom: space.sm },
+  time: { color: colors.onSurfaceVariant, lineHeight: 32 },
 });

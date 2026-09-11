@@ -43,6 +43,14 @@ export interface TaskAssignee {
   user: WorkerListItem;
 }
 
+// CAP-TASK-09 — mốc thời gian ngầm, task-manager-api trả sẵn theo đúng thứ tự xảy ra.
+export interface TaskEvent {
+  id: string;
+  kind: 'acked' | 'started' | 'done';
+  at: string;
+  userId: string;
+}
+
 export interface Task {
   id: string;
   content: string;
@@ -52,5 +60,6 @@ export interface Task {
   priority: number;
   status: 'new' | 'acked' | 'in_progress' | 'done';
   assignees: TaskAssignee[];
+  events: TaskEvent[];
   createdAt: string;
 }
