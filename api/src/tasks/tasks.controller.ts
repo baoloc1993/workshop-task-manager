@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -26,5 +26,25 @@ export class TasksController {
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.tasks.findOne(user, id);
+  }
+
+  // AC-8/9/10 — owner KHÔNG có mặt ở @Roles: PERSONAS.md §2 cấm owner ack/bắt đầu/xong
+  // thay công nhân, chặn ở đây chứ không chỉ ẩn nút trên app (luật #8 challenge pha V vòng 3).
+  @Roles('worker', 'bat_coordinator')
+  @Patch(':id/ack')
+  ack(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tasks.advance(user, id, 'acked');
+  }
+
+  @Roles('worker', 'bat_coordinator')
+  @Patch(':id/start')
+  start(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tasks.advance(user, id, 'started');
+  }
+
+  @Roles('worker', 'bat_coordinator')
+  @Patch(':id/done')
+  done(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tasks.advance(user, id, 'done');
   }
 }
