@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Banner, Text } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Banner, Text, TouchableRipple } from 'react-native-paper';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -92,7 +92,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
       <Text variant="bodyLarge" style={styles.heard}>
         {heard || 'Nói một câu như đang nói với thợ, ví dụ: "giao cho Toàn may 20 áo, thứ Sáu giao".'}
       </Text>
-      <Pressable
+      <TouchableRipple
         accessibilityRole="button"
         accessibilityLabel={listening ? 'Đang nghe — thả tay để dừng' : 'Giữ để nói'}
         onPressIn={startListening}
@@ -103,10 +103,12 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
         }}
         style={[styles.mic, listening && styles.micActive]}
       >
-        <Text variant="titleMedium" style={styles.micLabel}>
-          {listening ? '🎤 Đang nghe…' : '🎤 Giữ để nói'}
-        </Text>
-      </Pressable>
+        <View style={styles.micInner}>
+          <Text variant="titleMedium" style={[styles.micLabel, listening && styles.micLabelActive]}>
+            {listening ? '🎤 Đang nghe…' : '🎤 Giữ để nói'}
+          </Text>
+        </View>
+      </TouchableRipple>
     </View>
   );
 }
@@ -118,18 +120,41 @@ function mapErrorMessage(code: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: space.md, backgroundColor: colors.surface, justifyContent: 'space-between' },
+  container: {
+    flex: 1,
+    padding: space.md,
+    // Chừa chỗ đáy cho FAB nổi (position: absolute) khỏi đè lên câu đang nghe được.
+    paddingBottom: tapMin + space.lg,
+    backgroundColor: colors.surface,
+  },
   errorBanner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   sectionLabel: { marginBottom: space.sm, color: colors.onSurfaceVariant },
   heard: { flex: 1, marginBottom: space.lg },
   mic: {
-    minHeight: tapMin * 1.5,
+    // C7 Extended FAB (DESIGN-SYSTEM.md §4): nút micro nổi, luôn ở góc dưới phải trong tầm
+    // ngón cái, tô --color-primary — dogfood pha I vòng 2 (edge + picky) phát hiện nút này
+    // trước đó nằm giữa/đáy màn full-width và tô nhầm --color-primary-container (màu chip).
+    //
+    // LƯU Ý MÔI TRƯỜNG DEV (không phải bug sản phẩm): trên bản debug qua Expo dev client/Metro,
+    // menu nổi của dev tools chiếm đúng góc dưới-phải và nuốt hết cảm ứng ở đó — đứng yên tuyệt
+    // đối khi giữ nút là do lớp che này, xác nhận bằng cách di chuyển nút sang góc khác thì bấm
+    // được ngay (đo `onPressIn` bắn đúng, "Đang nghe…" hiện đúng). Bản production/release
+    // không có dev tools nên không có lớp che này — vị trí góc dưới-phải theo đúng spec vẫn đúng.
+    position: 'absolute',
+    right: space.md,
+    bottom: space.lg,
+    minHeight: tapMin,
     borderRadius: shape.full,
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.primary,
+    elevation: 3,
+  },
+  micInner: {
+    minHeight: tapMin,
+    paddingHorizontal: space.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: space.lg,
   },
   micActive: { backgroundColor: colors.tertiaryContainer },
-  micLabel: { color: colors.onPrimaryContainer },
+  micLabel: { color: colors.onPrimary },
+  micLabelActive: { color: colors.onTertiaryContainer },
 });

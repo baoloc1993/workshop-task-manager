@@ -91,15 +91,18 @@ export function IssueQrScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
-      <Text variant="titleLarge" style={styles.title}>
-        Cho người mới vào app
-      </Text>
+    // Banner bám mép trên, không cuộn theo (DESIGN-SYSTEM.md §4 — cùng lý do sửa ở
+    // CreateTaskScreen.tsx, dogfood pha I vòng 2 kiểm thử).
+    <View style={styles.outer}>
       {error && (
         <Banner visible icon="alert-circle" style={styles.banner}>
           {error}
         </Banner>
       )}
+      <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+      <Text variant="titleLarge" style={styles.title}>
+        Cho người mới vào app
+      </Text>
       {unpaired && unpaired.length === 0 ? (
         <Text variant="bodyLarge" style={styles.emptyText}>
           Mọi người đã ghép máy.
@@ -111,14 +114,16 @@ export function IssueQrScreen() {
           ))}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outer: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1, backgroundColor: colors.surface },
   title: { marginBottom: space.md, textAlign: 'center' },
-  banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
+  banner: { backgroundColor: colors.errorContainer },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   list: { backgroundColor: colors.surfaceContainer, borderRadius: 12 },
   // dogfood pha I: List.Item mặc định ~49.5dp, dưới ngân sách

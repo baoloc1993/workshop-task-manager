@@ -59,6 +59,7 @@ export function ScanQrScreen() {
         maxLength={6}
         style={styles.manualInput}
         placeholder="000000"
+        placeholderTextColor={colors.outline}
       />
       <Button
         mode="contained"
@@ -78,7 +79,7 @@ export function ScanQrScreen() {
         <Text variant="bodyLarge" style={styles.text}>
           Cần quyền camera để quét mã.
         </Text>
-        <Button mode="contained" onPress={requestPermission} contentStyle={{ height: 64 }}>
+        <Button mode="outlined" onPress={requestPermission} contentStyle={{ height: 64 }}>
           Cho phép dùng camera
         </Button>
         {manualEntry}

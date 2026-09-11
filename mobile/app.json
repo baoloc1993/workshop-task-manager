@@ -7,7 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Ứng dụng cần quyền nhận dạng giọng nói để tách câu giao việc thành các trường.",
+        "NSMicrophoneUsageDescription": "Ứng dụng cần micro để nghe câu giao việc bằng giọng nói."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,7 +20,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.workshopapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,7 +36,9 @@
         {
           "microphonePermission": "Ứng dụng cần micro để nghe câu giao việc bằng giọng nói.",
           "speechRecognitionPermission": "Ứng dụng cần quyền nhận dạng giọng nói để tách câu giao việc thành các trường.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ]

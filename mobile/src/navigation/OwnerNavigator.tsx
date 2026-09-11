@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useEffect, useRef, useState } from 'react';
+import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { HeaderBackButton } from './HeaderBackButton';
 import { CreateTaskScreen, type CreateTaskPrefill } from '../screens/CreateTaskScreen';
 import { DevicesScreen } from '../screens/DevicesScreen';
 import { IssueQrScreen } from '../screens/IssueQrScreen';
@@ -16,6 +17,39 @@ export type OwnerStackParamList = {
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
 
+// Chặn bấm 2 nút điều hướng khác nhau trong tích tắc (dogfood pha I vòng 2,
+// kiểm thử): cả hai đều navigate trước khi màn đầu kịp rời đi, đẩy chồng 2 màn
+// vào stack, Back phải bấm 2 lần mới đúng. Khoá ngay khi có một lượt điều hướng đang
+// chạy, tự mở lại khi Home lấy lại focus (quay về từ màn con — Back hoặc "Giao việc" xong).
+function HomeRoute({
+  navigation,
+  onCreateTask,
+}: {
+  navigation: NativeStackNavigationProp<OwnerStackParamList, 'Home'>;
+  onCreateTask: () => void;
+}) {
+  const navigatingRef = useRef(false);
+
+  useEffect(() => navigation.addListener('focus', () => {
+    navigatingRef.current = false;
+  }), [navigation]);
+
+  function goOnce(fn: () => void) {
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+    fn();
+  }
+
+  return (
+    <OwnerHomeScreen
+      onCreateTask={() => goOnce(onCreateTask)}
+      onVoiceCapture={() => goOnce(() => navigation.navigate('VoiceCapture'))}
+      onIssueQr={() => goOnce(() => navigation.navigate('IssueQr'))}
+      onDevices={() => goOnce(() => navigation.navigate('Devices'))}
+    />
+  );
+}
+
 // Vai owner (P-1) — lối tới capability đã giao (xem OwnerHomeScreen). CreateTask nhận
 // prefill từ VoiceCapture qua state của navigator (không đi qua route params vì phải
 // mang cả object ParsedUtterance, không chỉ chuỗi).
@@ -23,17 +57,17 @@ export function OwnerNavigator() {
   const [prefill, setPrefill] = useState<CreateTaskPrefill | undefined>(undefined);
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{ headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined) }}
+    >
       <Stack.Screen name="Home" options={{ title: 'Chủ xưởng' }}>
         {({ navigation }) => (
-          <OwnerHomeScreen
+          <HomeRoute
+            navigation={navigation}
             onCreateTask={() => {
               setPrefill(undefined);
               navigation.navigate('CreateTask');
             }}
-            onVoiceCapture={() => navigation.navigate('VoiceCapture')}
-            onIssueQr={() => navigation.navigate('IssueQr')}
-            onDevices={() => navigation.navigate('Devices')}
           />
         )}
       </Stack.Screen>

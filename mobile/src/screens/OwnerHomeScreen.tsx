@@ -27,10 +27,10 @@ export function OwnerHomeScreen({
       <Button mode="outlined" onPress={onCreateTask} style={styles.button} contentStyle={{ height: 64 }}>
         Gõ tay
       </Button>
-      <Button mode="contained-tonal" onPress={onIssueQr} style={styles.button} contentStyle={{ height: 64 }}>
+      <Button mode="outlined" onPress={onIssueQr} style={styles.button} contentStyle={{ height: 64 }}>
         Cho người mới vào app
       </Button>
-      <Button mode="contained-tonal" onPress={onDevices} style={styles.button} contentStyle={{ height: 64 }}>
+      <Button mode="outlined" onPress={onDevices} style={styles.button} contentStyle={{ height: 64 }}>
         Máy của thợ
       </Button>
     </View>

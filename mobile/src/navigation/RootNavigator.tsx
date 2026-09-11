@@ -25,6 +25,9 @@ function EntryScreen() {
       <Button mode="contained" onPress={() => setMode('scan')} style={styles.button} contentStyle={{ height: 64 }}>
         Quét mã để vào app
       </Button>
+      <Text variant="bodyMedium" style={styles.hint}>
+        Nhờ chủ xưởng đưa mã hoặc đọc mã 6 số cho bạn
+      </Text>
       <Button mode="outlined" onPress={() => setMode('owner')} style={styles.button} contentStyle={{ height: 64 }}>
         Tôi là chủ xưởng
       </Button>
@@ -52,4 +55,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: space.md, gap: space.md, backgroundColor: colors.surface },
   title: { marginBottom: space.lg, textAlign: 'center' },
   button: { borderRadius: 999 },
+  hint: { textAlign: 'center', color: colors.onSurfaceVariant, marginTop: -space.sm },
 });
