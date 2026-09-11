@@ -15,6 +15,12 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  // dogfood pha I vòng 3: danh sách sắp xếp lại NGAY sau khi action
+  // thành công — bấm nhanh liên tiếp ở đúng một vị trí có thể trúng MỘT VIỆC KHÁC vừa
+  // trồi lên đúng chỗ đó (ví dụ: request 1 xong rất nhanh, việc mới lên đầu, cú bấm phản
+  // xạ thứ 2 tưởng bấm lại việc cũ hoá ra kích hoạt nhầm việc mới). `locked` khoá nút
+  // thêm một nhịp ngắn SAU khi request xong, không chỉ trong lúc đang gửi.
+  const [locked, setLocked] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -56,7 +62,8 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
 
   async function handleAction(task: Task) {
     const action = nextAction(task.status);
-    if (!action || submittingId) return; // đang gửi — khoá, chống bấm hai lần (ARCHITECTURE.md §6)
+    if (!action || locked) return; // đang gửi hoặc vừa xong — khoá (ARCHITECTURE.md §6 + xem `locked`)
+    setLocked(true);
     setSubmittingId(task.id);
     setActionError(null);
     try {
@@ -66,27 +73,8 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
       setActionError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
     } finally {
       setSubmittingId(null);
+      setTimeout(() => setLocked(false), 500);
     }
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
-          Mất kết nối — đang thử lại
-        </Banner>
-      </View>
-    );
-  }
-
-  if (tasks && tasks.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <Text variant="bodyLarge" style={styles.emptyText}>
-          Hôm nay chưa có việc nào được giao cho bạn.
-        </Text>
-      </View>
-    );
   }
 
   const [first, ...rest] = active;
@@ -94,12 +82,34 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={{ padding: space.md }}
+      contentContainerStyle={{ padding: space.md, flexGrow: 1 }}
       data={rest}
       keyExtractor={(t) => t.id}
+      // dogfood pha I vòng 3: trước đây trạng thái rỗng/lỗi trả về
+      // <View> tĩnh không có RefreshControl — kéo-làm-mới lúc mất mạng không làm gì cả,
+      // im lặng giống hệt "quả thật chưa có việc". Giờ MỌI trạng thái đều nằm trong cùng
+      // một FlatList có RefreshControl nên kéo-làm-mới luôn có tác dụng.
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      // dogfood pha I vòng 3: `data` của FlatList là `rest` (mục
+      // "Tiếp theo"), nên FlatList tự hiện ListEmptyComponent bất cứ khi nào rest rỗng —
+      // kể cả khi vẫn còn `first` ("Làm việc này trước") hoặc `doneToday`. Phải tự kiểm
+      // tra rỗng TOÀN MÀN, không dựa vào rỗng của riêng props `data`.
+      ListEmptyComponent={
+        error || first || doneToday.length > 0 ? null : (
+          <View style={styles.empty}>
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              Hôm nay chưa có việc nào được giao cho bạn.
+            </Text>
+          </View>
+        )
+      }
       ListHeaderComponent={
         <>
+          {error && (
+            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+              Mất kết nối — đang thử lại
+            </Banner>
+          )}
           {actionError && (
             <Banner
               visible
@@ -130,7 +140,7 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
                 mode="contained"
                 onPress={() => handleAction(first)}
                 loading={submittingId === first.id}
-                disabled={submittingId === first.id}
+                disabled={locked}
                 contentStyle={{ height: tapMin }}
                 style={styles.actionButton}
               >
