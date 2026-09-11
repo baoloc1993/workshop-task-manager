@@ -5,13 +5,24 @@ import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
 import { colors, space } from '../theme/tokens';
 
-// S3 — "Xem lại rồi giao", bản gõ tay (PROTOTYPE.md §1; giọng nói là vòng 2).
-// AC-2 (tạo việc) + AC-3 (giao nhiều người một việc).
-export function CreateTaskScreen({ onDone }: { onDone: () => void }) {
-  const [content, setContent] = useState('');
+export interface CreateTaskPrefill {
+  content?: string;
+  dueAt?: string | null; // yyyy-MM-dd
+  assigneeId?: string | null;
+}
+
+// S3 — "Xem lại rồi giao" (PROTOTYPE.md §1). AC-2/AC-3 (gõ tay, vòng 1) +
+// AC-6/AC-7 (từ giọng nói, vòng 2 — nhận prefill qua props, người dùng luôn soát
+// và sửa được trước khi chạm "Giao việc", không có đường phát việc thẳng).
+export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; prefill?: CreateTaskPrefill }) {
+  const [content, setContent] = useState(prefill?.content ?? '');
+  const [dueAt, setDueAt] = useState(prefill?.dueAt ?? '');
   const [workers, setWorkers] = useState<WorkerListItem[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(prefill?.assigneeId ? [prefill.assigneeId] : []),
+  );
   const [error, setError] = useState<string | null>(null);
+  const [dueAtError, setDueAtError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
 
@@ -29,15 +40,28 @@ export function CreateTaskScreen({ onDone }: { onDone: () => void }) {
     });
   }
 
+  function validateDueAt(value: string): string | null {
+    if (!value.trim()) return null; // hạn là tuỳ chọn
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return 'Nhập theo dạng NĂM-THÁNG-NGÀY, ví dụ 2026-09-18.';
+    return null;
+  }
+
   async function handleSubmit() {
-    if (!content.trim() || selected.size === 0) return;
+    const dueErr = validateDueAt(dueAt);
+    setDueAtError(dueErr);
+    if (!content.trim() || selected.size === 0 || dueErr) return;
     setSending(true);
     setError(null);
     try {
-      await api.post('/tasks', { content: content.trim(), assigneeIds: Array.from(selected) });
+      await api.post('/tasks', {
+        content: content.trim(),
+        assigneeIds: Array.from(selected),
+        dueAt: dueAt.trim() ? dueAt.trim() : undefined,
+      });
       const names = workers.filter((w) => selected.has(w.id)).map((w) => w.name).join(', ');
       setBanner(`Đã giao việc cho ${names}. Điện thoại của họ vừa rung.`);
       setContent('');
+      setDueAt('');
       setSelected(new Set());
       // Giữ banner đủ lâu để đọc trước khi quay về home — không cắt ngang
       // ngay lập tức (bug dogfood pha I: quay về home mà không thấy xác nhận gì).
@@ -54,7 +78,7 @@ export function CreateTaskScreen({ onDone }: { onDone: () => void }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
       <Text variant="titleLarge" style={styles.title}>
-        Tạo việc
+        Xem lại rồi giao
       </Text>
       {banner && (
         <Banner visible icon="check-circle" style={styles.successBanner}>
@@ -62,7 +86,7 @@ export function CreateTaskScreen({ onDone }: { onDone: () => void }) {
         </Banner>
       )}
       {error && (
-        <Banner visible icon="alert-circle" style={styles.errorBanner}>
+        <Banner visible icon="alert-circle" style={styles.errorBanner} actions={[{ label: 'Thử lại', onPress: handleSubmit }]}>
           {error}
         </Banner>
       )}
@@ -74,6 +98,23 @@ export function CreateTaskScreen({ onDone }: { onDone: () => void }) {
         multiline
         style={styles.input}
       />
+      <TextInput
+        label="Giao ngày nào (bỏ trống nếu chưa rõ)"
+        mode="outlined"
+        placeholder="2026-09-18"
+        value={dueAt}
+        onChangeText={(v) => {
+          setDueAt(v);
+          if (dueAtError) setDueAtError(null);
+        }}
+        error={!!dueAtError}
+        style={styles.input}
+      />
+      {dueAtError && (
+        <Text variant="bodySmall" style={styles.fieldError}>
+          {dueAtError}
+        </Text>
+      )}
       <Text variant="bodyLarge" style={styles.label}>
         Giao cho
       </Text>
@@ -110,6 +151,7 @@ const styles = StyleSheet.create({
   successBanner: { marginBottom: space.md, backgroundColor: colors.tertiaryContainer },
   errorBanner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   input: { marginBottom: space.md },
+  fieldError: { color: colors.error, marginTop: -space.sm, marginBottom: space.md },
   label: { marginBottom: space.sm },
   list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
   itemSelected: { backgroundColor: colors.primaryContainer },
