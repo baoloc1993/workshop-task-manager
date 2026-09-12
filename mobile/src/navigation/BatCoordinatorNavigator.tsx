@@ -1,11 +1,10 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { IconButton } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { MyTasksScreen } from '../screens/MyTasksScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
-import { tapMin } from '../theme/tokens';
 
 export type BatCoordinatorStackParamList = {
   BatQueue: undefined;
@@ -28,15 +27,10 @@ export function BatCoordinatorNavigator() {
         name="BatQueue"
         options={({ navigation }) => ({
           title: 'Việc bạt chờ chia',
-          headerRight: () => (
-            <IconButton
-              icon="account-check"
-              size={28}
-              accessibilityLabel="Việc của tôi"
-              style={{ margin: 0, width: tapMin, height: tapMin }}
-              onPress={() => navigation.navigate('MyTasks')}
-            />
-          ),
+          // dogfood pha I vòng 4: nút góc trên chỉ có icon, không chữ —
+          // điều phối phải bấm thử mới biết dẫn tới đâu. Đổi sang nút CHỮ, đúng luật §4b
+          // "không dùng icon một mình thay cho chữ" tinh thần chung của cả app.
+          headerRight: () => <Button onPress={() => navigation.navigate('MyTasks')}>Việc của tôi</Button>,
         })}
       >
         {({ navigation }) => (

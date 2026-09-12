@@ -19,11 +19,17 @@ function BatTaskCard({ task, onPress }: { task: Task; onPress: () => void }) {
           </Text>
         )}
         {task.assignees.length > 0 && (
-          <Text variant="bodyLarge" style={styles.due}>
-            Đang giao: {task.assignees.map((a) => a.user.name).join(', ')}
-          </Text>
+          <>
+            <Text variant="bodyLarge" style={styles.due}>
+              Đang giao: {task.assignees.map((a) => a.user.name).join(', ')}
+            </Text>
+            {/* dogfood pha I vòng 4: chip "Chưa nhận" hiện GIỐNG HỆT
+                cho cả việc chưa-giao-ai lẫn việc đã-giao-nhưng-thợ-chưa-bấm-nhận, gây hiểu
+                nhầm "chưa chia" thành "đã chia rồi". Chỉ hiện chip trạng thái khi ĐÃ có
+                người được giao — việc chưa chia thì mục "Chờ bạn chia cho thợ" đã đủ nói. */}
+            <StatusChip task={task} />
+          </>
         )}
-        <StatusChip task={task} />
       </Card.Content>
     </Card>
   );
