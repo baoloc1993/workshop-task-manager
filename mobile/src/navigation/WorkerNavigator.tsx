@@ -1,28 +1,52 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { MyTasksScreen } from '../screens/MyTasksScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 
 export type WorkerStackParamList = {
   MyTasks: undefined;
   TaskDetail: { taskId: string };
+  History: undefined;
 };
 
 const Stack = createNativeStackNavigator<WorkerStackParamList>();
 
-// Vai worker/bat-coordinator (P-2/P-3) — S6 → S7. Vòng 1 chưa có nút trạng thái.
+// Vai worker (P-2) — S6 → S7. CAP-TASK-15 (AC-16, vòng 5): nút góc trên "Đã xong" dẫn tới
+// S16 — cùng cách BatCoordinatorNavigator đã dùng cho "Việc của tôi" (chưa dựng tab đáy C14).
 export function WorkerNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{ headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined) }}
     >
-      <Stack.Screen name="MyTasks" options={{ title: 'Việc của tôi' }}>
+      <Stack.Screen
+        name="MyTasks"
+        options={({ navigation }) => ({
+          title: 'Việc của tôi',
+          // dogfood pha I vòng 5: nút mặc định của react-native-paper
+          // trong header cao ~38dp — dưới cả 44dp MD3 lẫn --tap-min 64px đã chốt riêng cho
+          // app này (DESIGN-SYSTEM.md §2.3). Header bar không đủ chỗ để phóng to nút mà
+          // không vỡ layout, nên mở rộng VÙNG CHẠM (không đổi kích thước nhìn thấy) bằng
+          // hitSlop tới gần 64dp theo chiều cao.
+          headerRight: () => (
+            <Button onPress={() => navigation.navigate('History')} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}>
+              Đã xong
+            </Button>
+          ),
+        })}
+      >
         {({ navigation }) => (
           <MyTasksScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
         )}
       </Stack.Screen>
       <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
+      </Stack.Screen>
+      <Stack.Screen name="History" options={{ title: 'Việc đã xong' }}>
+        {({ navigation }) => (
+          <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );

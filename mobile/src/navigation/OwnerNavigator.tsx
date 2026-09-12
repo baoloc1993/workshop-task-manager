@@ -5,8 +5,11 @@ import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { CreateTaskScreen, type CreateTaskPrefill } from '../screens/CreateTaskScreen';
 import { DevicesScreen } from '../screens/DevicesScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { IssueQrScreen } from '../screens/IssueQrScreen';
 import { OwnerHomeScreen } from '../screens/OwnerHomeScreen';
+import { PriorityScreen } from '../screens/PriorityScreen';
+import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 import { VoiceCaptureScreen } from '../screens/VoiceCaptureScreen';
 
 export type OwnerStackParamList = {
@@ -17,6 +20,9 @@ export type OwnerStackParamList = {
   Devices: undefined;
   BatQueue: undefined;
   AssignBatWorkers: { taskId: string };
+  Priority: undefined;
+  History: undefined;
+  TaskDetail: { taskId: string };
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -46,11 +52,14 @@ function HomeRoute({
 
   return (
     <OwnerHomeScreen
+      onOpenTask={(taskId) => goOnce(() => navigation.navigate('TaskDetail', { taskId }))}
       onCreateTask={() => goOnce(onCreateTask)}
       onVoiceCapture={() => goOnce(() => navigation.navigate('VoiceCapture'))}
+      onPriority={() => goOnce(() => navigation.navigate('Priority'))}
       onIssueQr={() => goOnce(() => navigation.navigate('IssueQr'))}
       onDevices={() => goOnce(() => navigation.navigate('Devices'))}
       onBatQueue={() => goOnce(() => navigation.navigate('BatQueue'))}
+      onHistory={() => goOnce(() => navigation.navigate('History'))}
     />
   );
 }
@@ -122,6 +131,15 @@ export function OwnerNavigator() {
         {({ navigation, route }) => (
           <AssignBatWorkersScreen taskId={route.params.taskId} onDone={() => navigation.goBack()} />
         )}
+      </Stack.Screen>
+      <Stack.Screen name="Priority" options={{ title: 'Việc nào làm trước' }} component={PriorityScreen} />
+      <Stack.Screen name="History" options={{ title: 'Việc đã xong' }}>
+        {({ navigation }) => (
+          <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
+        {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

@@ -58,6 +58,39 @@ export function isDoneToday(task: Task): boolean {
   return new Date(doneAt).toDateString() === new Date().toDateString();
 }
 
+const STALE_HOURS = 24;
+
+// "Đứng yên" (S1, AC-15) — DECISIONS.md vòng 5: việc `acked`/`in_progress` mà ≥24 giờ
+// không có TaskEvent mới nào ghi thêm kể từ mốc gần nhất. Việc `new` (chưa ai nhận) không
+// tính "đứng yên" — nó thuộc nhóm "chưa ai nhận" riêng, dù chờ bao lâu.
+export function isStale(task: Pick<Task, 'status' | 'events'>): boolean {
+  if (task.status !== 'acked' && task.status !== 'in_progress') return false;
+  const lastEventAt = task.events.reduce<number>(
+    (max, e) => Math.max(max, new Date(e.at).getTime()),
+    0,
+  );
+  if (lastEventAt === 0) return false;
+  return Date.now() - lastEventAt >= STALE_HOURS * 60 * 60 * 1000;
+}
+
+export type TaskBucket = 'overdueOrStale' | 'inProgress' | 'unassigned';
+
+// S1 "Cả xưởng hôm nay" (AC-15) — bốn nhóm của PROTOTYPE.md §1, ba nhóm đầu cho việc chưa
+// xong (nhóm thứ tư "đã xong hôm nay" dùng isDoneToday() sẵn có, tách riêng ở màn hình).
+// Thuần tính từ dữ liệu Task/TaskEvent đã có (ARCHITECTURE.md §8 — "thuần trình bày").
+export function taskBucket(task: Task): TaskBucket {
+  if (isOverdue(task) || isStale(task)) return 'overdueOrStale';
+  if (task.status === 'new') return 'unassigned';
+  return 'inProgress';
+}
+
+// §4b luật chữ nghĩa — S1/S16 hiện mảng của việc bằng chữ, không lộ tên trường kỹ thuật.
+const LINE_LABEL: Record<Task['line'], string> = { may_va: 'May vá', bat: 'Bạt' };
+
+export function lineLabel(line: Task['line']): string {
+  return LINE_LABEL[line];
+}
+
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 }

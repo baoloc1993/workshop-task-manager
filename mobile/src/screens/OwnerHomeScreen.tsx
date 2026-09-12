@@ -1,49 +1,167 @@
-import { StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
-import { colors, space } from '../theme/tokens';
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { SectionList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Banner, Button, Card, Text } from 'react-native-paper';
+import { api } from '../api/client';
+import type { Task } from '../api/types';
+import { colors, space, tapMin } from '../theme/tokens';
+import { StatusChip } from '../tasks/StatusChip';
+import { isDoneToday, lineLabel, taskBucket } from '../tasks/taskStatus';
 
-// Màn tạm thay S1 (Tổng hợp xưởng, vòng 5) — lối tới các capability đã giao.
-// Xem context/DECISIONS.md 2026-09-10. Vòng 2: nói để giao việc là đường CHÍNH
-// (PRD.md §5 "Bắt buộc gõ tay để tạo việc" — cấm), gõ tay chỉ còn là đường dự phòng.
+// S1 — "Cả xưởng hôm nay" (CAP-TASK-08, AC-15). Đúng bốn nhóm của PROTOTYPE.md §1: quá
+// hạn/đứng yên → đang làm → chưa ai nhận → đã xong hôm nay (gấp lại cuối màn). Dữ liệu từ
+// GET /tasks (owner-only), gom nhóm bằng hàm thuần taskBucket() (DECISIONS.md vòng 5).
+function OverviewCard({ task, onPress }: { task: Task; onPress: () => void }) {
+  const who = task.assignees.length > 0 ? task.assignees.map((a) => a.user.name).join(', ') : 'Chưa ai nhận';
+  return (
+    <Card style={styles.card} onPress={onPress}>
+      <Card.Content style={{ gap: space.xs }}>
+        <Text variant="titleLarge" numberOfLines={2}>
+          {task.content}
+        </Text>
+        <Text variant="bodyLarge" style={styles.who}>
+          {who} · {lineLabel(task.line)}
+          {task.dueAt ? ` · hạn ${new Date(task.dueAt).toLocaleDateString('vi-VN')}` : ''}
+        </Text>
+        <StatusChip task={task} />
+      </Card.Content>
+    </Card>
+  );
+}
+
 export function OwnerHomeScreen({
+  onOpenTask,
   onCreateTask,
   onVoiceCapture,
+  onPriority,
   onIssueQr,
   onDevices,
   onBatQueue,
+  onHistory,
 }: {
+  onOpenTask: (id: string) => void;
   onCreateTask: () => void;
   onVoiceCapture: () => void;
+  onPriority: () => void;
   onIssueQr: () => void;
   onDevices: () => void;
   onBatQueue: () => void;
+  onHistory: () => void;
 }) {
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [error, setError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.get<Task[]>('/tasks');
+      setTasks(data);
+      setError(false);
+    } catch {
+      setError(true);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
+
+  const sections = useMemo(() => {
+    const list = tasks ?? [];
+    const active = list.filter((t) => t.status !== 'done');
+    const doneToday = list.filter((t) => t.status === 'done' && isDoneToday(t));
+    // filter() giữ nguyên thứ tự đã sắp từ server (priority asc) — không cần sắp lại.
+    const overdueOrStale = active.filter((t) => taskBucket(t) === 'overdueOrStale');
+    const inProgress = active.filter((t) => taskBucket(t) === 'inProgress');
+    const unassigned = active.filter((t) => taskBucket(t) === 'unassigned');
+
+    return [
+      { key: 'late', title: 'Quá hạn hoặc đứng yên', data: overdueOrStale },
+      { key: 'doing', title: 'Đang làm', data: inProgress },
+      { key: 'wait', title: 'Chưa ai nhận', data: unassigned },
+      { key: 'done', title: `Đã xong hôm nay (${doneToday.length})`, data: doneToday },
+    ].filter((s) => s.data.length > 0);
+  }, [tasks]);
+
+  const isEmpty = tasks !== null && tasks.length === 0;
+
   return (
-    <View style={styles.container}>
-      <Text variant="titleLarge" style={styles.title}>
-        Chủ xưởng
-      </Text>
-      <Button mode="contained" onPress={onVoiceCapture} style={styles.button} contentStyle={{ height: 64 }}>
-        🎤 Nói để giao việc
-      </Button>
-      <Button mode="outlined" onPress={onCreateTask} style={styles.button} contentStyle={{ height: 64 }}>
-        Gõ tay
-      </Button>
-      <Button mode="outlined" onPress={onBatQueue} style={styles.button} contentStyle={{ height: 64 }}>
-        Việc bạt chờ chia
-      </Button>
-      <Button mode="outlined" onPress={onIssueQr} style={styles.button} contentStyle={{ height: 64 }}>
-        Cho người mới vào app
-      </Button>
-      <Button mode="outlined" onPress={onDevices} style={styles.button} contentStyle={{ height: 64 }}>
-        Máy của thợ
-      </Button>
-    </View>
+    <SectionList
+      style={styles.container}
+      contentContainerStyle={{ padding: space.md, flexGrow: 1 }}
+      sections={sections}
+      keyExtractor={(t) => t.id}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      stickySectionHeadersEnabled={false}
+      ListEmptyComponent={
+        error || !isEmpty ? null : (
+          <View style={styles.empty}>
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              Chưa có việc nào. Chạm nút micro và nói câu đầu tiên.
+            </Text>
+          </View>
+        )
+      }
+      ListHeaderComponent={
+        <>
+          {error && (
+            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+              Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.
+            </Banner>
+          )}
+          <Button mode="contained" onPress={onVoiceCapture} style={styles.button} contentStyle={{ height: tapMin }}>
+            🎤 Nói để giao việc
+          </Button>
+          <Button mode="outlined" onPress={onCreateTask} style={styles.button} contentStyle={{ height: tapMin }}>
+            Gõ tay
+          </Button>
+        </>
+      }
+      renderSectionHeader={({ section }) => (
+        <Text variant="labelLarge" style={[styles.sec, section.key === 'done' && styles.secOk]}>
+          {section.title}
+        </Text>
+      )}
+      renderItem={({ item }) => <OverviewCard task={item} onPress={() => onOpenTask(item.id)} />}
+      ListFooterComponent={
+        <View style={{ gap: space.md, marginTop: space.md }}>
+          <Button mode="outlined" onPress={onPriority} style={styles.button} contentStyle={{ height: tapMin }}>
+            Việc nào làm trước
+          </Button>
+          <Button mode="outlined" onPress={onBatQueue} style={styles.button} contentStyle={{ height: tapMin }}>
+            Việc bạt chờ chia
+          </Button>
+          <Button mode="outlined" onPress={onIssueQr} style={styles.button} contentStyle={{ height: tapMin }}>
+            Cho người mới vào app
+          </Button>
+          <Button mode="outlined" onPress={onDevices} style={styles.button} contentStyle={{ height: tapMin }}>
+            Máy của thợ
+          </Button>
+          <Button mode="outlined" onPress={onHistory} style={styles.button} contentStyle={{ height: tapMin }}>
+            Việc đã xong
+          </Button>
+        </View>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: space.md, gap: space.md, backgroundColor: colors.surface },
-  title: { marginBottom: space.md, textAlign: 'center' },
+  container: { flex: 1, backgroundColor: colors.surface },
+  banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
+  emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
+  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  who: { color: colors.onSurfaceVariant },
+  sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
+  secOk: { color: colors.tertiary },
   button: { borderRadius: 999 },
 });

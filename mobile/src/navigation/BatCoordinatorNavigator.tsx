@@ -3,6 +3,7 @@ import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { MyTasksScreen } from '../screens/MyTasksScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 
@@ -11,6 +12,7 @@ export type BatCoordinatorStackParamList = {
   AssignBatWorkers: { taskId: string };
   MyTasks: undefined;
   TaskDetail: { taskId: string };
+  History: undefined;
 };
 
 const Stack = createNativeStackNavigator<BatCoordinatorStackParamList>();
@@ -42,13 +44,30 @@ export function BatCoordinatorNavigator() {
           <AssignBatWorkersScreen taskId={route.params.taskId} onDone={() => navigation.goBack()} />
         )}
       </Stack.Screen>
-      <Stack.Screen name="MyTasks" options={{ title: 'Việc của tôi' }}>
+      <Stack.Screen
+        name="MyTasks"
+        options={({ navigation }) => ({
+          title: 'Việc của tôi',
+          // dogfood pha I vòng 5 — xem WorkerNavigator.tsx: nút header
+          // mặc định ~38dp cao, dưới --tap-min 64px; mở rộng vùng chạm bằng hitSlop.
+          headerRight: () => (
+            <Button onPress={() => navigation.navigate('History')} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}>
+              Đã xong
+            </Button>
+          ),
+        })}
+      >
         {({ navigation }) => (
           <MyTasksScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
         )}
       </Stack.Screen>
       <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
+      </Stack.Screen>
+      <Stack.Screen name="History" options={{ title: 'Việc đã xong' }}>
+        {({ navigation }) => (
+          <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );
