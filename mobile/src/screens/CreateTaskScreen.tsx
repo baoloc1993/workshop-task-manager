@@ -220,6 +220,7 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
             value={measurements}
             onChangeText={setMeasurements}
             placeholder="Nhập số đo"
+            multiline
             underlineColor="transparent"
             activeUnderlineColor="transparent"
             style={styles.measureInput}
