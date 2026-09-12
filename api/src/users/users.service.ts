@@ -25,4 +25,25 @@ export class UsersService {
       orderBy: { name: 'asc' },
     });
   }
+
+  // S10 (CAP-TASK-06, vòng 4) — danh sách thợ bạt đang hoạt động để điều phối/chủ xưởng chọn
+  // giao, kèm "đang giữ mấy việc" (PROTOTYPE.md §1 S10, thông tin bắt buộc). `select` riêng
+  // (không dùng lại listAll) vì điều phối được gọi endpoint này — không lộ email/password hash
+  // của owner qua một đường vòng.
+  async listActiveBatWorkers() {
+    const workers = await this.prisma.user.findMany({
+      where: { role: 'worker', line: 'bat', active: true },
+      select: { id: true, name: true, role: true, line: true },
+      orderBy: { name: 'asc' },
+    });
+    if (workers.length === 0) return [];
+
+    const counts = await this.prisma.taskAssignee.groupBy({
+      by: ['userId'],
+      where: { userId: { in: workers.map((w) => w.id) }, task: { status: { not: 'done' }, deletedAt: null } },
+      _count: { _all: true },
+    });
+    const countByUserId = new Map(counts.map((c) => [c.userId, c._count._all]));
+    return workers.map((w) => ({ ...w, activeTaskCount: countByUserId.get(w.id) ?? 0 }));
+  }
 }

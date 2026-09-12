@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { AssignTaskDto } from './dto/assign-task.dto.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { TasksService } from './tasks.service.js';
 
@@ -19,6 +20,14 @@ export class TasksController {
   @Get('mine')
   mine(@CurrentUser() user: AuthUser) {
     return this.tasks.findMine(user);
+  }
+
+  // CAP-TASK-06 (AC-13) — S9 "Việc bạt chờ chia". Đăng ký TRƯỚC ':id' bên dưới để
+  // "bat-queue" không bị nuốt làm tham số id.
+  @Roles('owner', 'bat_coordinator')
+  @Get('bat-queue')
+  batQueue() {
+    return this.tasks.findBatQueue();
   }
 
   // Không @Roles ở đây: mọi vai đã đăng nhập gọi được, nhưng service tự lọc
@@ -46,5 +55,13 @@ export class TasksController {
   @Patch(':id/done')
   done(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.tasks.advance(user, id, 'done');
+  }
+
+  // CAP-TASK-06 (AC-13) — S10 "Chọn thợ để giao". PERSONAS.md §2: worker không được gọi
+  // (kể cả cho việc mảng bạt của chính mình) — chặn ở đây, không chỉ ẩn nút trên app.
+  @Roles('owner', 'bat_coordinator')
+  @Post(':id/assign')
+  assign(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: AssignTaskDto) {
+    return this.tasks.assign(user, id, dto);
   }
 }

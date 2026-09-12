@@ -3,6 +3,7 @@ import { Prisma, TaskEventKind, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
+import { AssignTaskDto } from './dto/assign-task.dto.js';
 
 const TASK_INCLUDE = {
   assignees: { include: { user: true } },
@@ -28,27 +29,85 @@ export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
   // AC-2 + AC-3 — tạo việc bằng tay, giao đích danh cho một hoặc nhiều người.
+  // AC-12/AC-13 (vòng 4) — mảng bạt (`line='bat'`) mang số đo và LUÔN tạo không có
+  // assignee, rơi vào "Việc bạt chờ chia" (S9) tới khi được giao qua assign() bên dưới.
   async create(owner: AuthUser, dto: CreateTaskDto) {
+    const line = dto.line ?? 'may_va';
+    const assigneeIds = line === 'bat' ? [] : (dto.assigneeIds ?? []);
+
+    if (line === 'may_va' && assigneeIds.length === 0) {
+      throw new BadRequestException('Việc mảng may vá phải giao cho ít nhất một người');
+    }
+
     // dogfood pha I: assigneeIds chứa id không tồn tại rơi thẳng
     // xuống ràng buộc khoá ngoại của Postgres → lộ 500 thay vì lỗi tử tế cho client.
-    const foundCount = await this.prisma.user.count({ where: { id: { in: dto.assigneeIds } } });
-    if (foundCount !== dto.assigneeIds.length) {
-      throw new BadRequestException('Có người trong danh sách giao việc không tồn tại');
+    if (assigneeIds.length > 0) {
+      const foundCount = await this.prisma.user.count({ where: { id: { in: assigneeIds } } });
+      if (foundCount !== assigneeIds.length) {
+        throw new BadRequestException('Có người trong danh sách giao việc không tồn tại');
+      }
     }
 
     return this.prisma.task.create({
       data: {
         content: dto.content,
-        line: 'may_va', // CAP-TASK-06 (mảng bạt) là vòng 4 — xem DECISIONS.md 2026-09-10
+        line,
+        // ARCHITECTURE.md §6: "measurements chỉ dùng cho line = bat" — bỏ qua nếu client
+        // lỡ gửi số đo cho việc may vá.
+        measurements: line === 'bat' ? dto.measurements?.trim() || null : null,
         dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
         source: 'manual',
         createdById: owner.userId,
-        assignees: {
-          create: dto.assigneeIds.map((userId) => ({ userId, assignedById: owner.userId })),
-        },
+        assignees: assigneeIds.length
+          ? { create: assigneeIds.map((userId) => ({ userId, assignedById: owner.userId })) }
+          : undefined,
       },
       include: TASK_INCLUDE,
     });
+  }
+
+  // CAP-TASK-06 (AC-13) — S9 "Việc bạt chờ chia": TOÀN BỘ việc mảng bạt còn hiệu lực, cả
+  // chưa chia lẫn đã chia trong nhóm (PROTOTYPE.md §1 S9 — client tự tách hai mục theo
+  // assignees.length). PERSONAS.md §2 giới hạn ai gọi được ở @Roles trong controller.
+  findBatQueue() {
+    return this.prisma.task.findMany({
+      where: { deletedAt: null, line: 'bat' },
+      orderBy: [{ priority: 'asc' }, { dueAt: 'asc' }, { createdAt: 'asc' }],
+      include: TASK_INCLUDE,
+    });
+  }
+
+  // CAP-TASK-06 (AC-13) — S10 "Chọn thợ để giao": owner|bat_coordinator chọn 1..n thợ bạt
+  // ĐANG HOẠT ĐỘNG cho một việc mảng bạt. Chưa từng có DECISIONS.md nào chốt việc chia lại
+  // một việc bạt đã có người đụng vào (ack/bắt đầu) — quyết ở đây: cho phép, GHI ĐÈ toàn bộ
+  // tập assignee cũ bằng lựa chọn mới nhất, không cộng dồn (đúng tinh thần ARCHITECTURE.md
+  // §6 "Sửa đồng thời": không khoá, bản ghi sau thắng). `status`/`TaskEvent` của người bị
+  // gỡ vẫn giữ nguyên (không xoá cứng) — quy mô xưởng nhỏ, tần suất ca này thấp, và đây không
+  // phải AC nào của vòng 4 nên không xây thêm hàng rào cho một tình huống chưa ai xác nhận
+  // cần. Xem context/DECISIONS.md (vòng 4).
+  async assign(user: AuthUser, id: string, dto: AssignTaskDto) {
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task || task.deletedAt) throw new NotFoundException('Không tìm thấy việc này');
+    if (task.line !== 'bat') {
+      throw new BadRequestException('Chỉ chia được việc mảng bạt qua đây');
+    }
+
+    const workers = await this.prisma.user.findMany({
+      where: { id: { in: dto.userIds }, role: 'worker', line: 'bat', active: true },
+      select: { id: true },
+    });
+    if (workers.length !== dto.userIds.length) {
+      throw new BadRequestException('Có thợ trong danh sách không hợp lệ (không phải thợ bạt đang hoạt động)');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.taskAssignee.deleteMany({ where: { taskId: id } }),
+      this.prisma.taskAssignee.createMany({
+        data: dto.userIds.map((userId) => ({ taskId: id, userId, assignedById: user.userId })),
+      }),
+    ]);
+
+    return this.prisma.task.findUnique({ where: { id }, include: TASK_INCLUDE });
   }
 
   // AC-4 — S6 "Việc của tôi": chỉ việc của chính người gọi, không qua tham số lọc nào

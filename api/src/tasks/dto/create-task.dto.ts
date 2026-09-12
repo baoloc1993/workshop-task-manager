@@ -1,8 +1,8 @@
 import { Transform } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsArray,
   IsDateString,
+  IsEnum,
   IsOptional,
   IsString,
   IsUUID,
@@ -11,6 +11,7 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
+import { Line } from '@prisma/client';
 
 // dogfood pha I: dueAt quá khứ không bị PRD cấm rõ, nhưng chủ xưởng
 // tạo việc mới với hạn đã qua chỉ có thể là gõ nhầm — chặn sớm rẻ hơn để lọt rồi phát hiện
@@ -51,10 +52,26 @@ export class CreateTaskDto {
   @IsNotPastDate()
   dueAt?: string;
 
-  // Vòng 1 chỉ giao đích danh (CAP-TASK-04) — luôn phải có ít nhất một người nhận.
-  // Hàng đợi nhóm bạt (giao không cần assignee ngay) là CAP-TASK-06, vòng 4.
+  // CAP-TASK-06 (vòng 4) — bỏ trống nghĩa là 'may_va' (tương thích ngược với vòng 1-3,
+  // client cũ không gửi field này).
+  @IsOptional()
+  @IsEnum(Line)
+  line?: Line;
+
+  // CAP-TASK-05 (vòng 4) — chỉ có ý nghĩa khi line='bat'; service bỏ qua nếu line='may_va'
+  // (ARCHITECTURE.md §6: "measurements chỉ dùng cho line = bat").
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @MaxLength(200)
+  measurements?: string;
+
+  // Vòng 1: giao đích danh (CAP-TASK-04) — bắt buộc ≥1 người, kiểm ở service vì đó là luật
+  // theo TỪNG mảng (line), không phải luật của riêng field này. Việc mảng bạt (CAP-TASK-06,
+  // vòng 4) luôn tạo KHÔNG có assignee — nằm ở "Việc bạt chờ chia" tới khi được giao qua
+  // POST /tasks/:id/assign, nên assigneeIds gửi kèm (nếu có) bị bỏ qua ở service.
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @IsUUID('all', { each: true })
-  assigneeIds: string[];
+  assigneeIds?: string[];
 }
