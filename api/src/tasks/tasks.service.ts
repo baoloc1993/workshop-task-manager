@@ -127,7 +127,13 @@ export class TasksService {
 
     const isOwner = user.role === 'owner';
     const isAssignee = task.assignees.some((a) => a.userId === user.userId);
-    if (!isOwner && !isAssignee) {
+    // CAP-TASK-06 (vòng 4) — PERSONAS.md §2 "Xem việc của người khác": bat_coordinator được
+    // xem MỌI việc mảng bạt (không chỉ việc của chính mình), kể cả chưa/không phải người
+    // được giao — đây là điều kiện để mở S10 "Chọn thợ để giao" từ S9. Bug thật: thiếu
+    // dòng này khiến điều phối bị 403 ngay khi mở bất kỳ việc bạt nào không phải của mình
+    // (dogfood pha I vòng 4).
+    const isBatCoordinatorOnBatTask = user.role === 'bat_coordinator' && task.line === 'bat';
+    if (!isOwner && !isAssignee && !isBatCoordinatorOnBatTask) {
       throw new ForbiddenException('Không được xem việc của người khác');
     }
     return task;
