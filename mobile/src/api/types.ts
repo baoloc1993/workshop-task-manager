@@ -20,6 +20,12 @@ export interface WorkerListItem {
   line: 'may_va' | 'bat' | null;
 }
 
+// S10 (CAP-TASK-06, vòng 4) — GET /users/bat-workers: "danh sách thợ bạt (ai đang cầm
+// mấy việc)" là thông tin bắt buộc của màn này (PROTOTYPE.md §1 S10).
+export interface BatWorkerItem extends WorkerListItem {
+  activeTaskCount: number;
+}
+
 export interface CreatePairingResponse {
   pairingId: string;
   code: string;

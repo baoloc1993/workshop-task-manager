@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HeaderBackButton } from './HeaderBackButton';
+import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
+import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { CreateTaskScreen, type CreateTaskPrefill } from '../screens/CreateTaskScreen';
 import { DevicesScreen } from '../screens/DevicesScreen';
 import { IssueQrScreen } from '../screens/IssueQrScreen';
@@ -13,6 +15,8 @@ export type OwnerStackParamList = {
   CreateTask: undefined;
   IssueQr: undefined;
   Devices: undefined;
+  BatQueue: undefined;
+  AssignBatWorkers: { taskId: string };
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -46,6 +50,7 @@ function HomeRoute({
       onVoiceCapture={() => goOnce(() => navigation.navigate('VoiceCapture'))}
       onIssueQr={() => goOnce(() => navigation.navigate('IssueQr'))}
       onDevices={() => goOnce(() => navigation.navigate('Devices'))}
+      onBatQueue={() => goOnce(() => navigation.navigate('BatQueue'))}
     />
   );
 }
@@ -79,6 +84,8 @@ export function OwnerNavigator() {
                 content: result.content,
                 dueAt: result.dueAt,
                 assigneeId: result.assigneeId,
+                line: result.line,
+                measurements: result.measurements,
               });
               // replace, không navigate: Xong ở CreateTask phải quay thẳng về Home,
               // không lùi lại màn nghe giọng nói đã kết thúc.
@@ -105,6 +112,16 @@ export function OwnerNavigator() {
       <Stack.Screen name="IssueQr" options={{ title: 'Cho người mới vào app' }} component={IssueQrScreen} />
       <Stack.Screen name="Devices" options={{ title: 'Máy của thợ' }}>
         {({ navigation }) => <DevicesScreen onIssueNew={() => navigation.navigate('IssueQr')} />}
+      </Stack.Screen>
+      <Stack.Screen name="BatQueue" options={{ title: 'Việc bạt chờ chia' }}>
+        {({ navigation }) => (
+          <BatQueueScreen onOpenTask={(taskId) => navigation.navigate('AssignBatWorkers', { taskId })} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="AssignBatWorkers" options={{ title: 'Chọn thợ để giao' }}>
+        {({ navigation, route }) => (
+          <AssignBatWorkersScreen taskId={route.params.taskId} onDone={() => navigation.goBack()} />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );

@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { OwnerLoginScreen } from '../screens/OwnerLoginScreen';
 import { ScanQrScreen } from '../screens/ScanQrScreen';
+import { BatCoordinatorNavigator } from './BatCoordinatorNavigator';
 import { OwnerNavigator } from './OwnerNavigator';
 import { WorkerNavigator } from './WorkerNavigator';
 import { colors, space } from '../theme/tokens';
@@ -44,6 +45,8 @@ export function RootNavigator() {
         <EntryScreen />
       ) : user.role === 'owner' ? (
         <OwnerNavigator />
+      ) : user.role === 'bat_coordinator' ? (
+        <BatCoordinatorNavigator />
       ) : (
         <WorkerNavigator />
       )}

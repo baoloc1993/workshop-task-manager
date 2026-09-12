@@ -2,9 +2,11 @@
 // luôn trả về S3 để người soát"). Rule-based, chạy trên máy, không gọi dịch vụ ngoài —
 // khớp quyết định "on-device, không LLM" (DECISIONS.md, vòng 2).
 //
-// Phạm vi vòng 2: chỉ giao đích danh mảng may vá (line=may_va), khớp CreateTaskScreen
-// hiện tại. Số đo / mảng bạt (CAP-TASK-05/06) chờ vòng 4 — parser không tách riêng số đo,
-// để nguyên trong content nếu người dùng lỡ nói (DECISIONS.md, vòng 2).
+// Vòng 4 (CAP-TASK-05/06, AC-12/AC-13): nghe thấy từ "bạt" → line='bat', không tìm người
+// nhận trong câu (mảng bạt luôn vào "Việc bạt chờ chia", không giao đích danh qua giọng
+// nói); bắt cụm số + đơn vị đo ("mét"/"m") gần đó làm measurements, GIỮ NGUYÊN dạng thô đã
+// nghe được — không tách number/unit có cấu trúc (DECISIONS.md, vòng 4: không ai đối chiếu
+// tự động, PRD.md §5 đã loại trừ nghiệm thu).
 
 export interface VoiceWorker {
   id: string;
@@ -17,6 +19,8 @@ export interface ParsedUtterance {
   dueAt: string | null; // ISO date (yyyy-MM-dd), không giờ
   content: string;
   rawText: string;
+  line: 'may_va' | 'bat';
+  measurements: string | null;
 }
 
 const WEEKDAY_WORDS: Record<string, number> = {
@@ -89,8 +93,33 @@ function nextWeekday(now: Date, targetDow: number): Date {
   return addDays(now, diff);
 }
 
-/** Bỏ các cụm dẫn ("giao cho", tên đã khớp, cụm hạn đã khớp) khỏi câu để còn lại nội dung việc. */
-function cleanContent(text: string, assigneeName: string | null, dueMatchedPhrase: string | null): string {
+// Số đọc bằng lời (không dấu) — recognizer tiếng Việt hay trả số ở dạng chữ số thật
+// ("4 mét 6") nhưng đôi khi vẫn ra chữ ("bốn mét sáu"); chấp cả hai dạng.
+const NUM = '(?:không|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười|\\d+(?:[.,]\\d+)?)';
+const UNIT = '(?:mét|m)\\b';
+const MEASURE_CHUNK = `${NUM}\\s*${UNIT}(?:\\s*${NUM})?`;
+const MEASURE_RE = new RegExp(`${MEASURE_CHUNK}(?:\\s*(?:x|nhân)\\s*${MEASURE_CHUNK})?`, 'i');
+
+/** Nghe thấy "bạt" → việc mảng bạt; tìm kèm cụm số đo gần đó nếu có, giữ nguyên dạng thô. */
+function findLineAndMeasurements(text: string): {
+  line: 'may_va' | 'bat';
+  measurements: string | null;
+  matchedPhrase: string | null;
+} {
+  if (!/\bbạt\b/i.test(text)) return { line: 'may_va', measurements: null, matchedPhrase: null };
+  const m = text.match(MEASURE_RE);
+  return { line: 'bat', measurements: m ? m[0].trim() : null, matchedPhrase: m ? m[0] : null };
+}
+
+/** Bỏ các cụm dẫn ("giao cho", tên đã khớp, cụm hạn đã khớp, "nhóm bạt", số đo) khỏi câu
+ * để còn lại nội dung việc. */
+function cleanContent(
+  text: string,
+  assigneeName: string | null,
+  dueMatchedPhrase: string | null,
+  line: 'may_va' | 'bat',
+  measureMatchedPhrase: string | null,
+): string {
   let out = text;
   if (assigneeName) {
     const key = lastToken(assigneeName);
@@ -99,6 +128,15 @@ function cleanContent(text: string, assigneeName: string | null, dueMatchedPhras
   }
   if (dueMatchedPhrase) {
     out = out.replace(new RegExp(dueMatchedPhrase, 'i'), '');
+  }
+  if (line === 'bat') {
+    out = out.replace(/\b(?:giao\s+)?cho\s+nhóm\s+bạt\b/i, '');
+    out = out.replace(/\bnhóm\s+bạt\b/i, '');
+    out = out.replace(/\bcho\s+bạt\b/i, '');
+    out = out.replace(/\bbạt\b/i, '');
+  }
+  if (measureMatchedPhrase) {
+    out = out.replace(measureMatchedPhrase, '');
   }
   out = out
     .replace(/[,.]/g, ' ')
@@ -110,9 +148,11 @@ function cleanContent(text: string, assigneeName: string | null, dueMatchedPhras
 
 export function parseUtterance(rawText: string, workers: VoiceWorker[], now: Date = new Date()): ParsedUtterance {
   const text = rawText.trim();
-  const assignee = findAssignee(text, workers);
+  const { line, measurements, matchedPhrase: measureMatch } = findLineAndMeasurements(text);
+  // Mảng bạt luôn vào "Việc bạt chờ chia" (CAP-TASK-06) — không đoán người nhận trong câu nói.
+  const assignee = line === 'bat' ? null : findAssignee(text, workers);
   const due = findDueAt(text, now);
-  const content = cleanContent(text, assignee?.name ?? null, due.matchedPhrase);
+  const content = cleanContent(text, assignee?.name ?? null, due.matchedPhrase, line, measureMatch);
 
   return {
     assigneeId: assignee?.id ?? null,
@@ -120,5 +160,7 @@ export function parseUtterance(rawText: string, workers: VoiceWorker[], now: Dat
     dueAt: due.dueAt,
     content,
     rawText: text,
+    line,
+    measurements,
   };
 }

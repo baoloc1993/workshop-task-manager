@@ -1,0 +1,124 @@
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Banner, Card, Text } from 'react-native-paper';
+import { api } from '../api/client';
+import type { Task } from '../api/types';
+import { colors, fontSize, space } from '../theme/tokens';
+import { StatusChip } from '../tasks/StatusChip';
+
+function BatTaskCard({ task, onPress }: { task: Task; onPress: () => void }) {
+  return (
+    <Card style={styles.card} onPress={onPress}>
+      <Card.Content style={{ gap: space.xs }}>
+        {task.measurements && <Text style={styles.measure}>{task.measurements}</Text>}
+        <Text variant="titleLarge">{task.content}</Text>
+        {task.dueAt && (
+          <Text variant="bodyLarge" style={styles.due}>
+            Hạn: {new Date(task.dueAt).toLocaleDateString('vi-VN')}
+          </Text>
+        )}
+        {task.assignees.length > 0 && (
+          <Text variant="bodyLarge" style={styles.due}>
+            Đang giao: {task.assignees.map((a) => a.user.name).join(', ')}
+          </Text>
+        )}
+        <StatusChip task={task} />
+      </Card.Content>
+    </Card>
+  );
+}
+
+// S9 — "Việc bạt chờ chia" (PROTOTYPE.md §1). CAP-TASK-06 (AC-13): điều phối (hoặc chủ xưởng)
+// thấy việc bạt CHƯA chia trước (kèm số đo), việc ĐÃ chia trong nhóm sau — không lục Zalo.
+export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [error, setError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.get<Task[]>('/tasks/bat-queue');
+      setTasks(data);
+      setError(false);
+    } catch {
+      setError(true);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
+
+  const list = tasks ?? [];
+  const waiting = list.filter((t) => t.assignees.length === 0);
+  const assigned = list.filter((t) => t.assignees.length > 0);
+
+  return (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={{ padding: space.md, flexGrow: 1 }}
+      data={waiting}
+      keyExtractor={(t) => t.id}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      // Rỗng TOÀN MÀN (chưa-chia lẫn đã-chia đều không có gì) — không dựa vào rỗng của
+      // riêng `data` (bài học dogfood pha I vòng 3, MyTasksScreen: DECISIONS.md 2026-09-11).
+      ListEmptyComponent={
+        error || assigned.length > 0 ? null : (
+          <View style={styles.empty}>
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              Chưa có việc bạt nào chờ chia.
+            </Text>
+          </View>
+        )
+      }
+      ListHeaderComponent={
+        <>
+          {error && (
+            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+              Mất kết nối — đang thử lại
+            </Banner>
+          )}
+          {waiting.length > 0 && (
+            <Text variant="labelLarge" style={styles.sec}>
+              Chờ bạn chia cho thợ
+            </Text>
+          )}
+        </>
+      }
+      renderItem={({ item }) => <BatTaskCard task={item} onPress={() => onOpenTask(item.id)} />}
+      ListFooterComponent={
+        assigned.length > 0 ? (
+          <>
+            <Text variant="labelLarge" style={[styles.sec, styles.secOk]}>
+              Đã chia trong nhóm
+            </Text>
+            {assigned.map((item) => (
+              <BatTaskCard key={item.id} task={item} onPress={() => onOpenTask(item.id)} />
+            ))}
+          </>
+        ) : null
+      }
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
+  emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
+  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  measure: { fontSize: fontSize.headline, color: colors.primary, fontWeight: '600' },
+  due: { color: colors.onSurfaceVariant },
+  sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
+  secOk: { color: colors.tertiary },
+});

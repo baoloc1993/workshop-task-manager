@@ -10,11 +10,13 @@ export function OwnerHomeScreen({
   onVoiceCapture,
   onIssueQr,
   onDevices,
+  onBatQueue,
 }: {
   onCreateTask: () => void;
   onVoiceCapture: () => void;
   onIssueQr: () => void;
   onDevices: () => void;
+  onBatQueue: () => void;
 }) {
   return (
     <View style={styles.container}>
@@ -26,6 +28,9 @@ export function OwnerHomeScreen({
       </Button>
       <Button mode="outlined" onPress={onCreateTask} style={styles.button} contentStyle={{ height: 64 }}>
         Gõ tay
+      </Button>
+      <Button mode="outlined" onPress={onBatQueue} style={styles.button} contentStyle={{ height: 64 }}>
+        Việc bạt chờ chia
       </Button>
       <Button mode="outlined" onPress={onIssueQr} style={styles.button} contentStyle={{ height: 64 }}>
         Cho người mới vào app

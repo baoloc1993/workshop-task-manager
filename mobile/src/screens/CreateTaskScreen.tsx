@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Banner, Button, Checkbox, List, Text, TextInput } from 'react-native-paper';
+import { Banner, Button, Checkbox, List, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
-import { colors, space } from '../theme/tokens';
+import { colors, fontSize, space } from '../theme/tokens';
 
 export interface CreateTaskPrefill {
   content?: string;
   dueAt?: string | null; // yyyy-MM-dd
   assigneeId?: string | null;
+  line?: 'may_va' | 'bat'; // CAP-TASK-06 (vòng 4)
+  measurements?: string | null; // CAP-TASK-05 (vòng 4) — chỉ có ý nghĩa khi line='bat'
 }
 
 // Nháp CHƯA GỬI, không phải "việc" — không phạm ARCHITECTURE.md §10 "không lưu việc
@@ -23,6 +25,8 @@ interface Draft {
   content: string;
   dueAt: string;
   assigneeIds: string[];
+  line: 'may_va' | 'bat';
+  measurements: string;
 }
 
 async function loadDraft(): Promise<Draft | null> {
@@ -57,6 +61,8 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
   const [selected, setSelected] = useState<Set<string>>(
     new Set(prefill?.assigneeId ? [prefill.assigneeId] : []),
   );
+  const [line, setLine] = useState<'may_va' | 'bat'>(prefill?.line ?? 'may_va');
+  const [measurements, setMeasurements] = useState(prefill?.measurements ?? '');
   const [error, setError] = useState<string | null>(null);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [dueAtError, setDueAtError] = useState<string | null>(null);
@@ -74,21 +80,23 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
         setContent(draft.content);
         setDueAt(draft.dueAt);
         setSelected(new Set(draft.assigneeIds));
+        setLine(draft.line ?? 'may_va'); // nháp cũ (vòng 1-3) chưa có field này
+        setMeasurements(draft.measurements ?? '');
       }
       draftLoaded.current = true;
     });
   }, []);
 
-  // Lưu nháp mỗi khi đổi nội dung/hạn/người chọn — chỉ sau khi đã khôi phục xong (tránh
-  // ghi đè nháp cũ bằng state rỗng lúc mới mount).
+  // Lưu nháp mỗi khi đổi nội dung/hạn/người chọn/mảng/số đo — chỉ sau khi đã khôi phục xong
+  // (tránh ghi đè nháp cũ bằng state rỗng lúc mới mount).
   useEffect(() => {
     if (!draftLoaded.current) return;
-    if (!content.trim() && !dueAt.trim() && selected.size === 0) {
+    if (!content.trim() && !dueAt.trim() && selected.size === 0 && line === 'may_va' && !measurements.trim()) {
       clearDraft();
       return;
     }
-    saveDraft({ content, dueAt, assigneeIds: Array.from(selected) });
-  }, [content, dueAt, selected]);
+    saveDraft({ content, dueAt, assigneeIds: Array.from(selected), line, measurements });
+  }, [content, dueAt, selected, line, measurements]);
 
   // Danh sách người để chọn giao — dùng chung endpoint /users (owner), lọc mảng may vá bên dưới.
   // Khung xám khi tải (DESIGN-SYSTEM.md §5) giữ đúng chỗ: dogfood pha I vòng 2
@@ -126,20 +134,31 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
   async function handleSubmit() {
     const dueErr = validateDueAt(dueAt);
     setDueAtError(dueErr);
-    if (!content.trim() || selected.size === 0 || dueErr) return;
+    if (!content.trim() || dueErr) return;
+    if (line === 'may_va' && selected.size === 0) return;
     setSending(true);
     setError(null);
     try {
       await api.post('/tasks', {
         content: content.trim(),
-        assigneeIds: Array.from(selected),
         dueAt: dueAt.trim() ? dueAt.trim() : undefined,
+        line,
+        // CAP-TASK-06 (AC-13): việc mảng bạt luôn tạo không có assignee, rơi vào
+        // "Việc bạt chờ chia" tới khi điều phối/chủ xưởng giao qua S10.
+        ...(line === 'bat'
+          ? { measurements: measurements.trim() ? measurements.trim() : undefined }
+          : { assigneeIds: Array.from(selected) }),
       });
-      const names = workers.filter((w) => selected.has(w.id)).map((w) => w.name).join(', ');
-      setBanner(`Đã giao việc cho ${names}. Điện thoại của họ vừa rung.`);
+      setBanner(
+        line === 'bat'
+          ? 'Đã giao việc cho nhóm bạt. Điều phối sẽ chia cho thợ.'
+          : `Đã giao việc cho ${workers.filter((w) => selected.has(w.id)).map((w) => w.name).join(', ')}. Điện thoại của họ vừa rung.`,
+      );
       setContent('');
       setDueAt('');
       setSelected(new Set());
+      setLine('may_va');
+      setMeasurements('');
       // Giữ banner đủ lâu để đọc trước khi quay về home — không cắt ngang
       // ngay lập tức (bug dogfood pha I: quay về home mà không thấy xác nhận gì).
       setTimeout(onDone, 1500);
@@ -176,6 +195,33 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
       <Text variant="titleLarge" style={styles.title}>
         Xem lại rồi giao
       </Text>
+      <Text variant="bodyLarge" style={styles.label}>
+        Mảng
+      </Text>
+      <SegmentedButtons
+        value={line}
+        onValueChange={(v) => setLine(v as 'may_va' | 'bat')}
+        style={styles.input}
+        buttons={[
+          { value: 'may_va', label: 'May vá' },
+          { value: 'bat', label: 'Nhóm bạt' },
+        ]}
+      />
+      {line === 'bat' && (
+        <>
+          <TextInput
+            label="Số đo (vd. 4 mét 6 nhân 6 mét)"
+            mode="outlined"
+            value={measurements}
+            onChangeText={setMeasurements}
+            style={styles.input}
+            contentStyle={styles.measureInput}
+          />
+          <Text variant="bodyMedium" style={styles.hint}>
+            Việc sẽ vào "Việc bạt chờ chia" — điều phối hoặc bạn chọn thợ sau.
+          </Text>
+        </>
+      )}
       <TextInput
         label="Nội dung việc"
         mode="outlined"
@@ -201,29 +247,33 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
           {dueAtError}
         </Text>
       )}
-      <Text variant="bodyLarge" style={styles.label}>
-        Giao cho
-      </Text>
-      <View style={styles.list}>
-        {usersLoading
-          ? [0, 1, 2].map((i) => <View key={i} style={styles.itemSkeleton} />)
-          : mayVaWorkers.map((w) => (
-              <List.Item
-                key={w.id}
-                title={w.name}
-                onPress={() => toggle(w.id)}
-                style={selected.has(w.id) ? styles.itemSelected : undefined}
-                left={() => (
-                  <Checkbox status={selected.has(w.id) ? 'checked' : 'unchecked'} onPress={() => toggle(w.id)} />
-                )}
-              />
-            ))}
-      </View>
+      {line === 'may_va' && (
+        <>
+          <Text variant="bodyLarge" style={styles.label}>
+            Giao cho
+          </Text>
+          <View style={styles.list}>
+            {usersLoading
+              ? [0, 1, 2].map((i) => <View key={i} style={styles.itemSkeleton} />)
+              : mayVaWorkers.map((w) => (
+                  <List.Item
+                    key={w.id}
+                    title={w.name}
+                    onPress={() => toggle(w.id)}
+                    style={selected.has(w.id) ? styles.itemSelected : undefined}
+                    left={() => (
+                      <Checkbox status={selected.has(w.id) ? 'checked' : 'unchecked'} onPress={() => toggle(w.id)} />
+                    )}
+                  />
+                ))}
+          </View>
+        </>
+      )}
       <Button
         mode="contained"
         onPress={handleSubmit}
         loading={sending}
-        disabled={sending || usersLoading || !content.trim() || selected.size === 0}
+        disabled={sending || !content.trim() || (line === 'may_va' && (usersLoading || selected.size === 0))}
         style={styles.button}
         contentStyle={{ height: 64 }}
       >
@@ -241,6 +291,10 @@ const styles = StyleSheet.create({
   successBanner: { backgroundColor: colors.tertiaryContainer, marginBottom: space.xs },
   errorBanner: { backgroundColor: colors.errorContainer, marginBottom: space.xs },
   input: { marginBottom: space.md },
+  // C6 — khối số đo, cỡ chữ lớn nhất (`--text-headline`): sai một chữ số ở đây là cắt sai
+  // vật tư thật (ARCHITECTURE.md §6, DESIGN-SYSTEM.md §4 C6).
+  measureInput: { fontSize: fontSize.headline, color: colors.primary },
+  hint: { color: colors.onSurfaceVariant, marginTop: -space.sm, marginBottom: space.md },
   fieldError: { color: colors.error, marginTop: -space.sm, marginBottom: space.md },
   label: { marginBottom: space.sm },
   list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
