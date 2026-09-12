@@ -4,6 +4,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { AssignTaskDto } from './dto/assign-task.dto.js';
+import { ReorderTasksDto } from './dto/reorder-tasks.dto.js';
+
+const HISTORY_WINDOW_DAYS: Record<'week' | 'month', number> = { week: 7, month: 30 };
 
 const TASK_INCLUDE = {
   assignees: { include: { user: true } },
@@ -48,6 +51,15 @@ export class TasksService {
       }
     }
 
+    // DESIGN-SYSTEM.md §4c ("thứ tự mặc định là cuối hàng", chốt vòng 1) + DECISIONS.md
+    // vòng 5: từ khi có API sắp thứ tự thật (AC-14), việc mới không thể tiếp tục nằm ở
+    // mặc định Prisma `0` — sẽ nhảy lên đầu hàng đợi thay vì xuống cuối.
+    const { _max } = await this.prisma.task.aggregate({
+      where: { deletedAt: null },
+      _max: { priority: true },
+    });
+    const priority = (_max.priority ?? -1) + 1;
+
     return this.prisma.task.create({
       data: {
         content: dto.content,
@@ -56,6 +68,7 @@ export class TasksService {
         // lỡ gửi số đo cho việc may vá.
         measurements: line === 'bat' ? dto.measurements?.trim() || null : null,
         dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
+        priority,
         source: 'manual',
         createdById: owner.userId,
         assignees: assigneeIds.length
@@ -64,6 +77,59 @@ export class TasksService {
       },
       include: TASK_INCLUDE,
     });
+  }
+
+  // CAP-TASK-08 (AC-15, S1) + CAP-TASK-07 (AC-14, S4) — cùng MỘT nguồn dữ liệu cho cả hai
+  // màn: toàn bộ việc chưa xoá mềm của cả xưởng, sắp theo priority. Gom nhóm "quá hạn/đứng
+  // yên · đang làm · chưa ai nhận · xong hôm nay" tính ở CLIENT bằng hàm thuần (DECISIONS.md
+  // vòng 5) — đây không phải luật phân quyền, chỉ là cách trình bày.
+  findAll() {
+    return this.prisma.task.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ priority: 'asc' }, { dueAt: 'asc' }, { createdAt: 'asc' }],
+      include: TASK_INCLUDE,
+    });
+  }
+
+  // CAP-TASK-07 (AC-14) — S4 "Việc nào làm trước": nhận nguyên danh sách task_id theo thứ
+  // tự mới, gán lại priority tuần tự theo vị trí (DECISIONS.md vòng 5 — không cộng dồn/diff).
+  async reorder(dto: ReorderTasksDto) {
+    const found = await this.prisma.task.count({
+      where: { id: { in: dto.taskIds }, deletedAt: null },
+    });
+    if (found !== dto.taskIds.length) {
+      throw new BadRequestException('Có việc trong danh sách không còn tồn tại');
+    }
+
+    await this.prisma.$transaction(
+      dto.taskIds.map((id, index) =>
+        this.prisma.task.update({ where: { id }, data: { priority: index } }),
+      ),
+    );
+
+    return this.findAll();
+  }
+
+  // CAP-TASK-15 (AC-16) — S16 "Việc đã xong": ma trận theo VAI (PERSONAS.md §2), không phải
+  // một danh sách cố định — cùng khuôn với findOne()/findMine() (tự rẽ nhánh theo user.role
+  // thay vì @Roles ở controller). Lọc theo TaskAssignee HIỆN TẠI, không theo "ai từng làm"
+  // (challenge pha I, STATE.md 2026-09-12 — nhất quán với findMine()).
+  async history(user: AuthUser, range: 'week' | 'month') {
+    const since = new Date(Date.now() - HISTORY_WINDOW_DAYS[range] * 24 * 60 * 60 * 1000);
+    const doneEventFilter = { events: { some: { kind: 'done' as const, at: { gte: since } } } };
+
+    const where: Prisma.TaskWhereInput = { deletedAt: null, status: 'done', ...doneEventFilter };
+    if (user.role === 'worker') {
+      where.assignees = { some: { userId: user.userId } };
+    } else if (user.role === 'bat_coordinator') {
+      where.OR = [{ assignees: { some: { userId: user.userId } } }, { line: 'bat' }];
+    }
+    // owner: không lọc thêm — toàn xưởng (PERSONAS.md §2).
+
+    const tasks = await this.prisma.task.findMany({ where, include: TASK_INCLUDE });
+    // "Mới nhất trước" tính theo mốc XONG thật (TaskEvent.done.at), không phải updatedAt —
+    // updatedAt đổi cả khi owner chỉ sửa nội dung/ưu tiên, không liên quan gì tới lịch sử.
+    return tasks.sort((a, b) => doneAt(b).localeCompare(doneAt(a)));
   }
 
   // CAP-TASK-06 (AC-13) — S9 "Việc bạt chờ chia": TOÀN BỘ việc mảng bạt còn hiệu lực, cả
@@ -181,4 +247,9 @@ export class TasksService {
 const STATUS_ORDER: Record<TaskStatus, number> = { new: 0, acked: 1, in_progress: 2, done: 3 };
 function isPastStatus(current: TaskStatus, target: TaskStatus): boolean {
   return STATUS_ORDER[current] > STATUS_ORDER[target];
+}
+
+// CAP-TASK-15 (AC-16) — mốc "xong" thật của một việc, dùng để sắp lịch sử mới nhất trước.
+function doneAt(task: { events: { kind: TaskEventKind; at: Date }[] }): string {
+  return (task.events.find((e) => e.kind === 'done')?.at ?? new Date(0)).toISOString();
 }

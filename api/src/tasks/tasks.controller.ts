@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { AssignTaskDto } from './dto/assign-task.dto.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
+import { ReorderTasksDto } from './dto/reorder-tasks.dto.js';
 import { TasksService } from './tasks.service.js';
 
 @Controller('tasks')
@@ -14,6 +15,14 @@ export class TasksController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateTaskDto) {
     return this.tasks.create(user, dto);
+  }
+
+  // CAP-TASK-08 (AC-15, S1) + CAP-TASK-07 (AC-14, S4) — toàn bộ việc của xưởng, một nguồn
+  // dữ liệu cho cả hai màn (DECISIONS.md vòng 5). PERSONAS.md §2: chỉ owner xem toàn xưởng.
+  @Roles('owner')
+  @Get()
+  findAll() {
+    return this.tasks.findAll();
   }
 
   @Roles('worker', 'bat_coordinator')
@@ -28,6 +37,24 @@ export class TasksController {
   @Get('bat-queue')
   batQueue() {
     return this.tasks.findBatQueue();
+  }
+
+  // CAP-TASK-15 (AC-16) — S16 "Việc đã xong". Không @Roles: mọi vai đã đăng nhập gọi được,
+  // service tự rẽ nhánh theo vai (giống findOne) — PERSONAS.md §2 là ma trận theo vai, không
+  // phải một danh sách cố định.
+  @Get('history')
+  history(@CurrentUser() user: AuthUser, @Query('range') range?: string) {
+    if (range !== 'week' && range !== 'month') {
+      throw new BadRequestException('range phải là "week" hoặc "month"');
+    }
+    return this.tasks.history(user, range);
+  }
+
+  // CAP-TASK-07 (AC-14) — S4 "Việc nào làm trước". PERSONAS.md §2: chỉ owner đổi thứ tự.
+  @Roles('owner')
+  @Patch('reorder')
+  reorder(@Body() dto: ReorderTasksDto) {
+    return this.tasks.reorder(dto);
   }
 
   // Không @Roles ở đây: mọi vai đã đăng nhập gọi được, nhưng service tự lọc
