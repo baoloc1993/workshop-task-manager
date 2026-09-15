@@ -1,37 +1,27 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Card, Text } from 'react-native-paper';
+import { Banner, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, space } from '../theme/tokens';
-import { StatusChip } from '../tasks/StatusChip';
+import { TaskRow } from '../tasks/TaskRow';
 
-function BatTaskCard({ task, onPress }: { task: Task; onPress: () => void }) {
+function BatTaskRow({ task, onPress }: { task: Task; onPress: () => void }) {
+  const who = task.assignees.length > 0 ? `Đang giao: ${task.assignees.map((a) => a.user.name).join(', ')}` : null;
   return (
-    <Card style={styles.card} onPress={onPress}>
-      <Card.Content style={{ gap: space.xs }}>
-        {task.measurements && <Text style={styles.measure}>{task.measurements}</Text>}
-        <Text variant="titleLarge">{task.content}</Text>
-        {task.dueAt && (
-          <Text variant="bodyLarge" style={styles.due}>
-            Hạn: {new Date(task.dueAt).toLocaleDateString('vi-VN')}
-          </Text>
-        )}
-        {task.assignees.length > 0 && (
-          <>
-            <Text variant="bodyLarge" style={styles.due}>
-              Đang giao: {task.assignees.map((a) => a.user.name).join(', ')}
-            </Text>
-            {/* dogfood pha I vòng 4: chip "Chưa nhận" hiện GIỐNG HỆT
-                cho cả việc chưa-giao-ai lẫn việc đã-giao-nhưng-thợ-chưa-bấm-nhận, gây hiểu
-                nhầm "chưa chia" thành "đã chia rồi". Chỉ hiện chip trạng thái khi ĐÃ có
-                người được giao — việc chưa chia thì mục "Chờ bạn chia cho thợ" đã đủ nói. */}
-            <StatusChip task={task} />
-          </>
-        )}
-      </Card.Content>
-    </Card>
+    <TaskRow
+      task={task}
+      title={task.content}
+      metaParts={[who, task.dueAt ? `hạn ${new Date(task.dueAt).toLocaleDateString('vi-VN')}` : null]}
+      // dogfood pha I vòng 4: trạng thái "Chưa nhận" hiện GIỐNG HỆT cho
+      // cả việc chưa-giao-ai lẫn việc đã-giao-nhưng-thợ-chưa-bấm-nhận, gây hiểu nhầm "chưa
+      // chia" thành "đã chia rồi". Chỉ hiện trạng thái khi ĐÃ có người được giao — việc
+      // chưa chia thì mục "Chờ bạn chia cho thợ" đã đủ nói.
+      showStatus={task.assignees.length > 0}
+      topLine={task.measurements ? <Text style={styles.measure}>{task.measurements}</Text> : undefined}
+      onPress={onPress}
+    />
   );
 }
 
@@ -100,7 +90,7 @@ export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
           )}
         </>
       }
-      renderItem={({ item }) => <BatTaskCard task={item} onPress={() => onOpenTask(item.id)} />}
+      renderItem={({ item }) => <BatTaskRow task={item} onPress={() => onOpenTask(item.id)} />}
       ListFooterComponent={
         assigned.length > 0 ? (
           <>
@@ -108,7 +98,7 @@ export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
               Đã chia trong nhóm
             </Text>
             {assigned.map((item) => (
-              <BatTaskCard key={item.id} task={item} onPress={() => onOpenTask(item.id)} />
+              <BatTaskRow key={item.id} task={item} onPress={() => onOpenTask(item.id)} />
             ))}
           </>
         ) : null
@@ -122,9 +112,9 @@ const styles = StyleSheet.create({
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
-  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  // C6 (DESIGN-SYSTEM.md §4): số đo giữ cỡ --text-headline dù nằm trong hàng việc — sai một
+  // chữ số là hỏng vật tư, không được thu nhỏ theo bố cục hàng.
   measure: { fontSize: fontSize.headline, color: colors.primary, fontWeight: '600' },
-  due: { color: colors.onSurfaceVariant },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
   secOk: { color: colors.tertiary },
 });

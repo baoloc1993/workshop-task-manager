@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Checkbox, List, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { BatWorkerItem, Task } from '../api/types';
-import { colors, fontSize, space, tapMin } from '../theme/tokens';
+import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 
 // S10 — "Chọn thợ để giao" (PROTOTYPE.md §1). CAP-TASK-06 (AC-13): điều phối (hoặc chủ xưởng)
 // chọn 1..n thợ bạt ĐANG HOẠT ĐỘNG. Chọn lại một việc đã chia thì GHI ĐÈ toàn bộ danh sách
@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
   content: { marginBottom: space.sm },
   due: { color: colors.onSurfaceVariant, marginBottom: space.sm },
   label: { marginBottom: space.sm, marginTop: space.md },
-  list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   itemSelected: { backgroundColor: colors.primaryContainer },
   emptyText: { padding: space.md, color: colors.onSurfaceVariant },
-  button: { borderRadius: 999 },
+  button: { borderRadius: shape.small },
 });

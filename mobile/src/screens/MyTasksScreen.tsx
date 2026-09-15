@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Button, Card, Text } from 'react-native-paper';
+import { Banner, Button, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, space, tapMin } from '../theme/tokens';
-import { StatusChip } from '../tasks/StatusChip';
+import { colors, shape, space, tapMin } from '../theme/tokens';
+import { TaskRow } from '../tasks/TaskRow';
 import { actionEndpoint, actionLabel, isDoneToday, isOverdue, nextAction } from '../tasks/taskStatus';
 
 // S6 — "Việc của tôi" (PROTOTYPE.md §1). CAP-TASK-11/12/13 (AC-8/9/10): việc đầu hàng có
@@ -125,17 +125,12 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
               <Text variant="labelLarge" style={styles.sec}>
                 Làm việc này trước
               </Text>
-              <Card style={styles.card} onPress={() => onOpenTask(first.id)}>
-                <Card.Content style={{ gap: space.xs }}>
-                  <Text variant="titleLarge">{first.content}</Text>
-                  {first.dueAt && (
-                    <Text variant="bodyLarge" style={styles.due}>
-                      Hạn: {new Date(first.dueAt).toLocaleDateString('vi-VN')}
-                    </Text>
-                  )}
-                  <StatusChip task={first} />
-                </Card.Content>
-              </Card>
+              <TaskRow
+                task={first}
+                title={first.content}
+                metaParts={[first.dueAt ? `hạn ${new Date(first.dueAt).toLocaleDateString('vi-VN')}` : null]}
+                onPress={() => onOpenTask(first.id)}
+              />
               <Button
                 mode="contained"
                 onPress={() => handleAction(first)}
@@ -156,17 +151,12 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
         </>
       }
       renderItem={({ item }) => (
-        <Card style={styles.card} onPress={() => onOpenTask(item.id)}>
-          <Card.Content style={{ gap: space.xs }}>
-            <Text variant="titleLarge">{item.content}</Text>
-            {item.dueAt && (
-              <Text variant="bodyLarge" style={styles.due}>
-                Hạn: {new Date(item.dueAt).toLocaleDateString('vi-VN')}
-              </Text>
-            )}
-            <StatusChip task={item} />
-          </Card.Content>
-        </Card>
+        <TaskRow
+          task={item}
+          title={item.content}
+          metaParts={[item.dueAt ? `hạn ${new Date(item.dueAt).toLocaleDateString('vi-VN')}` : null]}
+          onPress={() => onOpenTask(item.id)}
+        />
       )}
       ListFooterComponent={
         doneToday.length > 0 ? (
@@ -175,12 +165,7 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
               Đã xong hôm nay ({doneToday.length})
             </Text>
             {doneToday.map((item) => (
-              <Card key={item.id} style={styles.card} onPress={() => onOpenTask(item.id)}>
-                <Card.Content style={{ gap: space.xs }}>
-                  <Text variant="titleLarge">{item.content}</Text>
-                  <StatusChip task={item} />
-                </Card.Content>
-              </Card>
+              <TaskRow key={item.id} task={item} title={item.content} onPress={() => onOpenTask(item.id)} />
             ))}
           </>
         ) : null
@@ -194,9 +179,7 @@ const styles = StyleSheet.create({
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
-  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
-  due: { color: colors.onSurfaceVariant },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
   secOk: { color: colors.tertiary },
-  actionButton: { borderRadius: 999, marginBottom: space.lg },
+  actionButton: { borderRadius: shape.small, marginBottom: space.lg },
 });

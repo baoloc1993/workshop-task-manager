@@ -5,7 +5,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../api/client';
-import { colors, space } from '../theme/tokens';
+import { colors, shape, space, tapMin } from '../theme/tokens';
 
 // S8 — "Quét mã để vào app" (PROTOTYPE.md §1). Người mới, chưa có phiên nào.
 //
@@ -66,7 +66,7 @@ export function ScanQrScreen() {
         onPress={() => handleScanned(manualCode)}
         disabled={manualCode.length !== 6 || joining}
         loading={joining}
-        contentStyle={{ height: 64 }}
+        contentStyle={{ height: tapMin }}
       >
         Vào app
       </Button>
@@ -79,7 +79,7 @@ export function ScanQrScreen() {
         <Text variant="bodyLarge" style={styles.text}>
           Cần quyền camera để quét mã.
         </Text>
-        <Button mode="outlined" onPress={requestPermission} contentStyle={{ height: 64 }}>
+        <Button mode="outlined" onPress={requestPermission} contentStyle={{ height: tapMin }}>
           Cho phép dùng camera
         </Button>
         {manualEntry}
@@ -122,7 +122,7 @@ export function ScanQrScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.md, backgroundColor: colors.surface },
   title: { marginBottom: space.md },
-  cameraFrame: { width: 280, height: 280, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.surfaceContainerHigh },
+  cameraFrame: { width: 280, height: 280, borderRadius: shape.small, overflow: 'hidden', backgroundColor: colors.surfaceContainerHigh },
   text: { marginTop: space.md, textAlign: 'center' },
   error: { marginTop: space.md, color: colors.error, textAlign: 'center' },
   manualBlock: { marginTop: space.lg, width: '100%', alignItems: 'stretch' },

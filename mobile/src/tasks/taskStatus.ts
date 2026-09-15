@@ -2,6 +2,7 @@
 // hiện tại (DESIGN-SYSTEM.md §4 C1), dùng chung giữa MyTasksScreen (S6) và TaskDetailScreen
 // (S7) để hai màn không lệch nhãn/luật nhau.
 import type { Task } from '../api/types';
+import { colors } from '../theme/tokens';
 
 export type TaskAction = 'ack' | 'start' | 'done';
 
@@ -42,6 +43,15 @@ const STATUS_LABEL: Record<Task['status'], string> = {
 
 export function statusLabel(status: Task['status']): string {
   return STATUS_LABEL[status];
+}
+
+// C8 (DESIGN-SYSTEM.md §4) — dòng phụ trạng thái không còn nền chip, chỉ chữ tô màu: đang
+// làm tô primary, xong tô tertiary, quá hạn tô error đậm, còn lại tô on-surface-variant.
+export function statusColor(task: Pick<Task, 'status' | 'dueAt'>): string {
+  if (isOverdue(task)) return colors.error;
+  if (task.status === 'in_progress') return colors.primary;
+  if (task.status === 'done') return colors.tertiary;
+  return colors.onSurfaceVariant;
 }
 
 // "Quá hạn" (C8) là tông riêng, thay thế chip trạng thái khi việc chưa xong mà đã trễ hẹn —

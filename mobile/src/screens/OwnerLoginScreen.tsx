@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Banner, Button, Text, TextInput } from 'react-native-paper';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../api/client';
-import { colors, space } from '../theme/tokens';
+import { colors, shape, space, tapMin } from '../theme/tokens';
 
 // Màn bootstrap riêng cho chủ xưởng (email/mật khẩu) — không thuộc bộ mã S<n> của
 // PROTOTYPE.md §1, xem context/DECISIONS.md 2026-09-10 (bản đồ màn chưa phủ bước này).
@@ -61,7 +61,7 @@ export function OwnerLoginScreen() {
         loading={sending}
         disabled={sending || !email || !password}
         style={styles.button}
-        contentStyle={{ height: 64 }}
+        contentStyle={{ height: tapMin }}
       >
         {sending ? 'Đang vào…' : 'Vào app'}
       </Button>
@@ -74,5 +74,5 @@ const styles = StyleSheet.create({
   title: { marginBottom: space.lg, textAlign: 'center' },
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   input: { marginBottom: space.sm },
-  button: { marginTop: space.md, borderRadius: 999 },
+  button: { marginTop: space.md, borderRadius: shape.small },
 });

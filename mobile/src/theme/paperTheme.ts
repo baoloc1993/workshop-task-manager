@@ -1,5 +1,5 @@
 import { MD3LightTheme } from 'react-native-paper';
-import { colors, fontFamily } from './tokens';
+import { colors, fontFamily, fontSize } from './tokens';
 
 // Đổ bảng token §2.1 thẳng vào MD3LightTheme — tên vai trò khớp nhau nên không phải
 // dịch tên (context/DESIGN-SYSTEM.md §6.2, context/TECHSTACK.md lý do chọn Paper).
@@ -37,9 +37,9 @@ export const paperTheme = {
   },
   fonts: {
     ...MD3LightTheme.fonts,
-    labelLarge: { ...MD3LightTheme.fonts.labelLarge, fontFamily, fontSize: 16 },
-    bodyLarge: { ...MD3LightTheme.fonts.bodyLarge, fontFamily, fontSize: 20 },
-    titleLarge: { ...MD3LightTheme.fonts.titleLarge, fontFamily, fontSize: 24 },
-    headlineSmall: { ...MD3LightTheme.fonts.headlineSmall, fontFamily, fontSize: 32 },
+    labelLarge: { ...MD3LightTheme.fonts.labelLarge, fontFamily, fontSize: fontSize.label },
+    bodyLarge: { ...MD3LightTheme.fonts.bodyLarge, fontFamily, fontSize: fontSize.body },
+    titleLarge: { ...MD3LightTheme.fonts.titleLarge, fontFamily, fontSize: fontSize.title },
+    headlineSmall: { ...MD3LightTheme.fonts.headlineSmall, fontFamily, fontSize: fontSize.headline },
   },
 };

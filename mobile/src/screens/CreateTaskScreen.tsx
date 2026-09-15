@@ -4,7 +4,7 @@ import { Banner, Button, Checkbox, List, Text, TextInput } from 'react-native-pa
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
-import { colors, fontSize, space } from '../theme/tokens';
+import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 
 export interface CreateTaskPrefill {
   content?: string;
@@ -290,7 +290,7 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
         loading={sending}
         disabled={sending || !content.trim() || (line === 'may_va' && (usersLoading || selected.size === 0))}
         style={styles.button}
-        contentStyle={{ height: 64 }}
+        contentStyle={{ height: tapMin }}
       >
         {sending ? 'Đang gửi…' : 'Giao việc'}
       </Button>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   measureBlock: {
     marginBottom: space.md,
     padding: space.md,
-    borderRadius: 12,
+    borderRadius: shape.small,
     backgroundColor: colors.surfaceContainer,
   },
   measureLabel: { color: colors.onSurfaceVariant, marginBottom: space.xs },
@@ -322,13 +322,13 @@ const styles = StyleSheet.create({
   measureHint: { color: colors.onSurfaceVariant, marginTop: -space.xs },
   fieldError: { color: colors.error, marginTop: -space.sm, marginBottom: space.md },
   label: { marginBottom: space.sm },
-  list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   itemSelected: { backgroundColor: colors.primaryContainer },
   itemSkeleton: {
-    height: 64,
+    height: tapMin,
     margin: space.sm,
-    borderRadius: 12,
+    borderRadius: shape.small,
     backgroundColor: colors.surfaceContainerHigh,
   },
-  button: { borderRadius: 999 },
+  button: { borderRadius: shape.small },
 });

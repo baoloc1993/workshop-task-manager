@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Card, IconButton, Text } from 'react-native-paper';
+import { Banner, IconButton, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, space } from '../theme/tokens';
-import { lineLabel } from '../tasks/taskStatus';
+import { colors, fontSize, shape, space } from '../theme/tokens';
+import { isOverdue, lineLabel, statusColor } from '../tasks/taskStatus';
 
 // S4 — "Việc nào làm trước" (CAP-TASK-07, AC-14). Bấm mũi tên đổi vị trí → priority cập
 // nhật NGAY, không có nút "Lưu" riêng (PROTOTYPE.md §1). Mỗi lần đổi gửi NGUYÊN danh sách
@@ -104,34 +104,37 @@ export function PriorityScreen() {
       }
       renderItem={({ item, index }) => {
         const who = item.assignees.length > 0 ? item.assignees.map((a) => a.user.name).join(', ') : 'Chưa ai nhận';
+        const dotColor = statusColor(item);
         return (
-          <Card style={styles.card}>
-            <Card.Content style={styles.row}>
-              <View style={{ flex: 1, gap: space.xs }}>
-                <Text variant="titleLarge" numberOfLines={2}>
-                  {index + 1}. {item.content}
-                </Text>
-                <Text variant="bodyLarge" style={styles.who}>
-                  {who} · {lineLabel(item.line)}
-                  {item.dueAt ? ` · hạn ${new Date(item.dueAt).toLocaleDateString('vi-VN')}` : ''}
-                </Text>
-              </View>
-              <View>
-                <IconButton
-                  icon="arrow-up"
-                  disabled={index === 0 || saving}
-                  onPress={() => move(index, -1)}
-                  accessibilityLabel="Lên trên"
-                />
-                <IconButton
-                  icon="arrow-down"
-                  disabled={index === list.length - 1 || saving}
-                  onPress={() => move(index, 1)}
-                  accessibilityLabel="Xuống dưới"
-                />
-              </View>
-            </Card.Content>
-          </Card>
+          // C3 — hàng việc (DESIGN-SYSTEM.md §4): không dùng TaskRow dùng chung ở đây vì
+          // hàng này không bấm-mở-chi-tiết mà mang hai IconButton lên/xuống ngay trên hàng.
+          <View style={styles.row}>
+            <View style={[styles.dot, { borderColor: dotColor }, item.status === 'done' && { backgroundColor: dotColor }]} />
+            <View style={{ flex: 1, gap: space.xs }}>
+              <Text style={styles.title} numberOfLines={2}>
+                {index + 1}. {item.content}
+              </Text>
+              <Text style={styles.who}>
+                {who} · {lineLabel(item.line)}
+                {item.dueAt ? ` · hạn ${new Date(item.dueAt).toLocaleDateString('vi-VN')}` : ''}
+                {isOverdue(item) ? ' · Quá hạn' : ''}
+              </Text>
+            </View>
+            <View>
+              <IconButton
+                icon="arrow-up"
+                disabled={index === 0 || saving}
+                onPress={() => move(index, -1)}
+                accessibilityLabel="Lên trên"
+              />
+              <IconButton
+                icon="arrow-down"
+                disabled={index === list.length - 1 || saving}
+                onPress={() => move(index, 1)}
+                accessibilityLabel="Xuống dưới"
+              />
+            </View>
+          </View>
         );
       }}
     />
@@ -144,7 +147,22 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   hint: { color: colors.onSurfaceVariant, marginBottom: space.md },
-  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  who: { color: colors.onSurfaceVariant },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginBottom: 3,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: shape.small,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2 },
+  title: { fontSize: fontSize.body, color: colors.onSurface },
+  who: { color: colors.onSurfaceVariant, fontSize: fontSize.label },
 });

@@ -4,7 +4,7 @@ import { Banner, Button, List, Text } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
 import { api } from '../api/client';
 import type { CreatePairingResponse, WorkerListItem } from '../api/types';
-import { colors, space } from '../theme/tokens';
+import { colors, shape, space, tapMin } from '../theme/tokens';
 
 const TTL_MIN = 15;
 
@@ -82,7 +82,7 @@ export function IssueQrScreen() {
           // hẳn với hành động người dùng vừa bấm).
           onPress={() => currentUserId && handlePick(currentUserId)}
           style={styles.button}
-          contentStyle={{ height: 64 }}
+          contentStyle={{ height: tapMin }}
         >
           Cấp mã mới
         </Button>
@@ -125,13 +125,13 @@ const styles = StyleSheet.create({
   title: { marginBottom: space.md, textAlign: 'center' },
   banner: { backgroundColor: colors.errorContainer },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
-  list: { backgroundColor: colors.surfaceContainer, borderRadius: 12 },
-  // dogfood pha I: List.Item mặc định ~49.5dp, dưới ngân sách
-  // vùng chạm 64px cố ý nâng cho persona 55 tuổi lão thị (DESIGN-SYSTEM.md §1b).
-  listItem: { minHeight: 64, justifyContent: 'center' },
+  list: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
+  // dogfood pha I: List.Item mặc định ~49.5dp, dưới --tap-min
+  // (DESIGN-SYSTEM.md §2.3 — 48px từ 2026-09-15, xem §1b).
+  listItem: { minHeight: tapMin, justifyContent: 'center' },
   qrContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
-  qrBox: { padding: space.lg, backgroundColor: '#FFFFFF', borderRadius: 12 },
+  qrBox: { padding: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   timer: { marginTop: space.md, color: colors.primary },
   expired: { marginBottom: space.md, color: colors.error },
-  button: { marginTop: space.lg, borderRadius: 999 },
+  button: { marginTop: space.lg, borderRadius: shape.small },
 });

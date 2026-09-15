@@ -4,7 +4,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { Banner, Button, Card, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { DevicePairing } from '../api/types';
-import { colors, space } from '../theme/tokens';
+import { colors, shape, space, tapMin } from '../theme/tokens';
 
 // S15 — "Máy của thợ" (PROTOTYPE.md §1). AC-5: thu hồi máy cũ, cấp lại mã mới.
 export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
@@ -72,7 +72,7 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
                 mode="outlined"
                 onPress={() => handleRevoke(item.id)}
                 style={styles.revokeButton}
-                contentStyle={{ height: 64 }}
+                contentStyle={{ height: tapMin }}
               >
                 Thu hồi máy
               </Button>
@@ -81,7 +81,7 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
         </Card>
       )}
       ListFooterComponent={
-        <Button mode="contained" onPress={onIssueNew} style={styles.newButton} contentStyle={{ height: 64 }}>
+        <Button mode="contained" onPress={onIssueNew} style={styles.newButton} contentStyle={{ height: tapMin }}>
           Cấp mã mới
         </Button>
       }
@@ -94,9 +94,9 @@ const styles = StyleSheet.create({
   banner: { margin: space.md, backgroundColor: colors.errorContainer },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
-  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
+  card: { marginBottom: 3, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   meta: { marginTop: space.xs, color: colors.onSurfaceVariant },
   revoked: { marginTop: space.sm, color: colors.error },
-  revokeButton: { marginTop: space.sm, alignSelf: 'flex-start' },
-  newButton: { marginTop: space.md, borderRadius: 999 },
+  revokeButton: { marginTop: space.sm, alignSelf: 'flex-start', borderRadius: shape.small },
+  newButton: { marginTop: space.md, borderRadius: shape.small },
 });

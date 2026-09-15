@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Card, Chip, Text } from 'react-native-paper';
+import { Banner, Chip, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, space } from '../theme/tokens';
+import { TaskRow } from '../tasks/TaskRow';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
 
 type Range = 'week' | 'month';
@@ -97,17 +98,19 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
         const who = item.assignees.map((a) => a.user.name).join(', ') || '—';
         const doneAt = item.events.find((e) => e.kind === 'done')?.at;
         return (
-          <Card style={styles.card} onPress={() => onOpenTask(item.id)}>
-            <Card.Content style={{ gap: space.xs }}>
-              <Text variant="titleLarge" numberOfLines={2}>
-                {item.content}
-              </Text>
-              <Text variant="bodyLarge" style={styles.who}>
-                {who} · {lineLabel(item.line)}
-                {doneAt ? ` · xong ${new Date(doneAt).toLocaleDateString('vi-VN')} lúc ${formatTime(doneAt)}` : ''}
-              </Text>
-            </Card.Content>
-          </Card>
+          <TaskRow
+            task={item}
+            title={item.content}
+            metaParts={[
+              who,
+              lineLabel(item.line),
+              doneAt ? `xong ${new Date(doneAt).toLocaleDateString('vi-VN')} lúc ${formatTime(doneAt)}` : null,
+            ]}
+            // Mọi việc ở S16 đều đã xong (server chỉ trả done) — dòng phụ đã nói "xong lúc
+            // <giờ>", nhắc lại trạng thái "Xong" lần nữa là thừa.
+            showStatus={false}
+            onPress={() => onOpenTask(item.id)}
+          />
         );
       }}
     />
@@ -121,12 +124,10 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   chips: { flexDirection: 'row', gap: space.sm, marginBottom: space.md },
   chip: { borderColor: colors.outline },
-  // Chip lọc đang chọn dùng đúng tông "tab đang chọn" (DESIGN-SYSTEM.md §4 C14:
-  // nền viên thuốc --color-primary-container) — KHÔNG dùng secondary-container mặc định
-  // của react-native-paper vì tông đó đã có nghĩa riêng: chip trạng thái việc "Đã nhận".
+  // Chip lọc (không phải chip trạng thái việc — those are gone, xem tasks/TaskRow.tsx C8)
+  // đang chọn dùng --color-primary-container, KHÔNG dùng secondary-container mặc định của
+  // react-native-paper vì tông đó đã có nghĩa riêng: nhãn "Đã nhận" trong dòng phụ hàng việc.
   chipSelected: { backgroundColor: colors.primaryContainer },
   chipSelectedText: { color: colors.onPrimaryContainer, fontWeight: '700' },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm },
-  card: { marginBottom: space.sm, backgroundColor: colors.surfaceContainer, borderRadius: 12 },
-  who: { color: colors.onSurfaceVariant },
 });

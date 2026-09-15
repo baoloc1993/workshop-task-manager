@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Banner, Button, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, space, tapMin } from '../theme/tokens';
+import { colors, shape, space, tapMin } from '../theme/tokens';
 import { StatusChip } from '../tasks/StatusChip';
 import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
 
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   content: { marginBottom: space.sm },
   meta: { marginTop: space.xs, color: colors.onSurfaceVariant },
   chipRow: { marginTop: space.md },
-  actionButton: { borderRadius: 999, marginTop: space.md },
+  actionButton: { borderRadius: shape.small, marginTop: space.md },
   sec: { color: colors.onSurfaceVariant, marginTop: space.lg, marginBottom: space.sm },
   time: { color: colors.onSurfaceVariant, lineHeight: 32 },
 });

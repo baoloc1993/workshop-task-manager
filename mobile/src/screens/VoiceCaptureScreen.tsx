@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: space.md,
-    // Chừa chỗ đáy cho FAB nổi (position: absolute) khỏi đè lên câu đang nghe được.
+    // Chừa chỗ đáy cho nút giữ-để-nói nổi (position: absolute) khỏi đè lên câu đang nghe được.
     paddingBottom: tapMin + space.lg,
     backgroundColor: colors.surface,
   },
@@ -131,9 +131,10 @@ const styles = StyleSheet.create({
   sectionLabel: { marginBottom: space.sm, color: colors.onSurfaceVariant },
   heard: { flex: 1, marginBottom: space.lg },
   mic: {
-    // C7 Extended FAB (DESIGN-SYSTEM.md §4): nút micro nổi, luôn ở góc dưới phải trong tầm
-    // ngón cái, tô --color-primary — dogfood pha I vòng 2 (edge + picky) phát hiện nút này
-    // trước đó nằm giữa/đáy màn full-width và tô nhầm --color-primary-container (màu chip).
+    // Nút giữ-để-nói riêng của S2 — không phải C7 (thanh thêm ghim đáy của các màn danh
+    // sách; DESIGN-SYSTEM.md §4 từ 2026-09-15). Nút nổi góc dưới phải trong tầm ngón cái,
+    // tô --color-primary — dogfood pha I vòng 2 (edge + picky) phát hiện nút này trước đó
+    // nằm giữa/đáy màn full-width và tô nhầm --color-primary-container (màu chip).
     //
     // LƯU Ý MÔI TRƯỜNG DEV (không phải bug sản phẩm): trên bản debug qua Expo dev client/Metro,
     // menu nổi của dev tools chiếm đúng góc dưới-phải và nuốt hết cảm ứng ở đó — đứng yên tuyệt
