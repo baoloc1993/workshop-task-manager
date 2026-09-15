@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, TaskEventKind, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { AssignTaskDto } from './dto/assign-task.dto.js';
@@ -29,7 +30,10 @@ const PREV_STATUS_FOR_KIND: Record<TaskEventKind, TaskStatus> = {
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // AC-2 + AC-3 — tạo việc bằng tay, giao đích danh cho một hoặc nhiều người.
   // AC-12/AC-13 (vòng 4) — mảng bạt (`line='bat'`) mang số đo và LUÔN tạo không có
@@ -60,7 +64,7 @@ export class TasksService {
     });
     const priority = (_max.priority ?? -1) + 1;
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         content: dto.content,
         line,
@@ -77,6 +81,22 @@ export class TasksService {
       },
       include: TASK_INCLUDE,
     });
+
+    // CAP-TASK-14 (vòng 6) — nhắc ngay khi vừa phát việc (ARCHITECTURE.md §7 luồng A bước 5
+    // / luồng B bước 5). Giao đích danh → nhắc thẳng người nhận; việc bạt rơi vào hàng đợi
+    // (chưa assignee) → nhắc bat_coordinator đi chia. Không await chặn response — lỗi push
+    // không được làm hỏng việc tạo task (ARCHITECTURE.md §9).
+    if (assigneeIds.length > 0) {
+      for (const userId of assigneeIds) {
+        void this.notifications.notifyUser(userId, 'Việc mới', task.content, { taskId: task.id });
+      }
+    } else if (line === 'bat') {
+      void this.notifications.notifyRole('bat_coordinator', 'Việc bạt mới chờ chia', task.content, {
+        taskId: task.id,
+      });
+    }
+
+    return task;
   }
 
   // CAP-TASK-08 (AC-15, S1) + CAP-TASK-07 (AC-14, S4) — cùng MỘT nguồn dữ liệu cho cả hai
@@ -172,6 +192,13 @@ export class TasksService {
         data: dto.userIds.map((userId) => ({ taskId: id, userId, assignedById: user.userId })),
       }),
     ]);
+
+    // CAP-TASK-14 — điều phối vừa chia xong thì thợ bạt được chọn phải biết ngay, giống hệt
+    // cách giao đích danh mảng may vá đã nhắc ở create(). Gửi lại cả khi chia lại (đổi
+    // người) — vô hại, đúng tinh thần "gửi hai lần không sao" (ARCHITECTURE.md §6).
+    for (const userId of dto.userIds) {
+      void this.notifications.notifyUser(userId, 'Việc bạt mới', task.content, { taskId: id });
+    }
 
     return this.prisma.task.findUnique({ where: { id }, include: TASK_INCLUDE });
   }

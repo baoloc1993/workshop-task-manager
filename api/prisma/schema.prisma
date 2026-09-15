@@ -73,6 +73,9 @@ model Task {
   createdById  String     @map("created_by")
   createdBy    User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
   deletedAt    DateTime?  @map("deleted_at")
+  // CAP-TASK-14 (vòng 6) — mốc lần cuối cùng gửi nhắc "chưa ack"/"sắp tới hạn", chặn spam
+  // khi cron chạy lại trước hết cooldown (DECISIONS.md 2026-09-15).
+  lastReminderAt DateTime? @map("last_reminder_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
