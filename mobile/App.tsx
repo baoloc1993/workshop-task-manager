@@ -6,6 +6,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/auth/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { paperTheme } from './src/theme/paperTheme';
+import { configureNotificationHandler } from './src/notifications/registerPushToken';
+
+// CAP-TASK-14 — phải gọi trước khi push đầu tiên tới, không phải trong component (chạy
+// lại mỗi lần re-render thì vô hại nhưng thừa — set một lần lúc module load là đủ).
+configureNotificationHandler();
 
 export default function App() {
   return (

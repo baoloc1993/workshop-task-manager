@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { api, clearToken, clearUser, getToken, getUser, saveToken, saveUser } from '../api/client';
+import { getExpoPushTokenAsync } from '../notifications/registerPushToken';
 import type { AuthUser, LoginResponse } from '../api/types';
 
 interface AuthContextValue {
@@ -41,9 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(res.user);
       },
       async loginByPairingCode(code, deviceLabel) {
+        // CAP-TASK-14 — best-effort: xin quyền/lấy token push chậm hoặc lỗi không được
+        // chặn ghép máy (registerPushToken.ts không bao giờ throw, có thể trả undefined).
+        const deviceToken = await getExpoPushTokenAsync();
         const res = await api.post<LoginResponse>('/auth/pairings/redeem', {
           code,
           deviceLabel,
+          deviceToken,
         });
         await Promise.all([saveToken(res.token), saveUser(res.user)]);
         setUser(res.user);

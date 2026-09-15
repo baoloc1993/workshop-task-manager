@@ -32,6 +32,12 @@
     "plugins": [
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "color": "#2564CF"
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
           "microphonePermission": "Ứng dụng cần micro để nghe câu giao việc bằng giọng nói.",
