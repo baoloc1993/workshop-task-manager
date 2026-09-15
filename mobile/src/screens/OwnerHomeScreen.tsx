@@ -149,7 +149,9 @@ export function OwnerHomeScreen({
         >
           ＋ Nói để giao việc
         </Button>
-        <Button mode="text" onPress={onCreateTask} compact>
+        {/* dogfood pha I vòng 6: thiếu contentStyle height so với
+            mọi nút khác trên màn — đo được 38dp, dưới --tap-min 48px (§2.3). */}
+        <Button mode="text" onPress={onCreateTask} compact contentStyle={{ height: tapMin }}>
           Gõ tay
         </Button>
       </View>

@@ -4,7 +4,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Banner, Chip, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, space } from '../theme/tokens';
+import { colors, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
 
@@ -80,7 +80,7 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
                 mode={range === r ? 'flat' : 'outlined'}
                 selected={range === r}
                 onPress={() => setRange(r)}
-                style={range === r ? styles.chipSelected : styles.chip}
+                style={[styles.chip, range === r && styles.chipSelected]}
                 textStyle={range === r ? styles.chipSelectedText : undefined}
               >
                 {r === 'week' ? 'Tuần này' : 'Tháng này'}
@@ -123,7 +123,9 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   chips: { flexDirection: 'row', gap: space.sm, marginBottom: space.md },
-  chip: { borderColor: colors.outline },
+  // dogfood pha I vòng 6: Chip mặc định của Paper ~34dp, dưới
+  // --tap-min 48px (DESIGN-SYSTEM.md §2.3) — ép chiều cao + canh giữa chữ.
+  chip: { borderColor: colors.outline, minHeight: tapMin, justifyContent: 'center' },
   // Chip lọc (không phải chip trạng thái việc — those are gone, xem tasks/TaskRow.tsx C8)
   // đang chọn dùng --color-primary-container, KHÔNG dùng secondary-container mặc định của
   // react-native-paper vì tông đó đã có nghĩa riêng: nhãn "Đã nhận" trong dòng phụ hàng việc.

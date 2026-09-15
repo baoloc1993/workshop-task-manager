@@ -60,6 +60,15 @@ export function IssueQrScreen() {
             <View style={styles.qrBox}>
               <QRCode value={pairing.code} size={220} />
             </View>
+            {/* dogfood pha I vòng 6 (meta): mã chỉ nằm trong QR, không đọc được —
+                trái với EntryScreen "Nhờ chủ xưởng ... đọc mã 6 số cho bạn". Không
+                quét được thì không còn đường nào vào app. */}
+            <Text variant="displaySmall" style={styles.code}>
+              {pairing.code}
+            </Text>
+            <Text variant="bodyLarge" style={styles.codeHint}>
+              Không quét được thì đọc mã này
+            </Text>
             <Text variant="headlineSmall" style={styles.timer}>
               {mm}:{ss}
             </Text>
@@ -131,6 +140,8 @@ const styles = StyleSheet.create({
   listItem: { minHeight: tapMin, justifyContent: 'center' },
   qrContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
   qrBox: { padding: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
+  code: { marginTop: space.lg, letterSpacing: 8, fontVariant: ['tabular-nums'] },
+  codeHint: { marginTop: space.xs, color: colors.onSurfaceVariant },
   timer: { marginTop: space.md, color: colors.primary },
   expired: { marginBottom: space.md, color: colors.error },
   button: { marginTop: space.lg, borderRadius: shape.small },
