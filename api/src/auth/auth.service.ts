@@ -24,8 +24,19 @@ export class AuthService {
     const ok = await bcrypt.compare(dto.password, user.password);
     if (!ok) throw new UnauthorizedException('Sai email hoặc mật khẩu');
 
-    const token = this.jwt.sign({ sub: user.id, role: user.role });
+    const token = this.jwt.sign({ sub: user.id, role: user.role, tokenVersion: user.tokenVersion });
     return { token, user: { id: user.id, name: user.name, role: user.role } };
+  }
+
+  // "Đăng xuất mọi nơi" — chỉ owner mới cần (worker/bat-coordinator đã có
+  // "Thu hồi máy" qua DevicePairing). Bump tokenVersion làm MỌI token owner cũ (kể cả
+  // token vừa gọi endpoint này) hết tác dụng ngay ở request kế tiếp (JwtAuthGuard).
+  async logoutEverywhere(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    return { ok: true };
   }
 
   // Chủ xưởng cấp mã QR cho một người chưa ghép máy (S5). Mã 6 số: hiện thành QR,
@@ -77,10 +88,13 @@ export class AuthService {
   }
 
   // S15 — "Máy của thợ": chủ xưởng xem ai đang dùng máy nào.
+  // `select` tường minh cho `user` (không `include`) — DevicePairing không giới hạn theo vai
+  // ở tầng schema, và `User.password` (hash bcrypt của owner) không bao giờ được serialize
+  // ra ngoài dưới bất kỳ hình thức nào, kể cả cho chính owner (SECURITY.md §4).
   async listDevices() {
     return this.prisma.devicePairing.findMany({
       where: { usedAt: { not: null } },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, role: true, line: true, active: true } } },
       orderBy: { usedAt: 'desc' },
     });
   }

@@ -49,6 +49,11 @@ model User {
   active    Boolean  @default(true)
   email     String?  @unique // chỉ owner dùng — email/mật khẩu (PRD.md §7)
   password  String? // hash bcrypt — chỉ owner
+  // Review pha P vòng 6 (SECURITY.md §3 "đăng xuất được"): token owner không có
+  // pairingId nên JwtAuthGuard bỏ qua kiểm thu hồi — bump field này (qua
+  // POST /auth/logout-everywhere) là cách duy nhất vô hiệu hoá token owner cũ mà
+  // không phải đổi JWT_SECRET (kéo theo đăng xuất toàn bộ công nhân/điều phối).
+  tokenVersion Int @default(0) @map("token_version")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -57,6 +62,7 @@ model User {
   createdTasks    Task[]          @relation("TaskCreatedBy")
   assignedByTasks TaskAssignee[]  @relation("AssignedBy")
   taskEvents      TaskEvent[]
+  feedback        Feedback[]
 
   @@map("users")
 }
@@ -126,4 +132,18 @@ model TaskEvent {
 
   @@unique([taskId, userId, kind])
   @@map("task_events")
+}
+
+// Nhóm 4 production-ready — "kênh feedback": người dùng phản hồi được ngay trong sản
+// phẩm (review pha P vòng 6). Chưa có màn nào để owner ĐỌC lại danh sách này ở vòng 6 —
+// đọc trực tiếp qua DB trong lúc pilot vòng 7 là đủ cho quy mô xưởng nhỏ; màn đọc riêng
+// (nếu cần) là việc của vòng sau, không phải AC nào của vòng 6.
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("feedback")
 }

@@ -8,6 +8,7 @@ interface JwtPayload {
   sub: string;
   role: string;
   pairingId?: string;
+  tokenVersion?: number;
 }
 
 @Injectable()
@@ -45,6 +46,15 @@ export class JwtAuthGuard implements CanActivate {
       });
       if (!pairing || pairing.revokedAt) {
         throw new UnauthorizedException('Máy đã bị thu hồi');
+      }
+    } else {
+      // Token owner (đăng nhập email/mật khẩu, không có pairingId nên không đi qua nhánh
+      // trên) — chữ ký JWT sống 180 ngày, thu hồi thật sự đi qua `User.tokenVersion`
+      // (review pha P vòng 6, SECURITY.md §3 "đăng xuất được"). `POST /auth/logout-everywhere`
+      // bump field này, làm mọi token owner cũ hết tác dụng ngay ở request kế tiếp.
+      const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+      if (!user || user.tokenVersion !== (payload.tokenVersion ?? 0)) {
+        throw new UnauthorizedException('Phiên đã bị đăng xuất — đăng nhập lại');
       }
     }
 
