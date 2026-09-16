@@ -7,10 +7,13 @@ import type { Task } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { actionEndpoint, actionLabel, isDoneToday, isOverdue, nextAction } from '../tasks/taskStatus';
+import { track } from '../analytics/track';
+import { useAuth } from '../auth/AuthContext';
 
 // S6 — "Việc của tôi" (PROTOTYPE.md §1). CAP-TASK-11/12/13 (AC-8/9/10): việc đầu hàng có
 // nút hành động ngay trên thẻ (≤2 chạm); việc khác chạm mở S7 để báo trạng thái ở đó.
 export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,6 +71,9 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
     setActionError(null);
     try {
       await api.patch<Task>(actionEndpoint(task.id, action));
+      // Nhóm 4 production-ready — H3 (PRD.md §6): "viec_xong" là hoàn tất luồng lõi phía
+      // công nhân/điều phối, chỉ số quyết định go/pivot/kill ở pilot vòng 7.
+      if (user) track(`viec_${action}`, user.id, { taskId: task.id });
       await load();
     } catch (e) {
       setActionError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');

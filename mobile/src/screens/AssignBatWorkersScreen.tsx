@@ -5,12 +5,15 @@ import { Banner, Button, Checkbox, List, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { BatWorkerItem, Task } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
+import { track } from '../analytics/track';
+import { useAuth } from '../auth/AuthContext';
 
 // S10 — "Chọn thợ để giao" (PROTOTYPE.md §1). CAP-TASK-06 (AC-13): điều phối (hoặc chủ xưởng)
 // chọn 1..n thợ bạt ĐANG HOẠT ĐỘNG. Chọn lại một việc đã chia thì GHI ĐÈ toàn bộ danh sách
 // cũ, không cộng dồn (ARCHITECTURE.md §6 "Sửa đồng thời" — bản ghi sau thắng; DECISIONS.md
 // vòng 4).
 export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onDone: () => void }) {
+  const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [workers, setWorkers] = useState<BatWorkerItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -50,6 +53,7 @@ export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onD
     setSendError(null);
     try {
       await api.post(`/tasks/${taskId}/assign`, { userIds: Array.from(selected) });
+      if (user) track('chia_viec_bat', user.id, { taskId });
       onDone();
     } catch (e) {
       setSendError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');

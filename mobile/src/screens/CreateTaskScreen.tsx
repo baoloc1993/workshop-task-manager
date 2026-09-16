@@ -5,6 +5,8 @@ import * as SecureStore from 'expo-secure-store';
 import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
+import { track } from '../analytics/track';
+import { useAuth } from '../auth/AuthContext';
 
 export interface CreateTaskPrefill {
   content?: string;
@@ -55,6 +57,7 @@ async function clearDraft() {
 // AC-6/AC-7 (từ giọng nói, vòng 2 — nhận prefill qua props, người dùng luôn soát
 // và sửa được trước khi chạm "Giao việc", không có đường phát việc thẳng).
 export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; prefill?: CreateTaskPrefill }) {
+  const { user } = useAuth();
   const [content, setContent] = useState(prefill?.content ?? '');
   const [dueAt, setDueAt] = useState(prefill?.dueAt ?? '');
   const [workers, setWorkers] = useState<WorkerListItem[]>([]);
@@ -164,6 +167,8 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
           ? { measurements: measurements.trim() ? measurements.trim() : undefined }
           : { assigneeIds: Array.from(selected) }),
       });
+      // Nhóm 4 production-ready — "hoàn tất luồng lõi" phía owner (H3, PRD.md §6).
+      if (user) track('giao_viec', user.id, { line });
       setBanner(
         line === 'bat'
           ? 'Đã giao việc cho nhóm bạt. Điều phối sẽ chia cho thợ.'

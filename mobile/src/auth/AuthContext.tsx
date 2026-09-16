@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { ActivityIndicator, View } from 'react-native';
 import { api, clearToken, clearUser, getToken, getUser, saveToken, saveUser } from '../api/client';
 import { getExpoPushTokenAsync } from '../notifications/registerPushToken';
+import { track } from '../analytics/track';
 import type { AuthUser, LoginResponse } from '../api/types';
 
 interface AuthContextValue {
@@ -28,7 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // không cần endpoint /users/me (chưa có ở vòng 1).
     (async () => {
       const [token, savedUser] = await Promise.all([getToken(), getUser<AuthUser>()]);
-      if (token && savedUser) setUser(savedUser);
+      if (token && savedUser) {
+        setUser(savedUser);
+        // "Quay lại lần 2" (nhóm 4 production-ready) — phiên đã có sẵn, tức là mở lại app
+        // chứ không phải đăng nhập mới lần đầu.
+        track('mo_app', savedUser.id, { role: savedUser.role });
+      }
       setRestoring(false);
     })();
   }, []);
@@ -40,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await api.post<LoginResponse>('/auth/login', { email, password });
         await Promise.all([saveToken(res.token), saveUser(res.user)]);
         setUser(res.user);
+        track('dang_nhap', res.user.id, { role: res.user.role });
       },
       async loginByPairingCode(code, deviceLabel) {
         // CAP-TASK-14 — best-effort: xin quyền/lấy token push chậm hoặc lỗi không được
@@ -52,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         await Promise.all([saveToken(res.token), saveUser(res.user)]);
         setUser(res.user);
+        track('dang_nhap', res.user.id, { role: res.user.role });
       },
       async logout() {
         await Promise.all([clearToken(), clearUser()]);
