@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { CreateTaskScreen, type CreateTaskPrefill } from '../screens/CreateTaskScreen';
 import { DevicesScreen } from '../screens/DevicesScreen';
+import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { IssueQrScreen } from '../screens/IssueQrScreen';
 import { OwnerHomeScreen } from '../screens/OwnerHomeScreen';
@@ -23,6 +25,7 @@ export type OwnerStackParamList = {
   Priority: undefined;
   History: undefined;
   TaskDetail: { taskId: string };
+  Feedback: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -74,7 +77,15 @@ export function OwnerNavigator() {
     <Stack.Navigator
       screenOptions={{ headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined) }}
     >
-      <Stack.Screen name="Home" options={{ title: 'Chủ xưởng' }}>
+      <Stack.Screen
+        name="Home"
+        options={({ navigation }) => ({
+          title: 'Chủ xưởng',
+          // Nhóm 4 production-ready (kênh feedback, review pha P vòng 6) — nút chữ ở góc
+          // trên, cùng khuôn với "Việc của tôi"/"Đã xong" đã dùng ở các navigator khác.
+          headerRight: () => <Button onPress={() => navigation.navigate('Feedback')}>Góp ý</Button>,
+        })}
+      >
         {({ navigation }) => (
           <HomeRoute
             navigation={navigation}
@@ -140,6 +151,9 @@ export function OwnerNavigator() {
       </Stack.Screen>
       <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
+      </Stack.Screen>
+      <Stack.Screen name="Feedback" options={{ title: 'Góp ý' }}>
+        {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

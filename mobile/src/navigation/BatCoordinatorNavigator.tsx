@@ -3,6 +3,7 @@ import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
+import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { MyTasksScreen } from '../screens/MyTasksScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
@@ -13,6 +14,7 @@ export type BatCoordinatorStackParamList = {
   MyTasks: undefined;
   TaskDetail: { taskId: string };
   History: undefined;
+  Feedback: undefined;
 };
 
 const Stack = createNativeStackNavigator<BatCoordinatorStackParamList>();
@@ -64,10 +66,19 @@ export function BatCoordinatorNavigator() {
       <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
       </Stack.Screen>
-      <Stack.Screen name="History" options={{ title: 'Việc đã xong' }}>
+      <Stack.Screen
+        name="History"
+        options={({ navigation }) => ({
+          title: 'Việc đã xong',
+          headerRight: () => <Button onPress={() => navigation.navigate('Feedback')}>Góp ý</Button>,
+        })}
+      >
         {({ navigation }) => (
           <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
         )}
+      </Stack.Screen>
+      <Stack.Screen name="Feedback" options={{ title: 'Góp ý' }}>
+        {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
     </Stack.Navigator>
   );
