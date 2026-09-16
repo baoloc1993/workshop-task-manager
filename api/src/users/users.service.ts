@@ -5,9 +5,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // `select` tường minh (không trả nguyên entity) — dù `where role != owner` khiến
+  // `password` luôn null trong dữ liệu hiện tại, `email` vẫn bị lộ không cần thiết cho
+  // một màn chỉ cần tên (review pha P vòng 6, cùng khuôn `listActiveBatWorkers()` bên dưới).
+  private static readonly SAFE_SELECT = { id: true, name: true, role: true, line: true, active: true } as const;
+
   listAll() {
     return this.prisma.user.findMany({
       where: { role: { not: 'owner' } },
+      select: UsersService.SAFE_SELECT,
       orderBy: { name: 'asc' },
     });
   }
@@ -22,6 +28,7 @@ export class UsersService {
     const pairedIds = paired.map((p) => p.userId);
     return this.prisma.user.findMany({
       where: { role: { not: 'owner' }, id: { notIn: pairedIds } },
+      select: UsersService.SAFE_SELECT,
       orderBy: { name: 'asc' },
     });
   }

@@ -10,7 +10,10 @@ import { ReorderTasksDto } from './dto/reorder-tasks.dto.js';
 const HISTORY_WINDOW_DAYS: Record<'week' | 'month', number> = { week: 7, month: 30 };
 
 const TASK_INCLUDE = {
-  assignees: { include: { user: true } },
+  // `select` tường minh (không `include: true`) — response `/tasks*` đi thẳng ra client
+  // di động, không bao giờ được kéo theo `User.password`/`email` dù assignee đó là ai
+  // (SECURITY.md §4, cùng khuôn đã áp cho `AuthService.listDevices()`).
+  assignees: { include: { user: { select: { id: true, name: true, role: true, line: true } } } },
   // AC-11 — S7 hiện đủ mốc thời gian; sắp theo thứ tự xảy ra thật.
   events: { orderBy: { at: 'asc' } },
 } as const;
@@ -48,10 +51,17 @@ export class TasksService {
 
     // dogfood pha I: assigneeIds chứa id không tồn tại rơi thẳng
     // xuống ràng buộc khoá ngoại của Postgres → lộ 500 thay vì lỗi tử tế cho client.
+    // Kiểm CẢ role/line/active (không chỉ tồn tại) — review pha P vòng 6: thiếu ràng buộc
+    // này cho phép owner tự thêm chính mình (hoặc thợ mảng khác) làm assignee của việc
+    // may vá, việc mà `PERSONAS.md §2` không định nghĩa (owner không phải người "nhận việc").
     if (assigneeIds.length > 0) {
-      const foundCount = await this.prisma.user.count({ where: { id: { in: assigneeIds } } });
-      if (foundCount !== assigneeIds.length) {
-        throw new BadRequestException('Có người trong danh sách giao việc không tồn tại');
+      const validWorkers = await this.prisma.user.count({
+        where: { id: { in: assigneeIds }, role: 'worker', line: 'may_va', active: true },
+      });
+      if (validWorkers !== assigneeIds.length) {
+        throw new BadRequestException(
+          'Có người trong danh sách giao việc không hợp lệ (không phải thợ may vá đang hoạt động)',
+        );
       }
     }
 
@@ -114,11 +124,18 @@ export class TasksService {
   // CAP-TASK-07 (AC-14) — S4 "Việc nào làm trước": nhận nguyên danh sách task_id theo thứ
   // tự mới, gán lại priority tuần tự theo vị trí (DECISIONS.md vòng 5 — không cộng dồn/diff).
   async reorder(dto: ReorderTasksDto) {
-    const found = await this.prisma.task.count({
-      where: { id: { in: dto.taskIds }, deletedAt: null },
+    // DECISIONS.md vòng 5: hợp đồng là "gửi NGUYÊN danh sách", không phải một tập con —
+    // server phải TỰ kiểm chứ không chỉ tin client (review pha P vòng 6). Thiếu dòng này,
+    // một client thứ hai (vd. owner-dashboard vòng 8) gửi thiếu sẽ làm priority đụng nhau
+    // giữa việc có mặt và việc bị bỏ sót trong danh sách.
+    const active = await this.prisma.task.findMany({
+      where: { status: { not: 'done' }, deletedAt: null },
+      select: { id: true },
     });
-    if (found !== dto.taskIds.length) {
-      throw new BadRequestException('Có việc trong danh sách không còn tồn tại');
+    const activeIds = new Set(active.map((t) => t.id));
+    const sentIds = new Set(dto.taskIds);
+    if (activeIds.size !== sentIds.size || [...activeIds].some((id) => !sentIds.has(id))) {
+      throw new BadRequestException('Danh sách phải gồm ĐỦ và ĐÚNG mọi việc chưa xong, không thiếu không thừa');
     }
 
     await this.prisma.$transaction(
@@ -175,7 +192,10 @@ export class TasksService {
     const task = await this.prisma.task.findUnique({ where: { id } });
     if (!task || task.deletedAt) throw new NotFoundException('Không tìm thấy việc này');
     if (task.line !== 'bat') {
-      throw new BadRequestException('Chỉ chia được việc mảng bạt qua đây');
+      // 403 (không phải 400) — đây là ranh giới VAI (PERSONAS.md §2: "Điều phối KHÔNG được
+      // chạm mảng may vá"), không phải lỗi định dạng input (review pha P vòng 6, đã ghi
+      // nhận từ dogfood vòng 6 đợt 2 — mã lỗi cũ 400 không nhất quán với mọi ca 403 khác).
+      throw new ForbiddenException('Chỉ chia được việc mảng bạt qua đây');
     }
 
     const workers = await this.prisma.user.findMany({
@@ -230,6 +250,38 @@ export class TasksService {
       throw new ForbiddenException('Không được xem việc của người khác');
     }
     return task;
+  }
+
+  // CAP-TASK-14 (vòng 6) — nguồn dữ liệu cho RemindersService (`src/tasks/reminders.service.ts`).
+  // Sống ở TasksService, không phải notifications/, vì đây là truy vấn trên bảng `Task`
+  // (ARCHITECTURE.md §8: chỉ tầng của chính domain được chạm bảng của domain đó — review
+  // pha P vòng 6 phát hiện bản đầu đặt nhầm ở notifications/).
+  async findUnackedNeedingReminder(ackThreshold: Date, cooldownBefore: Date) {
+    return this.prisma.task.findMany({
+      where: {
+        deletedAt: null,
+        status: 'new',
+        assignees: { some: { assignedAt: { lte: ackThreshold } } },
+        OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: cooldownBefore } }],
+      },
+      include: { assignees: true },
+    });
+  }
+
+  async findDueSoonNeedingReminder(dueBefore: Date, cooldownBefore: Date) {
+    return this.prisma.task.findMany({
+      where: {
+        deletedAt: null,
+        status: { not: 'done' },
+        dueAt: { not: null, lte: dueBefore },
+        OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: cooldownBefore } }],
+      },
+      include: { assignees: true },
+    });
+  }
+
+  async markReminded(taskId: string): Promise<void> {
+    await this.prisma.task.update({ where: { id: taskId }, data: { lastReminderAt: new Date() } });
   }
 
   // AC-8/9/10 — nhận / bắt đầu / xong, ≤2 chạm, mỗi thao tác một nút theo đúng trạng thái
