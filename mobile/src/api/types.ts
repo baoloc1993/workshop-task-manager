@@ -47,6 +47,10 @@ export interface DevicePairing {
 export interface TaskAssignee {
   userId: string;
   user: WorkerListItem;
+  // AC-11 (S7 "Việc này đã đi qua" phải hiện dòng "chia" cho việc mảng bạt) — API đã trả
+  // sẵn field này qua TASK_INCLUDE (task-manager-api/src/tasks/tasks.service.ts), nhưng
+  // type ở đây từng cắt mất nên TaskDetailScreen không render được (review pha P vòng 6).
+  assignedAt: string;
 }
 
 // CAP-TASK-09 — mốc thời gian ngầm, task-manager-api trả sẵn theo đúng thứ tự xảy ra.

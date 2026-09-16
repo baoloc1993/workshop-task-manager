@@ -7,10 +7,13 @@ import type { Task } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { StatusChip } from '../tasks/StatusChip';
 import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
+import { track } from '../analytics/track';
+import { useAuth } from '../auth/AuthContext';
 
 // S7 — chi tiết việc. CAP-TASK-11/12/13 (AC-8/9/10): một nút lớn theo đúng trạng thái hiện
 // tại. CAP-TASK-09 (AC-11): khối "Việc này đã đi qua" hiện mốc thời gian ngầm, tự ghi.
 export function TaskDetailScreen({ taskId }: { taskId: string }) {
+  const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [error, setError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +39,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
     setActionError(null);
     try {
       const updated = await api.patch<Task>(actionEndpoint(task.id, action));
+      if (user) track(`viec_${action}`, user.id, { taskId: task.id });
       setTask(updated);
     } catch (e) {
       setActionError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
@@ -60,6 +64,12 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
   const ackAt = task.events.find((e) => e.kind === 'acked')?.at;
   const startAt = task.events.find((e) => e.kind === 'started')?.at;
   const doneAt = task.events.find((e) => e.kind === 'done')?.at;
+  // AC-11 — việc mảng bạt đi qua thêm bước "chia" (điều phối giao từ hàng đợi, ARCHITECTURE.md
+  // §7 luồng B) trước khi tới "nhận". Việc may vá giao thẳng, không có bước này.
+  const assignedAt =
+    task.line === 'bat' && task.assignees.length > 0
+      ? task.assignees.map((a) => a.assignedAt).sort()[0]
+      : undefined;
 
   return (
     <View style={styles.container}>
@@ -111,6 +121,12 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       </Text>
       <Text variant="bodyLarge" style={styles.time}>
         Giao việc · {formatTime(task.createdAt)}
+        {assignedAt && (
+          <>
+            {'\n'}
+            Chia cho bạn · {formatTime(assignedAt)}
+          </>
+        )}
         {'\n'}
         Nhận việc · {ackAt ? formatTime(ackAt) : 'chưa có'}
         {'\n'}
