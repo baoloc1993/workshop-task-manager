@@ -22,6 +22,13 @@ const MAY_VA_NAMES = ['Thợ A', 'Thợ B', 'Thợ C', 'Thợ D', 'Thợ E', 'Th
 const BAT_NAMES = ['Thợ M', 'Thợ N', 'Thợ O', 'Thợ P', 'Thợ Q'];
 
 async function main() {
+  // Review pha P vòng 6: mật khẩu mặc định 'doicaimatkhaunay' công khai trong git history —
+  // âm thầm rơi về giá trị này trên production (chạy nhầm `db:seed` mà quên set biến) là
+  // cấp quyền owner cho bất kỳ ai đọc được repo. Local/dev thì fallback vẫn tiện.
+  if (process.env.APP_ENV === 'production' && !process.env.OWNER_SEED_PASSWORD) {
+    throw new Error('OWNER_SEED_PASSWORD bắt buộc khi APP_ENV=production — không seed bằng mật khẩu mặc định');
+  }
+
   const ownerEmail = process.env.OWNER_SEED_EMAIL ?? 'owner@task-manager.local';
   const ownerPassword = process.env.OWNER_SEED_PASSWORD ?? 'doicaimatkhaunay';
 
