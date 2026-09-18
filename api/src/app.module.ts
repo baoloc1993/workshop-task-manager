@@ -6,10 +6,13 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { RequestIdMiddleware } from './common/logger/request-id.middleware.js';
+import { CustomersModule } from './customers/customers.module.js';
 import { FeedbackModule } from './feedback/feedback.module.js';
 import { HealthModule } from './health/health.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { OrdersModule } from './orders/orders.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { RoutesModule } from './routes/routes.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -28,6 +31,9 @@ import { UsersModule } from './users/users.module.js';
     AuthModule,
     UsersModule,
     NotificationsModule,
+    CustomersModule,
+    RoutesModule,
+    OrdersModule,
     TasksModule,
     HealthModule,
     FeedbackModule,

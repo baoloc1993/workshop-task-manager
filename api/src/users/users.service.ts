@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { WorkerGroup } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -8,7 +9,14 @@ export class UsersService {
   // `select` tường minh (không trả nguyên entity) — dù `where role != owner` khiến
   // `password` luôn null trong dữ liệu hiện tại, `email` vẫn bị lộ không cần thiết cho
   // một màn chỉ cần tên (review pha P vòng 6, cùng khuôn `listActiveBatWorkers()` bên dưới).
-  private static readonly SAFE_SELECT = { id: true, name: true, role: true, line: true, active: true } as const;
+  private static readonly SAFE_SELECT = {
+    id: true,
+    name: true,
+    role: true,
+    line: true,
+    active: true,
+    groups: true,
+  } as const;
 
   listAll() {
     return this.prisma.user.findMany({
@@ -52,5 +60,18 @@ export class UsersService {
     });
     const countByUserId = new Map(counts.map((c) => [c.userId, c._count._all]));
     return workers.map((w) => ({ ...w, activeTaskCount: countByUserId.get(w.id) ?? 0 }));
+  }
+
+  // S26 "Phân vai thợ" (CAP-DEM-07, AC-21) — gán thợ vào nhóm chuyên trách mảng đệm.
+  // Không giới hạn theo `line` hiện tại: một thợ may vá/bạt vẫn gán được vào nhóm đệm
+  // nếu chủ xưởng muốn (xưởng nhỏ, người làm chéo mảng — không tài liệu nào cấm điều này).
+  async updateGroups(userId: string, groups: WorkerGroup[]) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== 'worker') throw new NotFoundException('Không tìm thấy thợ này');
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { groups },
+      select: UsersService.SAFE_SELECT,
+    });
   }
 }

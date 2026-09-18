@@ -57,6 +57,14 @@ export class TasksController {
     return this.tasks.reorder(dto);
   }
 
+  // CAP-DEM-07 (AC-21) — S22 "Việc nhóm chờ nhận". Đăng ký TRƯỚC ':id' bên dưới — cùng lý
+  // do 'bat-queue' ở trên (route tĩnh phải đứng trước route có tham số).
+  @Roles('worker')
+  @Get('dem-queue')
+  demQueue(@CurrentUser() user: AuthUser) {
+    return this.tasks.findDemQueue(user);
+  }
+
   // Không @Roles ở đây: mọi vai đã đăng nhập gọi được, nhưng service tự lọc
   // owner-hoặc-assignee — đây chính là ca kiểm bắt buộc của PERSONAS.md §2.
   @Get(':id')
@@ -90,5 +98,12 @@ export class TasksController {
   @Post(':id/assign')
   assign(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: AssignTaskDto) {
     return this.tasks.assign(user, id, dto);
+  }
+
+  // CAP-DEM-07 (AC-21) — "Nhận việc này": giành chỗ, khác hẳn assign() (xem tasks.service.ts).
+  @Roles('worker')
+  @Post(':id/claim')
+  claim(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tasks.claim(user, id);
   }
 }

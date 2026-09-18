@@ -25,7 +25,7 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Sai email hoặc mật khẩu');
 
     const token = this.jwt.sign({ sub: user.id, role: user.role, tokenVersion: user.tokenVersion });
-    return { token, user: { id: user.id, name: user.name, role: user.role } };
+    return { token, user: { id: user.id, name: user.name, role: user.role, groups: user.groups } };
   }
 
   // "Đăng xuất mọi nơi" — chỉ owner mới cần (worker/bat-coordinator đã có
@@ -84,7 +84,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: updated.userId } });
     const token = this.jwt.sign({ sub: user.id, role: user.role, pairingId: updated.id });
-    return { token, user: { id: user.id, name: user.name, role: user.role } };
+    return { token, user: { id: user.id, name: user.name, role: user.role, groups: user.groups } };
   }
 
   // S15 — "Máy của thợ": chủ xưởng xem ai đang dùng máy nào.

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { WorkerGroup } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -37,6 +38,21 @@ export class NotificationsService {
         revokedAt: null,
         deviceToken: { not: null },
         user: { role, active: true },
+      },
+      select: { deviceToken: true },
+    });
+    await this.push(pairings.map((p) => ({ to: p.deviceToken as string, title, body, data })));
+  }
+
+  // vòng 7 — CAP-DEM-07 (AC-21): việc hàng-đợi-nhóm mảng đệm không có assignee cụ thể
+  // (khác "Việc bạt chờ chia" nhắc theo VAI) — nhắc mọi thợ ĐANG hoạt động thuộc nhóm đó,
+  // dùng `hasSome` trên `User.groups` (mảng, một người nhiều nhóm — ARCHITECTURE.md §6).
+  async notifyGroup(group: WorkerGroup, title: string, body: string, data?: Record<string, unknown>) {
+    const pairings = await this.prisma.devicePairing.findMany({
+      where: {
+        revokedAt: null,
+        deviceToken: { not: null },
+        user: { active: true, groups: { has: group } },
       },
       select: { deviceToken: true },
     });

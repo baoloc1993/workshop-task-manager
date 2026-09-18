@@ -21,6 +21,9 @@ enum Role {
 enum Line {
   may_va
   bat
+  // vòng 7 — ARCHITECTURE.md §6 "Mở rộng mảng đệm ghế". Thêm giá trị enum là additive
+  // (BACKWARD-COMPATIBILITY-CHECKLIST.md §2) — không đổi nghĩa hai giá trị cũ.
+  dem
 }
 
 enum TaskStatus {
@@ -41,6 +44,54 @@ enum TaskEventKind {
   done
 }
 
+// vòng 7 — nhóm chuyên trách của mảng đệm (ARCHITECTURE.md §6 "User (mở rộng)").
+// Một người có thể thuộc nhiều nhóm cùng lúc (User.groups là mảng).
+enum WorkerGroup {
+  do
+  may
+  cat_mut
+  khau_lot
+  nhoi
+  theu
+}
+
+// vòng 7 — công đoạn của một Task khi line=dem (ARCHITECTURE.md §6 "Task (mở rộng)").
+// tinh_cat KHÔNG sinh việc hàng-đợi-nhóm — nó là hành động của S24 (owner), gộp cả
+// "tính cắt vải" lẫn "tính cắt mút" thành một Task duy nhất theo prototype S24.
+enum TaskStep {
+  do
+  tinh_cat
+  may_vai
+  cat_mut
+  khau_lot
+  theu
+  goi_tua
+  nhoi
+}
+
+enum OrderMode {
+  buon
+  le
+}
+
+enum OrderDifficulty {
+  de
+  kho
+}
+
+enum OrderStatus {
+  moi
+  dang_lam
+  cho_tra
+  da_tra
+}
+
+enum DeliveryMethod {
+  xe_om
+  route
+  self_pickup
+}
+
 model User {
   id        String   @id @default(uuid())
   name      String
@@ -54,6 +105,9 @@ model User {
   // POST /auth/logout-everywhere) là cách duy nhất vô hiệu hoá token owner cũ mà
   // không phải đổi JWT_SECRET (kéo theo đăng xuất toàn bộ công nhân/điều phối).
   tokenVersion Int @default(0) @map("token_version")
+  // vòng 7 — ARCHITECTURE.md §6 "User (mở rộng)": chỉ có ý nghĩa khi line=dem. Mảng
+  // rỗng = chưa được phân vào nhóm nào, không nhận được việc hàng-đợi-nhóm nào.
+  groups    WorkerGroup[] @default([])
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -63,6 +117,7 @@ model User {
   assignedByTasks TaskAssignee[]  @relation("AssignedBy")
   taskEvents      TaskEvent[]
   feedback        Feedback[]
+  createdOrders   Order[]         @relation("OrderCreatedBy")
 
   @@map("users")
 }
@@ -82,6 +137,11 @@ model Task {
   // CAP-TASK-14 (vòng 6) — mốc lần cuối cùng gửi nhắc "chưa ack"/"sắp tới hạn", chặn spam
   // khi cron chạy lại trước hết cooldown (DECISIONS.md 2026-09-15).
   lastReminderAt DateTime? @map("last_reminder_at")
+  // vòng 7 — ARCHITECTURE.md §6 "Task (mở rộng, chỉ khi line=dem)". orderId NULL nghĩa
+  // là line != dem (may vá/bạt không đổi). Cả hai cột nullable — additive.
+  orderId String?   @map("order_id")
+  order   Order?    @relation(fields: [orderId], references: [id])
+  step    TaskStep?
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
@@ -146,4 +206,93 @@ model Feedback {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("feedback")
+}
+
+// vòng 7 — ARCHITECTURE.md §6 "Mở rộng mảng đệm ghế". Khách hàng KHÔNG phải User —
+// không tài khoản, không đăng nhập, không persona (DECISIONS.md 2026-09-14 qua chat).
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  address   String
+  // Khu vực trả lần trước — gợi ý cho đơn kế tiếp (tính ở client, DECISIONS.md 2026-09-18).
+  areaId    String?  @map("area_id")
+  area      Route?   @relation(fields: [areaId], references: [id])
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  // Không unique trên phone — "Trùng dữ liệu" giữ triết lý chung của app
+  // (ARCHITECTURE.md §6: "không tự phát hiện/gộp, chủ xưởng tự chịu").
+  @@index([phone])
+  @@map("customers")
+}
+
+// vòng 7 — "khu vực" trả hàng (ARCHITECTURE.md §6). Danh sách phẳng chủ xưởng tự cấu
+// hình (S25), 4-7 khu vực dự kiến. "Xe ôm chuyến lẻ"/"Khách tự lấy" KHÔNG phải Route —
+// là giá trị cố định của Order.deliveryMethod.
+model Route {
+  id        String   @id @default(uuid())
+  name      String
+  landmarks String[] @default([])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  customers Customer[]
+  orders    Order[]
+
+  @@map("routes")
+}
+
+// vòng 7 — ARCHITECTURE.md §6. `remaining = price - deposit` tính ở tầng đọc, không lưu
+// cột riêng. Đây là loại trừ công nợ DUY NHẤT được mở, chỉ cho line=dem (PRD.md §5).
+model Order {
+  id          String          @id @default(uuid())
+  customerId  String          @map("customer_id")
+  customer    Customer        @relation(fields: [customerId], references: [id])
+  mode        OrderMode
+  description String
+  difficulty  OrderDifficulty @default(de)
+  photos      String[]        @default([]) // data-URI base64 (DECISIONS.md 2026-09-18 — không có blob storage)
+
+  // Số đo — nullable tới khi người đo điền xong (CAP-DEM-02). Tách 4 cột riêng (không
+  // gộp text như Task.measurements của mảng bạt) vì C6 hiện từng trục riêng, cỡ tabular.
+  measurementLength    Float?  @map("measurement_length")
+  measurementDepth     Float?  @map("measurement_depth")
+  measurementWidth     Float?  @map("measurement_width")
+  measurementThickness Float?  @map("measurement_thickness") // chỉ ghế thấp
+  measurementPhoto     String? @map("measurement_photo") // data-URI base64, bắt buộc nếu difficulty=kho (validate ở service)
+
+  hasEmbroidery Boolean @default(false) @map("has_embroidery")
+  // [{type:'square',size:'to'|'vua'|'nho',count}|{type:'back',length,width,count}]
+  pillows Json?
+
+  dueAt DateTime @map("due_at")
+
+  deliveryMethod DeliveryMethod @default(xe_om) @map("delivery_method")
+  routeId        String?        @map("route_id")
+  route          Route?         @relation(fields: [routeId], references: [id])
+
+  price   Int @default(0)
+  deposit Int @default(0)
+
+  status OrderStatus @default(moi)
+
+  // Nhập tay ở S24 sau khi chốt số cắt — CAP-DEM-03 (công thức gợi ý) đẩy backlog,
+  // không có field "gợi ý" riêng vì chưa có gì để gợi ý (DECISIONS.md 2026-09-18).
+  fabricMeters Float? @map("fabric_meters")
+  foamSheets   Float? @map("foam_sheets")
+
+  createdById String    @map("created_by")
+  createdBy   User      @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@map("orders")
 }

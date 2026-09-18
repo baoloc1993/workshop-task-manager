@@ -1,8 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, TaskEventKind, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { OrdersService } from '../orders/orders.service.js';
 import { AuthUser } from '../common/decorators/current-user.decorator.js';
+import { STEP_GROUP } from '../common/dem-step.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { AssignTaskDto } from './dto/assign-task.dto.js';
 import { ReorderTasksDto } from './dto/reorder-tasks.dto.js';
@@ -16,6 +18,29 @@ const TASK_INCLUDE = {
   assignees: { include: { user: { select: { id: true, name: true, role: true, line: true } } } },
   // AC-11 — S7 hiện đủ mốc thời gian; sắp theo thứ tự xảy ra thật.
   events: { orderBy: { at: 'asc' } },
+  // vòng 7 (S19/S29) — `select` tường minh, KHÔNG BAO GIỜ gồm `price`/`deposit`/
+  // `createdBy` (challenge pha I, DECISIONS.md 2026-09-18: vai worker không được thấy
+  // tiền — luật cứng `DESIGN-SYSTEM.md §4d` #9 — và TASK_INCLUDE dùng chung cho MỌI vai).
+  order: {
+    select: {
+      id: true,
+      mode: true,
+      description: true,
+      difficulty: true,
+      dueAt: true,
+      status: true,
+      measurementLength: true,
+      measurementDepth: true,
+      measurementWidth: true,
+      measurementThickness: true,
+      measurementPhoto: true,
+      hasEmbroidery: true,
+      pillows: true,
+      deliveryMethod: true,
+      customer: { select: { id: true, name: true, phone: true, address: true } },
+      route: { select: { id: true, name: true } },
+    },
+  },
 } as const;
 
 // CAP-TASK-11/12/13 (AC-8/9/10) — mỗi kind ứng đúng một status đích, và chỉ hợp lệ khi
@@ -36,6 +61,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly orders: OrdersService,
   ) {}
 
   // AC-2 + AC-3 — tạo việc bằng tay, giao đích danh cho một hoặc nhiều người.
@@ -306,6 +332,12 @@ export class TasksService {
     if (task.status !== PREV_STATUS_FOR_KIND[kind]) {
       throw new BadRequestException('Việc chưa ở đúng bước để báo trạng thái này');
     }
+    // CAP-DEM-02 (AC-19) — "Ảnh là BẮT BUỘC với bộ khó" (`_PROPOSAL.md`): chặn ngay lúc
+    // báo XONG bước "đi đo", không chặn lúc lưu số đo (S20 phải luôn lưu nháp được, kể cả
+    // chưa xong — DECISIONS.md vòng 7, xem UpdateMeasurementsDto).
+    if (kind === 'done' && task.step === 'do' && task.order?.difficulty === 'kho' && !task.order.measurementPhoto) {
+      throw new BadRequestException('Bộ khó bắt buộc chụp ảnh tờ đo trước khi báo xong');
+    }
 
     try {
       await this.prisma.taskEvent.create({ data: { taskId: id, userId: user.userId, kind } });
@@ -315,11 +347,66 @@ export class TasksService {
       if (!(e instanceof Prisma.PrismaClientKnownRequestError) || e.code !== 'P2002') throw e;
     }
 
-    return this.prisma.task.update({
+    const updated = await this.prisma.task.update({
       where: { id },
       data: { status: targetStatus },
       include: TASK_INCLUDE,
     });
+
+    // ARCHITECTURE.md §7 luồng D bước 5-6 — quy luật vòng đời ĐƠN sống ở orders/
+    // (ranh giới domain, ARCHITECTURE.md §8). Không await chặn response: một Order bị
+    // lỗi cập nhật không được làm hỏng việc vừa báo xong đã ghi nhận thành công.
+    if (kind === 'done' && task.line === 'dem' && task.orderId) {
+      void this.orders.onDemTaskDone(id).catch(() => {});
+    }
+
+    return updated;
+  }
+
+  // CAP-DEM-07 (AC-21) — S22 "Việc nhóm chờ nhận": TOÀN BỘ task line=dem, chưa xong, mà
+  // `step` khớp BẤT KỲ nhóm nào của người gọi (DECISIONS.md vòng 7 — hợp/union, không
+  // chọn 1 nhóm). Gồm cả việc ĐÃ có người nhận (client tự tách "chờ" / "đang có người làm").
+  findDemQueue(user: AuthUser) {
+    if (user.groups.length === 0) return [];
+    const steps = (Object.keys(STEP_GROUP) as (keyof typeof STEP_GROUP)[]).filter((step) =>
+      user.groups.includes(STEP_GROUP[step]),
+    );
+    return this.prisma.task.findMany({
+      where: { deletedAt: null, line: 'dem', status: { not: 'done' }, step: { in: steps } },
+      orderBy: [{ dueAt: 'asc' }, { createdAt: 'asc' }],
+      include: TASK_INCLUDE,
+    });
+  }
+
+  // CAP-DEM-07 (AC-21) — "Nhận việc này": giành chỗ, tối đa 1 assignee (khác hẳn assign()
+  // của mảng bạt — ghi đè, N assignee). Request thứ hai cho cùng task 409, không ghi đè
+  // (ARCHITECTURE.md §6 ca biên "Hai thợ cùng nhóm chạm Nhận việc gần như đồng thời").
+  async claim(user: AuthUser, id: string) {
+    const task = await this.prisma.task.findUnique({ where: { id }, include: { assignees: true } });
+    if (!task || task.deletedAt) throw new NotFoundException('Không tìm thấy việc này');
+    if (task.line !== 'dem' || !task.step) {
+      throw new ForbiddenException('Chỉ nhận được việc hàng đợi nhóm của mảng đệm qua đây');
+    }
+    const group = STEP_GROUP[task.step as keyof typeof STEP_GROUP];
+    if (!group || !user.groups.includes(group)) {
+      throw new ForbiddenException('Bạn không thuộc nhóm phụ trách việc này');
+    }
+    if (task.assignees.length > 0) {
+      throw new ConflictException('Việc này đã có người nhận');
+    }
+
+    try {
+      await this.prisma.taskAssignee.create({ data: { taskId: id, userId: user.userId, assignedById: user.userId } });
+    } catch (e) {
+      // Đua nhau tới server cùng lúc — ràng buộc duy nhất (task_id,user_id) hoặc việc vừa
+      // bị người khác giành ngay giữa lúc kiểm assignees.length ở trên và lúc create() này.
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new ConflictException('Việc này đã có người nhận');
+      }
+      throw e;
+    }
+
+    return this.prisma.task.findUnique({ where: { id }, include: TASK_INCLUDE });
   }
 }
 

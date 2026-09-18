@@ -1,5 +1,6 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { UpdateGroupsDto } from './dto/update-groups.dto.js';
 import { UsersService } from './users.service.js';
 
 // @Roles ở TỪNG method (không phải class) từ vòng 4 — S10 cần một đường hẹp hơn cho
@@ -21,5 +22,12 @@ export class UsersController {
   @Get('bat-workers')
   batWorkers() {
     return this.users.listActiveBatWorkers();
+  }
+
+  // S26 "Phân vai thợ" (CAP-DEM-07, AC-21) — hiệu lực ngay, không nút "Lưu" riêng.
+  @Roles('owner')
+  @Patch(':id/groups')
+  updateGroups(@Param('id') id: string, @Body() dto: UpdateGroupsDto) {
+    return this.users.updateGroups(id, dto.groups);
   }
 }
