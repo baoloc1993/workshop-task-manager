@@ -26,19 +26,39 @@ export class UsersService {
     });
   }
 
-  // S5 — danh sách người CHƯA có máy đang hoạt động, để chủ xưởng chọn cấp mã.
   // "Chưa có máy" = không có DevicePairing nào đã dùng (usedAt) mà chưa bị thu hồi.
-  async listUnpaired() {
+  private async pairedUserIds() {
     const paired = await this.prisma.devicePairing.findMany({
       where: { usedAt: { not: null }, revokedAt: null },
       select: { userId: true },
     });
-    const pairedIds = paired.map((p) => p.userId);
+    return new Set(paired.map((p) => p.userId));
+  }
+
+  // S5 — danh sách người CHƯA có máy đang hoạt động, để chủ xưởng chọn cấp mã.
+  async listUnpaired() {
+    const pairedIds = await this.pairedUserIds();
     return this.prisma.user.findMany({
-      where: { role: { not: 'owner' }, id: { notIn: pairedIds } },
+      where: { role: { not: 'owner' }, id: { notIn: [...pairedIds] } },
       select: UsersService.SAFE_SELECT,
       orderBy: { name: 'asc' },
     });
+  }
+
+  // AC-32 (vòng 8, CAP-BUG-03) — S5 trước đây lọc `paired=false` nên thợ đã ghép máy BIẾN
+  // MẤT khỏi danh sách, chủ xưởng không còn cách nào tìm lại người đó để "Cấp lại mã" khi
+  // thợ mất/đổi máy — phải gõ tay tìm qua "Phân vai thợ" (S26). Trả TOÀN BỘ kèm cờ `paired`,
+  // màn tự hiện đúng trạng thái + nút phù hợp cho từng người thay vì ẩn hẳn.
+  async listAllWithPairedFlag() {
+    const [users, pairedIds] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { role: { not: 'owner' } },
+        select: UsersService.SAFE_SELECT,
+        orderBy: { name: 'asc' },
+      }),
+      this.pairedUserIds(),
+    ]);
+    return users.map((u) => ({ ...u, paired: pairedIds.has(u.id) }));
   }
 
   // S10 (CAP-TASK-06, vòng 4) — danh sách thợ bạt đang hoạt động để điều phối/chủ xưởng chọn

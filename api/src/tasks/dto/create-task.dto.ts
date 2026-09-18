@@ -8,35 +8,14 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
-  registerDecorator,
-  ValidationOptions,
 } from 'class-validator';
 import { Line } from '@prisma/client';
+import { IsNotPastDate } from '../../common/validators/is-not-past-date.js';
 
 // dogfood pha I: dueAt quá khứ không bị PRD cấm rõ, nhưng chủ xưởng
 // tạo việc mới với hạn đã qua chỉ có thể là gõ nhầm — chặn sớm rẻ hơn để lọt rồi phát hiện
 // muộn (DECISIONS.md, vòng 2). Ngày hôm nay vẫn hợp lệ (giao trong ngày là bình thường).
-function IsNotPastDate(validationOptions?: ValidationOptions) {
-  return function (object: object, propertyName: string) {
-    registerDecorator({
-      name: 'isNotPastDate',
-      target: object.constructor,
-      propertyName,
-      options: validationOptions,
-      validator: {
-        validate(value: string) {
-          if (!value) return true;
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return new Date(value) >= today;
-        },
-        defaultMessage() {
-          return 'dueAt không được là ngày trong quá khứ';
-        },
-      },
-    });
-  };
-}
+// AC-33 (vòng 8) — hàm chuyển ra src/common/validators/, dùng chung với CreateOrderDto.
 
 export class CreateTaskDto {
   // dogfood pha I: "    " (toàn khoảng trắng) lọt qua MinLength(1)

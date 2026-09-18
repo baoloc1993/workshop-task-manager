@@ -13,6 +13,9 @@ export class UsersController {
   @Get()
   list(@Query('paired') paired?: string) {
     if (paired === 'false') return this.users.listUnpaired();
+    // AC-32 (vòng 8) — S5 giờ gọi `?paired=all` để nhận cờ `paired` theo từng người,
+    // thay vì danh sách bị lọc cứng khiến người đã ghép máy biến mất.
+    if (paired === 'all') return this.users.listAllWithPairedFlag();
     return this.users.listAll();
   }
 
