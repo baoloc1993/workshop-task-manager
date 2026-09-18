@@ -41,11 +41,11 @@ export async function clearToken() {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
-// Lưu kèm hồ sơ nhỏ (id/name/role, KHÔNG phải "profile" hay "việc" — ARCHITECTURE.md
-// §10 chỉ cấm lưu việc xuống máy) để khôi phục phiên khi app bị hệ điều hành kill —
-// dogfood pha I: thiếu bước này làm mất phiên hoàn toàn, phải
-// gõ lại email/mật khẩu mỗi lần mở app, trái PRD §7 "không phải đăng nhập lại".
-export async function saveUser(user: { id: string; name: string; role: string }) {
+// Lưu kèm hồ sơ nhỏ (id/name/role/groups, KHÔNG phải "profile" hay "việc" —
+// ARCHITECTURE.md §10 chỉ cấm lưu việc xuống máy) để khôi phục phiên khi app bị hệ điều
+// hành kill — dogfood pha I: thiếu bước này làm mất phiên hoàn toàn,
+// phải gõ lại email/mật khẩu mỗi lần mở app, trái PRD §7 "không phải đăng nhập lại".
+export async function saveUser(user: { id: string; name: string; role: string; groups?: string[] }) {
   const raw = JSON.stringify(user);
   if (Platform.OS === 'web') {
     localStorage.setItem(USER_KEY, raw);

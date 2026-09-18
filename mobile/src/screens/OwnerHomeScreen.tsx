@@ -32,6 +32,11 @@ export function OwnerHomeScreen({
   onDevices,
   onBatQueue,
   onHistory,
+  onOrders,
+  onCustomerLookup,
+  onDelivery,
+  onRouteSettings,
+  onAssignGroups,
 }: {
   onOpenTask: (id: string) => void;
   onCreateTask: () => void;
@@ -41,6 +46,11 @@ export function OwnerHomeScreen({
   onDevices: () => void;
   onBatQueue: () => void;
   onHistory: () => void;
+  onOrders: () => void;
+  onCustomerLookup: () => void;
+  onDelivery: () => void;
+  onRouteSettings: () => void;
+  onAssignGroups: () => void;
 }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState(false);
@@ -120,6 +130,15 @@ export function OwnerHomeScreen({
         renderItem={({ item }) => <OverviewRow task={item} onPress={() => onOpenTask(item.id)} />}
         ListFooterComponent={
           <View style={{ gap: space.md, marginTop: space.md }}>
+            <Button mode="outlined" onPress={onOrders} style={styles.button} contentStyle={{ height: tapMin }}>
+              Đơn đệm
+            </Button>
+            <Button mode="outlined" onPress={onCustomerLookup} style={styles.button} contentStyle={{ height: tapMin }}>
+              Tra khách
+            </Button>
+            <Button mode="outlined" onPress={onDelivery} style={styles.button} contentStyle={{ height: tapMin }}>
+              Hàng trả
+            </Button>
             <Button mode="outlined" onPress={onPriority} style={styles.button} contentStyle={{ height: tapMin }}>
               Việc nào làm trước
             </Button>
@@ -134,6 +153,12 @@ export function OwnerHomeScreen({
             </Button>
             <Button mode="outlined" onPress={onHistory} style={styles.button} contentStyle={{ height: tapMin }}>
               Việc đã xong
+            </Button>
+            <Button mode="outlined" onPress={onRouteSettings} style={styles.button} contentStyle={{ height: tapMin }}>
+              Khu vực trả hàng
+            </Button>
+            <Button mode="outlined" onPress={onAssignGroups} style={styles.button} contentStyle={{ height: tapMin }}>
+              Phân vai thợ
             </Button>
           </View>
         }

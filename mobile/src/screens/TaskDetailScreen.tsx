@@ -1,14 +1,139 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { StyleSheet, View } from 'react-native';
-import { Banner, Button, Text } from 'react-native-paper';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Banner, Button, Text, TextInput } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, shape, space, tapMin } from '../theme/tokens';
+import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { StatusChip } from '../tasks/StatusChip';
 import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
+import { formatMeasurements, modeLabel, pillowSummary } from '../orders/orderStatus';
+import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+
+// CAP-DEM-02 (AC-19) — S20 "Số đo": khi việc đang mở là bước "đi đo" (step='do') và CHƯA
+// xong, TaskDetailScreen (= S29 tái dùng) đổi thành form nhập số đo/ảnh ngay tại đây thay
+// vì màn riêng — đúng tinh thần "tái dùng tối đa" của `_PROPOSAL.md`. Lưu nháp qua
+// PATCH /orders/:id/measurements PHẢI luôn thành công dù thiếu số (S20 rỗng: "chụp tờ giấy
+// đo là đủ") — chỉ "Xong" mới đòi ảnh nếu bộ khó (chặn ở server, tasks.service.ts).
+function MeasurementEditor({
+  task,
+  onSaved,
+}: {
+  task: Task;
+  onSaved: (updated: { measurementPhoto: string | null }) => void;
+}) {
+  const order = task.order!;
+  const [length, setLength] = useState(order.measurementLength?.toString() ?? '');
+  const [depth, setDepth] = useState(order.measurementDepth?.toString() ?? '');
+  const [width, setWidth] = useState(order.measurementWidth?.toString() ?? '');
+  const [thickness, setThickness] = useState(order.measurementThickness?.toString() ?? '');
+  const [photo, setPhoto] = useState<string | null>(order.measurementPhoto);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  function toNumber(v: string): number | undefined {
+    const n = Number(v.trim());
+    return v.trim() && Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+
+  async function save(nextPhoto?: string | null) {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await api.patch(`/orders/${order.id}/measurements`, {
+        measurementLength: toNumber(length),
+        measurementDepth: toNumber(depth),
+        measurementWidth: toNumber(width),
+        measurementThickness: toNumber(thickness),
+        measurementPhoto: nextPhoto !== undefined ? nextPhoto : photo,
+      });
+      onSaved({ measurementPhoto: nextPhoto !== undefined ? nextPhoto : photo });
+    } catch (e) {
+      setSaveError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTakePhoto() {
+    const dataUri = await takePhotoAsBase64();
+    if (!dataUri) return;
+    setPhoto(dataUri);
+    await save(dataUri);
+  }
+
+  return (
+    <View style={styles.orderBlock}>
+      {modeLabel(order.mode) && <Text style={styles.buonTag}>{modeLabel(order.mode)}</Text>}
+      <Text variant="bodyLarge" style={styles.meta}>
+        {order.customer.name} · {order.customer.phone}
+      </Text>
+      <Text variant="bodyLarge" style={styles.meta}>
+        {order.customer.address}
+      </Text>
+      {order.difficulty === 'kho' && (
+        <Text style={styles.hardTag}>Bộ khó — bắt buộc chụp ảnh tờ đo trước khi báo xong</Text>
+      )}
+      {saveError && (
+        <Banner visible icon="alert-circle" style={styles.banner}>
+          {saveError}
+        </Banner>
+      )}
+      <Button
+        mode={photo ? 'outlined' : 'contained'}
+        onPress={handleTakePhoto}
+        loading={saving}
+        contentStyle={{ height: tapMin }}
+        style={styles.button}
+      >
+        {photo ? 'Chụp lại ảnh tờ đo' : 'Chụp ảnh tờ đo'}
+      </Button>
+      {photo && <Image source={{ uri: photo }} style={styles.photo} />}
+      <View style={styles.measureRow}>
+        <TextInput
+          label="Dài"
+          mode="outlined"
+          keyboardType="numeric"
+          value={length}
+          onChangeText={setLength}
+          onBlur={() => save()}
+          style={styles.measureInput}
+        />
+        <TextInput
+          label="Sâu"
+          mode="outlined"
+          keyboardType="numeric"
+          value={depth}
+          onChangeText={setDepth}
+          onBlur={() => save()}
+          style={styles.measureInput}
+        />
+      </View>
+      <View style={styles.measureRow}>
+        <TextInput
+          label="Ngang"
+          mode="outlined"
+          keyboardType="numeric"
+          value={width}
+          onChangeText={setWidth}
+          onBlur={() => save()}
+          style={styles.measureInput}
+        />
+        <TextInput
+          label="Dày (ghế thấp)"
+          mode="outlined"
+          keyboardType="numeric"
+          value={thickness}
+          onChangeText={setThickness}
+          onBlur={() => save()}
+          style={styles.measureInput}
+        />
+      </View>
+    </View>
+  );
+}
 
 // S7 — chi tiết việc. CAP-TASK-11/12/13 (AC-8/9/10): một nút lớn theo đúng trạng thái hiện
 // tại. CAP-TASK-09 (AC-11): khối "Việc này đã đi qua" hiện mốc thời gian ngầm, tự ghi.
@@ -60,6 +185,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
 
   if (!task) return <View style={styles.container} />;
 
+  const isMeasuring = task.line === 'dem' && task.step === 'do' && task.status !== 'done' && !!task.order;
   const action = nextAction(task.status);
   const ackAt = task.events.find((e) => e.kind === 'acked')?.at;
   const startAt = task.events.find((e) => e.kind === 'started')?.at;
@@ -72,7 +198,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       : undefined;
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
       {actionError && (
         <Banner
           visible
@@ -87,6 +213,39 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
         <Text variant="headlineSmall" style={styles.measurements}>
           {task.measurements}
         </Text>
+      )}
+      {/* vòng 7 (S29 tái dùng màn này, DECISIONS.md) — khối riêng của mảng đệm: số đo,
+          khách, gối, khu vực. CỐ Ý không có giá/cọc — `task.order` không mang field đó
+          (TASK_INCLUDE.order, tasks.service.ts). Bước "đi đo" chưa xong → form nhập
+          (MeasurementEditor, CAP-DEM-02); mọi bước khác → chỉ đọc. */}
+      {isMeasuring && task.order && (
+        <MeasurementEditor task={task} onSaved={(u) => setTask({ ...task, order: { ...task.order!, ...u } })} />
+      )}
+      {!isMeasuring && task.order && (
+        <View style={styles.orderBlock}>
+          {modeLabel(task.order.mode) && <Text style={styles.buonTag}>{modeLabel(task.order.mode)}</Text>}
+          <Text variant="bodyLarge" style={styles.meta}>
+            Khách: {task.order.customer.name} · {task.order.customer.phone}
+          </Text>
+          <Text variant="bodyLarge" style={styles.meta}>
+            {task.order.customer.address}
+            {task.order.route ? ` · ${task.order.route.name}` : ''}
+          </Text>
+          {task.order.difficulty === 'kho' && <Text style={styles.hardTag}>Bộ khó</Text>}
+          {formatMeasurements(task.order) && (
+            <Text variant="headlineSmall" style={styles.measurements}>
+              {formatMeasurements(task.order)}
+            </Text>
+          )}
+          {task.order.measurementPhoto && (
+            <Image source={{ uri: task.order.measurementPhoto }} style={styles.photo} />
+          )}
+          {pillowSummary(task.order.pillows) && (
+            <Text variant="bodyLarge" style={styles.meta}>
+              Gối kèm: {pillowSummary(task.order.pillows)}
+            </Text>
+          )}
+        </View>
       )}
       <Text variant="titleLarge" style={styles.content}>
         {task.content}
@@ -134,7 +293,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
         {'\n'}
         Xong · {doneAt ? formatTime(doneAt) : 'chưa có'}
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -142,6 +301,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: space.md, backgroundColor: colors.surface },
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   measurements: { marginBottom: space.md, color: colors.primary },
+  orderBlock: {
+    marginBottom: space.md,
+    padding: space.md,
+    borderRadius: shape.small,
+    backgroundColor: colors.surfaceContainer,
+    gap: space.xs,
+  },
+  buonTag: {
+    alignSelf: 'flex-start',
+    fontSize: fontSize.label,
+    fontWeight: '700',
+    color: colors.onSecondaryContainer,
+    backgroundColor: colors.secondaryContainer,
+    borderRadius: 3,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+  },
+  hardTag: { color: colors.error, fontWeight: '700' },
+  photo: { width: '100%', height: 160, borderRadius: shape.small, marginTop: space.xs },
+  button: { borderRadius: shape.small, marginTop: space.xs },
+  measureRow: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
+  measureInput: { flex: 1 },
   content: { marginBottom: space.sm },
   meta: { marginTop: space.xs, color: colors.onSurfaceVariant },
   chipRow: { marginTop: space.md },

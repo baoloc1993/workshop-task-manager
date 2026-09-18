@@ -3,14 +3,22 @@ import { createNativeStackNavigator, type NativeStackNavigationProp } from '@rea
 import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
+import { AssignGroupsScreen } from '../screens/AssignGroupsScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
+import { CreateOrderScreen, type CreateOrderPrefill } from '../screens/CreateOrderScreen';
 import { CreateTaskScreen, type CreateTaskPrefill } from '../screens/CreateTaskScreen';
+import { CustomerLookupScreen } from '../screens/CustomerLookupScreen';
+import { CutDoneScreen } from '../screens/CutDoneScreen';
+import { DeliveryScreen } from '../screens/DeliveryScreen';
 import { DevicesScreen } from '../screens/DevicesScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { IssueQrScreen } from '../screens/IssueQrScreen';
+import { OrderDetailScreen } from '../screens/OrderDetailScreen';
+import { OrderListScreen } from '../screens/OrderListScreen';
 import { OwnerHomeScreen } from '../screens/OwnerHomeScreen';
 import { PriorityScreen } from '../screens/PriorityScreen';
+import { RouteSettingsScreen } from '../screens/RouteSettingsScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 import { VoiceCaptureScreen } from '../screens/VoiceCaptureScreen';
 
@@ -26,6 +34,15 @@ export type OwnerStackParamList = {
   History: undefined;
   TaskDetail: { taskId: string };
   Feedback: undefined;
+  // vòng 7 — mảng đệm ghế
+  Orders: undefined;
+  CreateOrder: undefined;
+  OrderDetail: { orderId: string };
+  CustomerLookup: undefined;
+  CutDone: { orderId: string };
+  Delivery: undefined;
+  RouteSettings: undefined;
+  AssignGroups: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -63,6 +80,11 @@ function HomeRoute({
       onDevices={() => goOnce(() => navigation.navigate('Devices'))}
       onBatQueue={() => goOnce(() => navigation.navigate('BatQueue'))}
       onHistory={() => goOnce(() => navigation.navigate('History'))}
+      onOrders={() => goOnce(() => navigation.navigate('Orders'))}
+      onCustomerLookup={() => goOnce(() => navigation.navigate('CustomerLookup'))}
+      onDelivery={() => goOnce(() => navigation.navigate('Delivery'))}
+      onRouteSettings={() => goOnce(() => navigation.navigate('RouteSettings'))}
+      onAssignGroups={() => goOnce(() => navigation.navigate('AssignGroups'))}
     />
   );
 }
@@ -72,6 +94,7 @@ function HomeRoute({
 // mang cả object ParsedUtterance, không chỉ chuỗi).
 export function OwnerNavigator() {
   const [prefill, setPrefill] = useState<CreateTaskPrefill | undefined>(undefined);
+  const [orderPrefill, setOrderPrefill] = useState<CreateOrderPrefill | undefined>(undefined);
 
   return (
     <Stack.Navigator
@@ -155,6 +178,65 @@ export function OwnerNavigator() {
       <Stack.Screen name="Feedback" options={{ title: 'Góp ý' }}>
         {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
+
+      {/* vòng 7 — mảng đệm ghế (CAP-DEM-01..07) */}
+      <Stack.Screen name="Orders" options={{ title: 'Đơn đệm' }}>
+        {({ navigation }) => (
+          <OrderListScreen
+            onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })}
+            onCreateOrder={() => {
+              setOrderPrefill(undefined);
+              navigation.navigate('CreateOrder');
+            }}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CreateOrder" options={{ title: 'Ghi đơn mới' }}>
+        {({ navigation }) => (
+          <CreateOrderScreen
+            prefill={orderPrefill}
+            onDone={() => {
+              setOrderPrefill(undefined);
+              navigation.navigate('Orders');
+            }}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="OrderDetail" options={{ title: 'Chi tiết đơn' }}>
+        {({ navigation, route }) => (
+          <OrderDetailScreen
+            orderId={route.params.orderId}
+            onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
+            onCutDone={() => navigation.navigate('CutDone', { orderId: route.params.orderId })}
+            onMarkDelivered={() => navigation.navigate('Orders')}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CustomerLookup" options={{ title: 'Tra khách' }}>
+        {({ navigation }) => (
+          <CustomerLookupScreen
+            onUseMeasurements={(p) => {
+              setOrderPrefill(p);
+              navigation.navigate('CreateOrder');
+            }}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CutDone" options={{ title: 'Tính cắt vải, mút' }}>
+        {({ navigation, route }) => (
+          <CutDoneScreen
+            orderId={route.params.orderId}
+            onDone={() => navigation.navigate('OrderDetail', { orderId: route.params.orderId })}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="Delivery" options={{ title: 'Hàng trả' }}>
+        {({ navigation }) => (
+          <DeliveryScreen onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="RouteSettings" options={{ title: 'Khu vực trả hàng' }} component={RouteSettingsScreen} />
+      <Stack.Screen name="AssignGroups" options={{ title: 'Phân vai thợ' }} component={AssignGroupsScreen} />
     </Stack.Navigator>
   );
 }

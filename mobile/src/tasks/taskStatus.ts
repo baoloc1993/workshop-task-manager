@@ -95,7 +95,7 @@ export function taskBucket(task: Task): TaskBucket {
 }
 
 // §4b luật chữ nghĩa — S1/S16 hiện mảng của việc bằng chữ, không lộ tên trường kỹ thuật.
-const LINE_LABEL: Record<Task['line'], string> = { may_va: 'May vá', bat: 'Bạt' };
+const LINE_LABEL: Record<Task['line'], string> = { may_va: 'May vá', bat: 'Bạt', dem: 'Đệm ghế' };
 
 export function lineLabel(line: Task['line']): string {
   return LINE_LABEL[line];
