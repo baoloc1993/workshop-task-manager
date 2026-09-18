@@ -6,10 +6,13 @@ import { api, ApiError } from '../api/client';
 import type { OrderDetail } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { formatMeasurements } from '../orders/orderStatus';
+import { track } from '../analytics/track';
+import { useAuth } from '../auth/AuthContext';
 
 // S24 "Tính cắt vải, mút" (CAP-DEM-04, AC-20). CAP-DEM-03 (công thức) đẩy backlog
 // (DECISIONS.md vòng 7) — luôn nhập tay, không có gợi ý điền sẵn.
 export function CutDoneScreen({ orderId, onDone }: { orderId: string; onDone: () => void }) {
+  const { user } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [fabric, setFabric] = useState('');
@@ -35,6 +38,7 @@ export function CutDoneScreen({ orderId, onDone }: { orderId: string; onDone: ()
     setSendError(null);
     try {
       await api.post(`/orders/${orderId}/cut-done`, { fabricMeters: Number(fabric), foamSheets: Number(foam) });
+      if (user) track('chot_so_cat_dem', user.id, { orderId });
       onDone();
     } catch (e) {
       setSendError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');

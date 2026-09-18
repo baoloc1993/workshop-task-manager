@@ -7,6 +7,8 @@ import type { OrderDetail } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { STEP_LABEL, formatMeasurements, formatMoney, modeLabel, pillowSummary, remaining } from '../orders/orderStatus';
 import { statusLabel } from '../tasks/taskStatus';
+import { track } from '../analytics/track';
+import { useAuth } from '../auth/AuthContext';
 
 // S19 "Chi tiết đơn" — CHỈ owner (PROTOTYPE.md §1). Nơi DUY NHẤT hiện giá/cọc/còn lại (C19).
 export function OrderDetailScreen({
@@ -20,6 +22,7 @@ export function OrderDetailScreen({
   onCutDone: () => void;
   onMarkDelivered: () => void;
 }) {
+  const { user } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [error, setError] = useState(false);
   const [deliverError, setDeliverError] = useState<string | null>(null);
@@ -45,6 +48,9 @@ export function OrderDetailScreen({
     setDeliverError(null);
     try {
       await api.post(`/orders/${orderId}/delivered`);
+      // H3 (PRD.md §6) cho mảng đệm: "hoàn tất luồng lõi" là đơn TRẢ HÀNG, không phải một
+      // Task đơn lẻ xong — đây là chỉ số quyết định go/pivot/kill của mảng này ở pilot.
+      if (user) track('don_dem_da_tra', user.id, { orderId });
       onMarkDelivered();
     } catch (e) {
       setDeliverError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
