@@ -55,6 +55,10 @@ export const shape = {
 
 // §1b — về chuẩn MD3 (48dp) từ 2026-09-15: thử nghiệm có điều kiện, xem DESIGN-SYSTEM.md §1b.
 export const tapMin = 48;
+// react-native-paper Chip: `style.minHeight` chỉ giãn container flex, KHÔNG giãn vùng
+// chạm thật của TouchableRipple bên trong (đo được ~32dp dù minHeight=48 — dogfood vòng 8,
+// tap thử vào vùng đệm phía trên/dưới chip không đăng ký). Bù bằng hitSlop cho đủ tapMin.
+export const chipHitSlop = { top: 8, bottom: 8 } as const;
 // Thanh "＋ Ghi đơn mới" ghim đáy (thay cho navigation bar — không còn tab đáy).
 export const navHeight = 64;
 

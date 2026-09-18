@@ -4,7 +4,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-nat
 import { Banner, Button, Chip, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { OrderListItem, Route } from '../api/types';
-import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { SkeletonCard } from '../common/SkeletonCard';
 
 // S23 "Hàng trả" (CAP-DEM-05, AC-23) — chọn khu vực + ngày → mọi đơn hẹn trả khu vực đó,
@@ -135,6 +135,7 @@ export function DeliveryScreen({
                 onPress={() => setAreaId(a.id)}
                 style={[styles.chip, areaId === a.id ? styles.chipSelected : styles.chipUnselected]}
                 textStyle={areaId === a.id ? styles.chipTextSelected : undefined}
+                hitSlop={chipHitSlop}
               >
                 {a.name} ({a.count})
               </Chip>
@@ -148,6 +149,7 @@ export function DeliveryScreen({
                 onPress={() => setDay(f)}
                 style={[styles.chip, day === f ? styles.chipSelected : styles.chipUnselected]}
                 textStyle={day === f ? styles.chipTextSelected : undefined}
+                hitSlop={chipHitSlop}
               >
                 {DAY_LABEL[f]}
               </Chip>

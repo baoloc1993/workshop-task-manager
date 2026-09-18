@@ -4,7 +4,7 @@ import { Banner, Button, Chip, List, Text, TextInput } from 'react-native-paper'
 import * as SecureStore from 'expo-secure-store';
 import { api, ApiError } from '../api/client';
 import type { Customer, Route } from '../api/types';
-import { colors, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
 import { suggestRoute } from '../orders/orderStatus';
 import { PhotoBox } from '../orders/PhotoBox';
 import { takePhotoAsBase64 } from '../orders/pickPhoto';
@@ -362,6 +362,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
               // tắt = chỉ viền outline-variant. Ép màu tường minh thay vì tin theme mặc định.
               style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
               textStyle={selected ? styles.chipTextSelected : undefined}
+              hitSlop={chipHitSlop}
             >
               {r.name}
             </Chip>
@@ -381,6 +382,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
             onPress={() => setHasEmbroidery((v) => !v)}
             style={[styles.chip, hasEmbroidery ? styles.chipSelected : styles.chipUnselected]}
             textStyle={hasEmbroidery ? styles.chipTextSelected : undefined}
+            hitSlop={chipHitSlop}
           >
             Có thêu
           </Chip>
@@ -389,6 +391,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
             onPress={() => setDifficulty((d) => (d === 'kho' ? 'de' : 'kho'))}
             style={[styles.chip, difficulty === 'kho' ? styles.chipSelected : styles.chipUnselected]}
             textStyle={difficulty === 'kho' ? styles.chipTextSelected : undefined}
+            hitSlop={chipHitSlop}
           >
             Bộ khó (uốn lượn nhiều)
           </Chip>

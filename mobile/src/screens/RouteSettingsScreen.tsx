@@ -5,7 +5,7 @@ import { Banner, Button, Chip, Text, TextInput } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { Route } from '../api/types';
-import { colors, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
 
 // S25 "Khu vực trả hàng" (CAP-DEM-05, AC-23) — cấu hình 4-7 khu vực, chip địa danh (C18)
 // bật/tắt có hiệu lực NGAY, không nút "Lưu" riêng.
@@ -80,13 +80,14 @@ export function RouteSettingsScreen() {
               onPress={() => toggleActive(r)}
               style={r.active ? styles.chipSelected : styles.chipUnselected}
               textStyle={r.active ? styles.chipTextSelected : undefined}
+              hitSlop={chipHitSlop}
             >
               {r.active ? 'Đang dùng' : 'Đã tắt'}
             </Chip>
           </View>
           <View style={styles.chipRow}>
             {r.landmarks.map((lm) => (
-              <Chip key={lm} onClose={() => removeLandmark(r, lm)} style={styles.chip}>
+              <Chip key={lm} onClose={() => removeLandmark(r, lm)} style={styles.chip} hitSlop={chipHitSlop}>
                 {lm}
               </Chip>
             ))}

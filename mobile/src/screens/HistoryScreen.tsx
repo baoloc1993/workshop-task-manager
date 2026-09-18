@@ -4,7 +4,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Banner, Chip, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
 import { SkeletonCard } from '../common/SkeletonCard';
@@ -95,6 +95,7 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
                 onPress={() => setRange(r)}
                 style={[styles.chip, range === r && styles.chipSelected]}
                 textStyle={range === r ? styles.chipSelectedText : undefined}
+                hitSlop={chipHitSlop}
               >
                 {r === 'week' ? 'Tuần này' : 'Tháng này'}
               </Chip>

@@ -5,7 +5,7 @@ import { Banner, Chip, Text } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { WorkerGroup, WorkerListItem } from '../api/types';
-import { colors, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
 import { GROUP_LABEL } from '../orders/orderStatus';
 
 const ALL_GROUPS: WorkerGroup[] = ['do', 'may', 'cat_mut', 'khau_lot', 'nhoi', 'theu'];
@@ -70,6 +70,7 @@ export function AssignGroupsScreen() {
                   onPress={() => toggle(w, g)}
                   style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
                   textStyle={selected ? styles.chipTextSelected : undefined}
+                  hitSlop={chipHitSlop}
                 >
                   {GROUP_LABEL[g]}
                 </Chip>

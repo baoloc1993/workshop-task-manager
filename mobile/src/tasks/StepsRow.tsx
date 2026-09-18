@@ -27,7 +27,7 @@ export function StepsRow({
 }) {
   const tone = stepTone(task);
   const who = task.assignees.map((a) => a.user.name).join(', ');
-  const doneAt = task.events.find((e) => e.kind === 'done')?.at;
+  const doneAt = (task.events ?? []).find((e) => e.kind === 'done')?.at;
   const when = tone === 'done' && doneAt ? formatTime(doneAt) : undefined;
 
   return (
