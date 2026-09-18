@@ -160,7 +160,12 @@ export class OrdersService {
         route: true,
         tasks: {
           where: { deletedAt: null },
-          include: { assignees: { include: { user: { select: { id: true, name: true } } } } },
+          include: {
+            assignees: { include: { user: { select: { id: true, name: true } } } },
+            // AC-27 (vòng 8) — StepsRow (S19 "Công đoạn") cần events để tính "ai · khi nào"
+            // xong; thiếu field này gây crash `task.events.find` (dogfood vòng 8).
+            events: true,
+          },
           orderBy: { createdAt: 'asc' },
         },
       },
