@@ -7,6 +7,7 @@ import type { Task } from '../api/types';
 import { colors, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 type Range = 'week' | 'month';
 
@@ -44,6 +45,18 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
 
   const list = tasks ?? [];
   const rangeLabel = range === 'week' ? 'tuần này' : 'tháng này';
+
+  // AC-36 (vòng 8, CAP-BUG-01) — cùng lớp lỗi: trước tải xong lần đầu, chớp câu rỗng
+  // "Chưa có việc nào xong" (DESIGN-SYSTEM.md §5 đòi khung xám lúc đang tải).
+  if (tasks === null && !error) {
+    return (
+      <View style={styles.container}>
+        <View style={{ padding: space.md }}>
+          <SkeletonCard />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <FlatList

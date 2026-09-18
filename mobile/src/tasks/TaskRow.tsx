@@ -30,6 +30,7 @@ export function TaskRow({
   onPress: () => void;
 }) {
   const late = isOverdue(task);
+  const done = task.status === 'done';
   const meta = (metaParts ?? []).filter(Boolean).join(' · ');
   const statusText = late ? 'Quá hạn' : statusLabel(task.status);
 
@@ -38,7 +39,9 @@ export function TaskRow({
       <StatusDot task={task} />
       <View style={styles.body}>
         {topLine}
-        <Text style={styles.title} numberOfLines={2}>
+        {/* AC-27 (vòng 8, CAP-BUG-01) — C3 "xong": gạch ngang + chữ --color-on-surface-variant,
+            trước đây TaskRow không có nhánh riêng cho trạng thái này. */}
+        <Text style={[styles.title, done && styles.titleDone]} numberOfLines={2}>
           {title}
         </Text>
         <Text style={styles.subtitle} numberOfLines={2}>
@@ -73,6 +76,7 @@ const styles = StyleSheet.create({
   dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2 },
   body: { flex: 1, gap: 2 },
   title: { fontSize: fontSize.body, color: colors.onSurface },
+  titleDone: { textDecorationLine: 'line-through', color: colors.onSurfaceVariant },
   subtitle: { fontSize: fontSize.label, color: colors.onSurfaceVariant },
   star: { fontSize: fontSize.title, color: colors.error },
 });

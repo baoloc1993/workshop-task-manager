@@ -79,7 +79,7 @@ export function OwnerMenuScreen({
   onFeedback: () => void;
   onVoiceCapture: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   // S0 là màn gốc, không có header nào phía trên — phải tự trừ tai thỏ/thanh trạng thái,
   // nếu không hàng avatar đè lên đồng hồ (tự bấm thấy ngay sau khi bỏ ScreenHeader khỏi S0).
   const insets = useSafeAreaInsets();
@@ -156,6 +156,8 @@ export function OwnerMenuScreen({
         <MenuRow icon="👥" tone="cfg" label="Phân vai thợ" onPress={onAssignGroups} />
         <View style={styles.divider} />
         <MenuRow icon="✎" tone="cfg" label="Góp ý" onPress={onFeedback} />
+        {/* AC-31 (vòng 8, CAP-BUG-03) — owner trước đó không có lối nào đăng xuất trong app */}
+        <MenuRow icon="⏻" tone="warn" label="Đăng xuất" onPress={() => logout()} />
       </ScrollView>
       {/* C7 — thanh thêm ghim đáy (DESIGN-SYSTEM.md §4; prototype S0 `.addbar`). Thiếu nó thì
           chủ xưởng ở S0 phải vào "Cả xưởng hôm nay" mới giao được việc bằng giọng nói, đội

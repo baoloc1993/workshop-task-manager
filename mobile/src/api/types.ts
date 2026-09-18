@@ -23,6 +23,8 @@ export interface WorkerListItem {
   role: Role;
   line: 'may_va' | 'bat' | null;
   groups?: WorkerGroup[];
+  // AC-32 (vòng 8) — chỉ có mặt khi gọi `GET /users?paired=all` (S5).
+  paired?: boolean;
 }
 
 // S10 (CAP-TASK-06, vòng 4) — GET /users/bat-workers: "danh sách thợ bạt (ai đang cầm

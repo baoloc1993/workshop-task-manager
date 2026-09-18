@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Banner, Button, Checkbox, List, Text } from 'react-native-paper';
+import { Banner, Button, List, RadioButton, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { BatWorkerItem, Task } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
@@ -111,8 +111,14 @@ export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onD
               description={`Đang giữ ${w.activeTaskCount} việc`}
               onPress={() => toggle(w.id)}
               style={selected.has(w.id) ? styles.itemSelected : undefined}
+              // C9 (DESIGN-SYSTEM.md §4, AC-27 vòng 8) — vòng tròn chọn, không phải ô vuông.
               left={() => (
-                <Checkbox status={selected.has(w.id) ? 'checked' : 'unchecked'} onPress={() => toggle(w.id)} />
+                <RadioButton
+                  value={w.id}
+                  color={colors.primary}
+                  status={selected.has(w.id) ? 'checked' : 'unchecked'}
+                  onPress={() => toggle(w.id)}
+                />
               )}
             />
           ))

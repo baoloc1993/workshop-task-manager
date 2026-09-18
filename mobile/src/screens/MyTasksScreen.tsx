@@ -9,13 +9,17 @@ import { TaskRow } from '../tasks/TaskRow';
 import { actionEndpoint, actionLabel, isDoneToday, isOverdue, nextAction } from '../tasks/taskStatus';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { LoadErrorBanner } from '../common/LoadErrorBanner';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 // S6 — "Việc của tôi" (PROTOTYPE.md §1). CAP-TASK-11/12/13 (AC-8/9/10): việc đầu hàng có
 // nút hành động ngay trên thẻ (≤2 chạm); việc khác chạm mở S7 để báo trạng thái ở đó.
 export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [error, setError] = useState(false);
+  // AC-30 (vòng 8, CAP-BUG-01) — giữ nguyên lỗi gốc (NetworkError/ApiError) thay vì gộp
+  // hết vào một boolean, để `LoadErrorBanner` phân biệt được loại lỗi.
+  const [error, setError] = useState<unknown>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   // dogfood pha I vòng 3: danh sách sắp xếp lại NGAY sau khi action
@@ -30,9 +34,9 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
     try {
       const data = await api.get<Task[]>('/tasks/mine');
       setTasks(data);
-      setError(false);
-    } catch {
-      setError(true);
+      setError(null);
+    } catch (e) {
+      setError(e);
     }
   }, []);
 
@@ -93,6 +97,17 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
 
   const [first, ...rest] = active;
 
+  // AC-36 (vòng 8, CAP-BUG-01) — khuôn tải: trước khi có lần tải đầu tiên (`tasks === null`)
+  // FlatList vẫn dựng ListEmptyComponent, chớp qua "Hôm nay chưa có việc" trước khi dữ liệu
+  // thật tới — khuôn xám giữ đúng chỗ, đúng DESIGN-SYSTEM.md §5.
+  if (tasks === null && error === null) {
+    return (
+      <View style={[styles.container, { padding: space.md }]}>
+        <SkeletonCard />
+      </View>
+    );
+  }
+
   return (
     <FlatList
       style={styles.container}
@@ -119,11 +134,7 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
       }
       ListHeaderComponent={
         <>
-          {error && (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
-              Mất kết nối — đang thử lại
-            </Banner>
-          )}
+          {error !== null && <LoadErrorBanner error={error} onRetry={load} onReauth={logout} />}
           {actionError && (
             <Banner
               visible

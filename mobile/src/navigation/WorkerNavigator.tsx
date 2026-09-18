@@ -5,6 +5,7 @@ import { HeaderBackButton } from './HeaderBackButton';
 import { thinHeader } from './screenOptions';
 import { colors } from '../theme/tokens';
 import { ScreenHeader } from '../common/ScreenHeader';
+import { useAuth } from '../auth/AuthContext';
 import { DemQueueScreen } from '../screens/DemQueueScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
@@ -66,7 +67,9 @@ export function WorkerNavigator() {
                     onPress={() => navigation.navigate('History')}
                     hitSlop={{ top: 14, bottom: 14, left: 4, right: 8 }}
                   >
-                    Đã xong
+                    {/* AC-40 điểm (5), DECISIONS.md 2026-09-19: đổi nhãn — trùng chữ với nhãn
+                        trạng thái "Xong" trên thẻ việc (TaskRow), route vẫn tới History như cũ */}
+                    Lịch sử
                   </Button>
                 </>
               }
@@ -91,22 +94,33 @@ export function WorkerNavigator() {
         name="History"
         options={{ headerShown: false }}
       >
-        {({ navigation }) => (
-          <View style={{ flex: 1 }}>
-            {/* S16 — màn danh sách: C13(a). "Góp ý" (nhóm 4 production-ready) giữ ở màn phụ
-                này, không chen vào khối đầu mục của "Việc của tôi". */}
-            <ScreenHeader
-              title="Việc đã xong"
-              canGoBack
-              right={
-                <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('Feedback')}>
-                  Góp ý
-                </Button>
-              }
-            />
-            <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
-          </View>
-        )}
+        {({ navigation }) => {
+          // AC-31 (vòng 8, CAP-BUG-03) — thợ chưa có S0 riêng, "Việc đã xong" (nay đổi nhãn
+          // nút thành "Lịch sử") là màn phụ chung duy nhất còn trống chỗ ở khối đầu mục —
+          // gắn "Đăng xuất" ở đây thay vì dựng thêm một màn "Cài đặt" chỉ cho một nút.
+          const { logout } = useAuth();
+          return (
+            <View style={{ flex: 1 }}>
+              {/* S16 — màn danh sách: C13(a). "Góp ý" (nhóm 4 production-ready) giữ ở màn phụ
+                  này, không chen vào khối đầu mục của "Việc của tôi". */}
+              <ScreenHeader
+                title="Việc đã xong"
+                canGoBack
+                right={
+                  <>
+                    <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('Feedback')}>
+                      Góp ý
+                    </Button>
+                    <Button textColor={colors.onPrimary} onPress={() => logout()}>
+                      Đăng xuất
+                    </Button>
+                  </>
+                }
+              />
+              <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+            </View>
+          );
+        }}
       </Stack.Screen>
       <Stack.Screen name="Feedback" options={{ title: 'Việc đã xong' }}>
         {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}

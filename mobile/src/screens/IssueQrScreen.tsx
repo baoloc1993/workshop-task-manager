@@ -10,20 +10,23 @@ const TTL_MIN = 15;
 
 // S5 — "Cho người mới vào app" (PROTOTYPE.md §1). AC-1.
 export function IssueQrScreen() {
-  const [unpaired, setUnpaired] = useState<WorkerListItem[] | null>(null);
+  // AC-32 (vòng 8, CAP-BUG-03) — trước đây lọc `paired=false`: thợ đã ghép máy biến mất
+  // hẳn khỏi màn này, không còn cách "Cấp lại mã" khi thợ mất/đổi máy. Giờ tải TOÀN BỘ
+  // kèm cờ `paired`, hiện đúng trạng thái + nút phù hợp cho từng người.
+  const [workers, setWorkers] = useState<WorkerListItem[] | null>(null);
   const [pairing, setPairing] = useState<CreatePairingResponse | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [remainingSec, setRemainingSec] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  function loadUnpaired() {
+  function loadWorkers() {
     api
-      .get<WorkerListItem[]>('/users?paired=false')
-      .then(setUnpaired)
+      .get<WorkerListItem[]>('/users?paired=all')
+      .then(setWorkers)
       .catch(() => setError('Không tải được danh sách.'));
   }
 
-  useEffect(loadUnpaired, []);
+  useEffect(loadWorkers, []);
 
   useEffect(() => {
     if (!pairing) return;
@@ -112,14 +115,27 @@ export function IssueQrScreen() {
       <Text variant="titleLarge" style={styles.title}>
         Cho người mới vào app
       </Text>
-      {unpaired && unpaired.length === 0 ? (
+      {workers && workers.length === 0 ? (
         <Text variant="bodyLarge" style={styles.emptyText}>
-          Mọi người đã ghép máy.
+          Chưa có ai trong danh sách.
         </Text>
       ) : (
         <View style={styles.list}>
-          {(unpaired ?? []).map((u) => (
-            <List.Item key={u.id} title={u.name} onPress={() => handlePick(u.id)} style={styles.listItem} />
+          {(workers ?? []).map((u) => (
+            <List.Item
+              key={u.id}
+              title={u.name}
+              description={u.paired ? 'Đã quét mã vào app' : undefined}
+              onPress={() => handlePick(u.id)}
+              style={styles.listItem}
+              right={(props) =>
+                u.paired ? (
+                  <Text {...props} style={styles.reissueLabel}>
+                    Cấp lại mã
+                  </Text>
+                ) : null
+              }
+            />
           ))}
         </View>
       )}
@@ -138,6 +154,7 @@ const styles = StyleSheet.create({
   // dogfood pha I: List.Item mặc định ~49.5dp, dưới --tap-min
   // (DESIGN-SYSTEM.md §2.3 — 48px từ 2026-09-15, xem §1b).
   listItem: { minHeight: tapMin, justifyContent: 'center' },
+  reissueLabel: { alignSelf: 'center', color: colors.onSurfaceVariant, fontSize: 13 },
   qrContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
   qrBox: { padding: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   code: { marginTop: space.lg, letterSpacing: 8, fontVariant: ['tabular-nums'] },

@@ -13,6 +13,8 @@ import { PhotoBox } from '../orders/PhotoBox';
 import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
+import { LoadErrorBanner } from '../common/LoadErrorBanner';
 
 // CAP-DEM-02 (AC-19) — S20 "Số đo": khi việc đang mở là bước "đi đo" (step='do') và CHƯA
 // xong, TaskDetailScreen (= S29 tái dùng) đổi thành form nhập số đo/ảnh ngay tại đây thay
@@ -156,9 +158,10 @@ function MeasurementEditor({
 // S7 — chi tiết việc. CAP-TASK-11/12/13 (AC-8/9/10): một nút lớn theo đúng trạng thái hiện
 // tại. CAP-TASK-09 (AC-11): khối "Việc này đã đi qua" hiện mốc thời gian ngầm, tự ghi.
 export function TaskDetailScreen({ taskId }: { taskId: string }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
-  const [error, setError] = useState(false);
+  // AC-30 (vòng 8, CAP-BUG-01) — giữ lỗi gốc để `LoadErrorBanner` phân biệt mất mạng/401/500.
+  const [error, setError] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -167,9 +170,9 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       .get<Task>(`/tasks/${taskId}`)
       .then((t) => {
         setTask(t);
-        setError(false);
+        setError(null);
       })
-      .catch(() => setError(true));
+      .catch((e) => setError(e));
   }, [taskId]);
 
   useFocusEffect(load);
@@ -191,19 +194,26 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
     }
   }
 
-  if (error) {
+  if (error !== null) {
     return (
       <View style={styles.container}>
-        <Banner visible icon="alert-circle" style={styles.banner}>
-          Không tải được việc này.
-        </Banner>
+        <LoadErrorBanner error={error} onRetry={load} onReauth={logout} />
       </View>
     );
   }
 
   if (!task) return <View style={styles.container} />;
 
-  const isMeasuring = task.line === 'dem' && task.step === 'do' && task.status !== 'done' && !!task.order;
+  // AC-24 (vòng 8, CAP-BUG-03) — trước đây khoá theo `task.status !== 'done'`: đi đo xong là
+  // KHOÁ NGAY, sớm hơn ý PRD.md §3 AC-24. Người đang đo (status chưa done) luôn thấy form;
+  // sau khi done, chỉ owner reopen được (từ nút "Sửa số đo" ở S19), và chỉ tới khi
+  // "Chốt số cắt" thật sự chạy — `task.order.status` chuyển khỏi `moi` (orders.service.ts).
+  const isMeasuring =
+    task.line === 'dem' &&
+    task.step === 'do' &&
+    !!task.order &&
+    task.order.status === 'moi' &&
+    (task.status !== 'done' || user?.role === 'owner');
   const action = nextAction(task.status);
   const ackAt = task.events.find((e) => e.kind === 'acked')?.at;
   const startAt = task.events.find((e) => e.kind === 'started')?.at;
@@ -216,6 +226,10 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       : undefined;
 
   return (
+    // AC-26 (vòng 8, CAP-BUG-02) — bàn phím số của MeasurementEditor có thể che ô "Dày"/nút
+    // cuối form trên máy màn nhỏ; `KeyboardAvoider` dùng chung, an toàn cho cả nhánh không
+    // đo (không có TextInput nào bị ảnh hưởng).
+    <KeyboardAvoider>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
       <ScreenTitle>Chi tiết việc</ScreenTitle>
       {actionError && (
@@ -266,7 +280,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
           )}
         </View>
       )}
-      <Text variant="titleLarge" style={styles.content}>
+      <Text variant="titleLarge" style={styles.content} numberOfLines={2}>
         {task.content}
       </Text>
       {task.dueAt && (
@@ -317,6 +331,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
         Xong · {doneAt ? formatTime(doneAt) : 'chưa có'}
       </Text>
     </ScrollView>
+    </KeyboardAvoider>
   );
 }
 

@@ -7,6 +7,7 @@ import type { OrderListItem } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { modeLabel, orderProgress } from '../orders/orderStatus';
 import { ScreenHeader } from '../common/ScreenHeader';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 function OrderRow({ order, onPress }: { order: OrderListItem; onPress: () => void }) {
   const progress = orderProgress(order);
@@ -75,6 +76,20 @@ export function OrderListScreen({
   ].filter((s) => s.data.length > 0);
 
   const isEmpty = orders !== null && orders.length === 0;
+
+  // AC-36 (vòng 8, CAP-BUG-01) — DESIGN-SYSTEM.md §5 "Đang tải": trước khi có lần tải đầu
+  // tiên (`orders === null`), `ListEmptyComponent` trả `null` — màn trắng trơn, không khung
+  // xám nào giữ chỗ, dễ nhầm với "đứng máy" khi mạng chậm.
+  if (orders === null && !error) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader title="Đơn đệm" canGoBack />
+        <View style={{ padding: space.md }}>
+          <SkeletonCard />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

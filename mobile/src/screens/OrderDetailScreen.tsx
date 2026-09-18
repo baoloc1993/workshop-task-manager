@@ -6,7 +6,7 @@ import { api, ApiError } from '../api/client';
 import type { OrderDetail } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { STEP_LABEL, formatMeasurements, formatMoney, modeLabel, pillowSummary, remaining } from '../orders/orderStatus';
-import { statusLabel } from '../tasks/taskStatus';
+import { StepsRow } from '../tasks/StepsRow';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 
@@ -42,6 +42,11 @@ export function OrderDetailScreen({
 
   const doTask = order?.tasks.find((t) => t.step === 'do');
   const canCutDone = order && doTask?.status === 'done' && order.tasks.length === 1;
+  // AC-24 (vòng 8, CAP-BUG-03) — trước đây "Sửa số đo" chỉ mở được khi Task "đi đo" chưa
+  // `done`, tức KHOÁ NGAY sau khi đo xong — sớm hơn ý PRD.md §3 AC-24 ("bất kể Task.status,
+  // tới khi Chốt số cắt"). Điều kiện đúng là `order.status === 'moi'` (server chỉ khoá thật
+  // ở `cutDone()`, xem orders.service.ts) — không đọc `Task.status` nữa.
+  const canEditMeasurements = order && order.status === 'moi' && !!doTask;
 
   async function handleDeliver() {
     setDelivering(true);
@@ -126,19 +131,24 @@ export function OrderDetailScreen({
       <Text variant="labelLarge" style={styles.sec}>
         Công đoạn
       </Text>
-      {order.tasks.map((t) => (
-        <Button
-          key={t.id}
-          mode="outlined"
-          onPress={() => onOpenTask(t.id)}
-          contentStyle={{ height: tapMin, justifyContent: 'flex-start' }}
-          style={styles.taskButton}
-        >
-          {(t.step ? STEP_LABEL[t.step] : t.content)} — {statusLabel(t.status)}
-          {t.assignees.length > 0 ? ` (${t.assignees.map((a) => a.user.name).join(', ')})` : ''}
-        </Button>
-      ))}
+      {/* C12 (DESIGN-SYSTEM.md §4) — Steps thật (vòng tròn + tên + ai/khi nào), thay cho
+          danh sách <Button mode="outlined"> chồng nhau trước đây (AC-27, vòng 8). */}
+      <View style={styles.stepsBlock}>
+        {order.tasks.map((t) => (
+          <StepsRow key={t.id} task={t} label={t.step ? STEP_LABEL[t.step] : t.content} onPress={() => onOpenTask(t.id)} />
+        ))}
+      </View>
 
+      {canEditMeasurements && (
+        <Button
+          mode="outlined"
+          onPress={() => onOpenTask(doTask!.id)}
+          contentStyle={{ height: tapMin }}
+          style={styles.actionButton}
+        >
+          Sửa số đo
+        </Button>
+      )}
       {canCutDone && (
         <Button mode="contained" onPress={onCutDone} contentStyle={{ height: tapMin }} style={styles.actionButton}>
           Chốt số cắt
@@ -192,6 +202,10 @@ const styles = StyleSheet.create({
   moneyRemaining: { color: colors.error },
   moneyPaid: { color: colors.tertiary },
   sec: { color: colors.onSurfaceVariant, marginTop: space.lg, marginBottom: space.sm },
-  taskButton: { borderRadius: shape.small, marginBottom: space.xs },
+  stepsBlock: {
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: shape.small,
+    paddingHorizontal: space.sm,
+  },
   actionButton: { borderRadius: shape.small, marginTop: space.md },
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Chip, List, Text, TextInput } from 'react-native-paper';
+import * as SecureStore from 'expo-secure-store';
 import { api, ApiError } from '../api/client';
 import type { Customer, Route } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
@@ -9,6 +10,49 @@ import { PhotoBox } from '../orders/PhotoBox';
 import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
+
+// AC-25 (vòng 8, CAP-BUG-02) — cùng khuôn nháp đã có ở CreateTaskScreen từ vòng 2 (S3),
+// S18 "Ghi đơn mới" trước đây CHƯA có gì tương tự — khách gọi lúc chủ xưởng đang gõ dở
+// (điện thoại rung, app bị hệ điều hành force-stop) làm mất trắng y hệt bug đã vá ở S3.
+const DRAFT_KEY = 'workshop-app.create-order-draft';
+
+interface OrderDraft {
+  phone: string;
+  name: string;
+  address: string;
+  description: string;
+  mode: 'le' | 'buon';
+  routeId: string | null;
+  routeTouched: boolean;
+  hasEmbroidery: boolean;
+  difficulty: 'de' | 'kho';
+  price: string;
+  deposit: string;
+  photo: string | null;
+}
+
+async function loadOrderDraft(): Promise<OrderDraft | null> {
+  const raw = Platform.OS === 'web' ? localStorage.getItem(DRAFT_KEY) : await SecureStore.getItemAsync(DRAFT_KEY);
+  return raw ? (JSON.parse(raw) as OrderDraft) : null;
+}
+
+async function saveOrderDraft(draft: OrderDraft) {
+  const raw = JSON.stringify(draft);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(DRAFT_KEY, raw);
+    return;
+  }
+  await SecureStore.setItemAsync(DRAFT_KEY, raw);
+}
+
+async function clearOrderDraft() {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(DRAFT_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(DRAFT_KEY);
+}
 
 // AC-19 (S21) — "Dùng lại số đo này cho đơn mới": chép SANG đơn mới, không sửa bản cũ
 // (ARCHITECTURE.md §6). CreateOrderDto nhận thẳng field số đo tuỳ chọn (DECISIONS.md vòng 7).
@@ -54,10 +98,68 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
   // gửi thành công, không đợi điều hướng.
   const [submitted, setSubmitted] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // có prefill (AC-19, "dùng lại số đo") thì bỏ qua nháp cũ — ý định mới nhất thắng,
+  // đúng khuôn `draftLoaded` của CreateTaskScreen.
+  const draftLoaded = useRef(!!prefill);
+  const [hasOldDraft, setHasOldDraft] = useState(false);
 
   useEffect(() => {
     api.get<Route[]>('/routes').then(setRoutes).catch(() => {});
   }, []);
+
+  // Khôi phục nháp CHỈ khi vào màn không kèm prefill.
+  useEffect(() => {
+    if (draftLoaded.current) return;
+    loadOrderDraft().then((draft) => {
+      if (draft) {
+        setPhone(draft.phone);
+        setName(draft.name);
+        setAddress(draft.address);
+        setDescription(draft.description);
+        setMode(draft.mode);
+        setRouteId(draft.routeId);
+        setRouteTouched(draft.routeTouched);
+        setHasEmbroidery(draft.hasEmbroidery);
+        setDifficulty(draft.difficulty);
+        setPrice(draft.price);
+        setDeposit(draft.deposit);
+        setPhoto(draft.photo);
+        setHasOldDraft(true);
+      }
+      draftLoaded.current = true;
+    });
+  }, []);
+
+  // Lưu nháp mỗi khi đổi field — chỉ sau khi đã khôi phục xong (tránh ghi đè bằng state
+  // rỗng lúc mới mount), và chỉ khi còn nội dung thật (không phải toàn field trống/mặc định).
+  useEffect(() => {
+    if (!draftLoaded.current) return;
+    const empty =
+      !phone.trim() && !name.trim() && !address.trim() && !description.trim() && !price.trim() && !deposit.trim() && !photo;
+    if (empty) {
+      clearOrderDraft();
+      return;
+    }
+    saveOrderDraft({ phone, name, address, description, mode, routeId, routeTouched, hasEmbroidery, difficulty, price, deposit, photo });
+  }, [phone, name, address, description, mode, routeId, routeTouched, hasEmbroidery, difficulty, price, deposit, photo]);
+
+  function discardDraft() {
+    clearOrderDraft();
+    setPhone('');
+    setName('');
+    setAddress('');
+    setDescription('');
+    setMode('le');
+    setRouteId(null);
+    setRouteTouched(false);
+    setHasEmbroidery(false);
+    setDifficulty('de');
+    setPrice('');
+    setDeposit('');
+    setPhoto(null);
+    setSelectedCustomer(null);
+    setHasOldDraft(false);
+  }
 
   // Gợi ý khu vực khi có đủ địa chỉ + danh sách khu vực — chỉ tự gợi ý nếu chủ xưởng
   // CHƯA tự tay chọn (routeTouched), đúng "app gợi ý, chủ xưởng xác nhận hoặc chạm khác"
@@ -134,6 +236,8 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
       // quay thẳng về S17 không có xác nhận nào, giống lỗi CreateTaskScreen đã sửa từ vòng 2.
       setBanner('Đã ghi đơn. Đơn mới hiện ở đầu danh sách.');
       setSubmitted(true);
+      clearOrderDraft();
+      setHasOldDraft(false);
       setTimeout(onDone, 1200);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
@@ -144,7 +248,18 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
 
   // dogfood pha I vòng 7 (cùng phát hiện ở CustomerLookupScreen) — xem giải thích ở đó.
   return (
+    <KeyboardAvoider>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
+      {hasOldDraft && (
+        <Banner
+          visible
+          icon="pencil"
+          style={styles.draftBanner}
+          actions={[{ label: 'Xoá', onPress: discardDraft }]}
+        >
+          Đang tiếp tục nháp trước đó — Xoá để bắt đầu mới
+        </Banner>
+      )}
       {banner && (
         <Banner visible icon="check-circle" style={styles.successBanner}>
           {banner}
@@ -294,12 +409,14 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
         {sending ? 'Đang gửi…' : 'Ghi đơn'}
       </Button>
     </ScrollView>
+    </KeyboardAvoider>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
+  draftBanner: { marginBottom: space.md, backgroundColor: colors.surfaceContainerHigh },
   successBanner: { marginBottom: space.md, backgroundColor: colors.tertiaryContainer },
   foundBanner: { marginBottom: space.md, backgroundColor: colors.tertiaryContainer },
   title: { marginBottom: space.md },
@@ -309,8 +426,9 @@ const styles = StyleSheet.create({
   hint: { color: colors.onSurfaceVariant, marginTop: -space.sm, marginBottom: space.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
   // C18 (DESIGN-SYSTEM.md §4): bật = nền --color-primary-container, tắt = chỉ viền
-  // --color-outline-variant; cao ≥ 40px (đo dogfood pha I vòng 7: mặc định Paper chỉ ~32dp).
-  chip: { marginBottom: space.xs, minHeight: 40, justifyContent: 'center' },
+  // --color-outline-variant; cao ≥ --tap-min (48px — sửa AC-34 vòng 8, trước ghi nhầm 40px:
+  // chip là hành động bấm được, §2.3 "mọi thứ bấm được" áp cả chip lọc/chọn).
+  chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
   chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
   chipTextSelected: { color: colors.onPrimaryContainer },

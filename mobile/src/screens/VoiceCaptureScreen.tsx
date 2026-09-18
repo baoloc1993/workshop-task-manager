@@ -143,11 +143,14 @@ const styles = StyleSheet.create({
     // đối khi giữ nút là do lớp che này, xác nhận bằng cách di chuyển nút sang góc khác thì bấm
     // được ngay (đo `onPressIn` bắn đúng, "Đang nghe…" hiện đúng). Bản production/release
     // không có dev tools nên không có lớp che này — vị trí góc dưới-phải theo đúng spec vẫn đúng.
+    // AC-27 (vòng 8, CAP-BUG-01) — C1 "bo --shape-small (góc 4-6px, không viên thuốc)":
+    // nút này trước đây dùng `shape.full`, một viên thuốc tròn lọt qua khỏi luật đã chốt
+    // cho MỌI nút chính (kể cả nút nổi riêng như nút này, không chỉ <Button> của Paper).
     position: 'absolute',
     right: space.md,
     bottom: space.lg,
     minHeight: tapMin,
-    borderRadius: shape.full,
+    borderRadius: shape.small,
     backgroundColor: colors.primary,
     elevation: 3,
   },

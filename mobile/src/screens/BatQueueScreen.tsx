@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, space } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
+import { LoadErrorBanner } from '../common/LoadErrorBanner';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 function BatTaskRow({ task, onPress }: { task: Task; onPress: () => void }) {
   const who = task.assignees.length > 0 ? `Đang giao: ${task.assignees.map((a) => a.user.name).join(', ')}` : null;
@@ -29,16 +31,18 @@ function BatTaskRow({ task, onPress }: { task: Task; onPress: () => void }) {
 // thấy việc bạt CHƯA chia trước (kèm số đo), việc ĐÃ chia trong nhóm sau — không lục Zalo.
 export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [error, setError] = useState(false);
+  // AC-30 (vòng 8, CAP-BUG-01) — giữ lỗi gốc (NetworkError/ApiError) thay vì gộp về boolean,
+  // để LoadErrorBanner phân biệt mất mạng/401/500 (cùng khuôn MyTasksScreen/TaskDetailScreen).
+  const [error, setError] = useState<unknown>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const data = await api.get<Task[]>('/tasks/bat-queue');
       setTasks(data);
-      setError(false);
-    } catch {
-      setError(true);
+      setError(null);
+    } catch (e) {
+      setError(e);
     }
   }, []);
 
@@ -57,6 +61,15 @@ export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
   const list = tasks ?? [];
   const waiting = list.filter((t) => t.assignees.length === 0);
   const assigned = list.filter((t) => t.assignees.length > 0);
+
+  // AC-36 (vòng 8, CAP-BUG-01) — khuôn tải, xem MyTasksScreen cùng khuôn.
+  if (tasks === null && !error) {
+    return (
+      <View style={[styles.container, { padding: space.md }]}>
+        <SkeletonCard />
+      </View>
+    );
+  }
 
   return (
     <FlatList
@@ -78,11 +91,7 @@ export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
       }
       ListHeaderComponent={
         <>
-          {error && (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
-              Mất kết nối — đang thử lại
-            </Banner>
-          )}
+          {!!error && <LoadErrorBanner error={error} onRetry={load} />}
           {waiting.length > 0 && (
             <Text variant="labelLarge" style={styles.sec}>
               Chờ bạn chia cho thợ

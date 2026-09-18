@@ -9,6 +9,7 @@ import { TaskRow } from '../tasks/TaskRow';
 import { GROUP_LABEL, STEP_GROUP, STEP_LABEL } from '../orders/orderStatus';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 // S22 "Việc nhóm chờ nhận" (CAP-DEM-07, AC-21) — ai rảnh thì nhận, không ai chia (khác
 // hẳn S9 của mảng bạt). Một thợ nhiều nhóm thấy việc GỘP của mọi nhóm mình thuộc trong
@@ -62,6 +63,19 @@ export function DemQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
   const claimed = list.filter((t) => t.assignees.length > 0);
   const groups = user?.groups ?? [];
   const title = groups.length === 1 ? GROUP_LABEL[groups[0]] : 'Việc nhóm chờ nhận';
+
+  // AC-36 (vòng 8, CAP-BUG-01) — cùng lớp lỗi đã sửa ở MyTasksScreen/DeliveryScreen: trước
+  // khi tải xong lần đầu, màn này chớp qua câu rỗng "chưa có việc nào chờ" (DESIGN-SYSTEM.md
+  // §5 đòi khung xám, không phải khuôn rỗng, trong lúc đang tải).
+  if (tasks === null && !error) {
+    return (
+      <View style={styles.container}>
+        <View style={{ padding: space.md }}>
+          <SkeletonCard />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <FlatList

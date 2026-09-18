@@ -44,7 +44,7 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
     return (
       <View style={styles.empty}>
         <Text variant="bodyLarge" style={styles.emptyText}>
-          Chưa ai ghép máy.
+          Chưa ai quét mã để vào app.
         </Text>
       </View>
     );
@@ -62,7 +62,9 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
           <Card.Content>
             <Text variant="titleLarge">{item.user.name}</Text>
             <Text variant="bodyLarge" style={styles.meta}>
-              {item.deviceLabel ?? 'Máy chưa đặt tên'} · ghép ngày{' '}
+              {/* AC-32 (vòng 8) — đổi "ghép ngày" -> "vào app ngày", tránh thuật ngữ nội bộ
+                  "ghép"/"pairing"; đúng chữ EntryScreen đã dùng ("Quét mã để vào app"). */}
+              {item.deviceLabel ?? 'Máy chưa đặt tên'} · vào app ngày{' '}
               {item.usedAt ? new Date(item.usedAt).toLocaleDateString('vi-VN') : '—'}
             </Text>
             {item.revokedAt ? (

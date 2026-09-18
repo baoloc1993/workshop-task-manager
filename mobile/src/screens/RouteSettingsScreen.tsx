@@ -100,7 +100,7 @@ export function RouteSettingsScreen() {
               onSubmitEditing={() => addLandmark(r)}
               style={styles.addInput}
             />
-            <Button mode="outlined" onPress={() => addLandmark(r)} contentStyle={{ height: tapMin }}>
+            <Button mode="outlined" onPress={() => addLandmark(r)} contentStyle={{ height: tapMin }} style={styles.actionButton}>
               Thêm
             </Button>
           </View>
@@ -116,7 +116,7 @@ export function RouteSettingsScreen() {
           onSubmitEditing={addRoute}
           style={styles.addInput}
         />
-        <Button mode="contained" onPress={addRoute} contentStyle={{ height: tapMin }}>
+        <Button mode="contained" onPress={addRoute} contentStyle={{ height: tapMin }} style={styles.actionButton}>
           Thêm khu vực
         </Button>
       </View>
@@ -131,10 +131,15 @@ const styles = StyleSheet.create({
   block: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   blockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { marginBottom: space.xs, minHeight: 40, justifyContent: 'center' },
-  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0, minHeight: 40, justifyContent: 'center' },
-  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1, minHeight: 40, justifyContent: 'center' },
+  // AC-34 (vòng 8, CAP-BUG-01) — DECISIONS.md 2026-09-19 điểm (2): mọi chip là "thứ bấm
+  // được" theo §2.3, ép `--tap-min` 48px đồng loạt (trước ép nhầm 40px).
+  chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
+  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0, minHeight: tapMin, justifyContent: 'center' },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1, minHeight: tapMin, justifyContent: 'center' },
   chipTextSelected: { color: colors.onPrimaryContainer },
   addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   addInput: { flex: 1 },
+  // C1 (vòng 8, AC-27) — Button mặc định của react-native-paper bo viên thuốc; ép
+  // `--shape-small` như mọi nút chính khác trong app.
+  actionButton: { borderRadius: shape.small },
 });

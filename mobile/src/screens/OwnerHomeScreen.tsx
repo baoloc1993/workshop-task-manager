@@ -8,6 +8,7 @@ import { colors, navHeight, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { isDoneToday, lineLabel, taskBucket } from '../tasks/taskStatus';
 import { ScreenHeader } from '../common/ScreenHeader';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 // S1 — "Cả xưởng hôm nay" (CAP-TASK-08, AC-15). Đúng bốn nhóm của PROTOTYPE.md §1: quá
 // hạn/đứng yên → đang làm → chưa ai nhận → đã xong hôm nay (gấp lại cuối màn). Dữ liệu từ
@@ -77,6 +78,19 @@ export function OwnerHomeScreen({
   }, [tasks]);
 
   const isEmpty = tasks !== null && tasks.length === 0;
+
+  // AC-36 (vòng 8, CAP-BUG-01) — trước tải xong lần đầu màn này trắng trơn (không khung
+  // xám nào) — DESIGN-SYSTEM.md §5 đòi khuôn "đang tải" giữ đúng chỗ.
+  if (tasks === null && !error) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader title="Cả xưởng hôm nay" canGoBack />
+        <View style={{ padding: space.md }}>
+          <SkeletonCard />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

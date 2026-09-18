@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Chip, Text } from 'react-native-paper';
+import { Banner, Button, Chip, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { OrderListItem, Route } from '../api/types';
-import { colors, fontSize, shape, space } from '../theme/tokens';
+import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 // S23 "Hàng trả" (CAP-DEM-05, AC-23) — chọn khu vực + ngày → mọi đơn hẹn trả khu vực đó,
 // tô đỏ đơn CHƯA nhồi (status != cho_tra/da_tra). "Chốt chuyến" hàng loạt KHÔNG dựng —
@@ -24,7 +25,13 @@ function inRange(dueAt: string, filter: DayFilter): boolean {
   return diffDays <= 7;
 }
 
-export function DeliveryScreen({ onOpenOrder }: { onOpenOrder: (id: string) => void }) {
+export function DeliveryScreen({
+  onOpenOrder,
+  onCreateOrder,
+}: {
+  onOpenOrder: (id: string) => void;
+  onCreateOrder: () => void;
+}) {
   const [orders, setOrders] = useState<OrderListItem[] | null>(null);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [error, setError] = useState(false);
@@ -55,21 +62,38 @@ export function DeliveryScreen({ onOpenOrder }: { onOpenOrder: (id: string) => v
     setRefreshing(false);
   }
 
+  // AC-34 (vòng 8, CAP-BUG-01) — trước đây số đếm `(N)` mỗi chip khu vực tính trên TOÀN BỘ
+  // `orders` (bỏ qua chip ngày/trạng thái đang chọn) — chủ xưởng chọn "Mai" nhưng số đếm
+  // vẫn hiện như đang xem "Tất cả", lệch hẳn danh sách thật hiện dưới đó. Số đếm phải theo
+  // đúng bộ lọc ngày + trạng thái hiện tại (`byDay`), chỉ khác `filtered` ở chỗ CHƯA áp
+  // riêng bộ lọc khu vực — mỗi chip khu vực cần đếm trên phần còn lại, không phải trên
+  // chính lựa chọn của nó.
+  const byDay = useMemo(
+    () => (orders ?? []).filter((o) => o.status !== 'moi' && inRange(o.dueAt, day)),
+    [orders, day],
+  );
+
   const filtered = useMemo(() => {
-    const list = orders ?? [];
-    return list.filter((o) => {
-      if (o.status === 'moi') return false; // chưa vào chặng nào — chưa tính là "hàng hẹn trả"
-      if (!inRange(o.dueAt, day)) return false;
-      if (areaId === 'all') return true;
-      return areaId === 'xe_om' ? !o.route : o.route?.id === areaId;
-    });
-  }, [orders, areaId, day]);
+    if (areaId === 'all') return byDay;
+    return byDay.filter((o) => (areaId === 'xe_om' ? !o.route : o.route?.id === areaId));
+  }, [byDay, areaId]);
 
   const areas: { id: string | 'all'; name: string; count: number }[] = [
-    { id: 'all', name: 'Tất cả', count: orders?.length ?? 0 },
-    ...routes.map((r) => ({ id: r.id, name: r.name, count: (orders ?? []).filter((o) => o.route?.id === r.id).length })),
-    { id: 'xe_om', name: 'Xe ôm chuyến lẻ', count: (orders ?? []).filter((o) => !o.route).length },
+    { id: 'all', name: 'Tất cả', count: byDay.length },
+    ...routes.map((r) => ({ id: r.id, name: r.name, count: byDay.filter((o) => o.route?.id === r.id).length })),
+    { id: 'xe_om', name: 'Xe ôm chuyến lẻ', count: byDay.filter((o) => !o.route).length },
   ];
+
+  // AC-36 (vòng 8, CAP-BUG-01) — trước đây `orders === null` (chưa tải lần đầu) rơi thẳng
+  // vào khuôn rỗng bên dưới, chớp qua "Không có hàng hẹn trả" + nút "Ghi đơn mới" trước khi
+  // dữ liệu thật tới (DESIGN-SYSTEM.md §5 "Đang tải" đòi khung xám, không phải khuôn rỗng).
+  if (orders === null && !error) {
+    return (
+      <View style={[styles.container, { padding: space.md }]}>
+        <SkeletonCard />
+      </View>
+    );
+  }
 
   return (
     <FlatList
@@ -80,10 +104,15 @@ export function DeliveryScreen({ onOpenOrder }: { onOpenOrder: (id: string) => v
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       ListEmptyComponent={
         error ? null : (
+          // AC-29 (vòng 8, CAP-BUG-01) — khuôn rỗng S23 trước đây chỉ một câu, không nút,
+          // khớp C7 đã khai cho màn này (DESIGN-SYSTEM.md §4): đúng MỘT nút "＋ Ghi đơn mới".
           <View style={styles.empty}>
             <Text variant="bodyLarge" style={styles.emptyText}>
               Không có hàng hẹn trả trong khoảng đã chọn.
             </Text>
+            <Button mode="contained" onPress={onCreateOrder} contentStyle={{ height: tapMin }} style={styles.emptyButton}>
+              ＋ Ghi đơn mới
+            </Button>
           </View>
         )
       }
@@ -94,16 +123,32 @@ export function DeliveryScreen({ onOpenOrder }: { onOpenOrder: (id: string) => v
               Mất kết nối — đang thử lại
             </Banner>
           )}
+          {/* AC-27 (vòng 8, CAP-BUG-01) — trước đây không ép màu, Paper tô chip "selected"
+              bằng secondaryContainer (nhãn BUÔN #FFF4CE/#3D2600) — nhầm token C18 (bật =
+              primary-container, tắt = chỉ viền outline-variant), cùng lỗi đã sửa ở
+              CreateOrderScreen/RouteSettingsScreen. */}
           <View style={styles.chipRow}>
             {areas.map((a) => (
-              <Chip key={a.id} selected={areaId === a.id} onPress={() => setAreaId(a.id)} style={styles.chip}>
+              <Chip
+                key={a.id}
+                selected={areaId === a.id}
+                onPress={() => setAreaId(a.id)}
+                style={[styles.chip, areaId === a.id ? styles.chipSelected : styles.chipUnselected]}
+                textStyle={areaId === a.id ? styles.chipTextSelected : undefined}
+              >
                 {a.name} ({a.count})
               </Chip>
             ))}
           </View>
           <View style={styles.chipRow}>
             {DAY_FILTERS.map((f) => (
-              <Chip key={f} selected={day === f} onPress={() => setDay(f)} style={styles.chip}>
+              <Chip
+                key={f}
+                selected={day === f}
+                onPress={() => setDay(f)}
+                style={[styles.chip, day === f ? styles.chipSelected : styles.chipUnselected]}
+                textStyle={day === f ? styles.chipTextSelected : undefined}
+              >
                 {DAY_LABEL[f]}
               </Chip>
             ))}
@@ -128,10 +173,15 @@ export function DeliveryScreen({ onOpenOrder }: { onOpenOrder: (id: string) => v
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, gap: space.md },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
+  emptyButton: { borderRadius: shape.small },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.sm },
-  chip: { marginBottom: space.xs },
+  // AC-34 (vòng 8) — chip khu vực/ngày ở S23 chưa từng có minHeight, mặc định Paper ~32dp.
+  chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
+  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
+  chipTextSelected: { color: colors.onPrimaryContainer },
   row: {
     backgroundColor: colors.surfaceContainer,
     borderRadius: shape.small,

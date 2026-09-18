@@ -275,7 +275,10 @@ export function OwnerNavigator() {
         {({ navigation }) => (
           <View style={{ flex: 1 }}>
             <ScreenHeader title="Hàng trả" subtitle="Theo khu vực · chuyến chiều" canGoBack />
-            <DeliveryScreen onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })} />
+            <DeliveryScreen
+              onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })}
+              onCreateOrder={() => navigation.navigate('CreateOrder')}
+            />
           </View>
         )}
       </Stack.Screen>

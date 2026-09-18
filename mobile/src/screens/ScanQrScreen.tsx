@@ -6,6 +6,7 @@ import { Button, Text, TextInput } from 'react-native-paper';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../api/client';
 import { colors, shape, space, tapMin } from '../theme/tokens';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 
 // S8 — "Quét mã để vào app" (PROTOTYPE.md §1). Người mới, chưa có phiên nào.
 //
@@ -67,55 +68,62 @@ export function ScanQrScreen() {
         disabled={manualCode.length !== 6 || joining}
         loading={joining}
         contentStyle={{ height: tapMin }}
+        style={styles.actionButton}
       >
         Vào app
       </Button>
     </View>
   );
 
+  // AC-26 (vòng 8, CAP-BUG-02) — bàn phím số khi gõ mã tay che nút "Vào app" (layout
+  // `justifyContent: 'center'` không tự cuộn) — `KeyboardAvoider` dùng chung (§ wrapper).
   if (!permission || !permission.granted) {
     return (
+      <KeyboardAvoider>
+        <View style={styles.container}>
+          <Text variant="bodyLarge" style={styles.text}>
+            Cần quyền camera để quét mã.
+          </Text>
+          <Button mode="outlined" onPress={requestPermission} contentStyle={{ height: tapMin }} style={styles.actionButton}>
+            Cho phép dùng camera
+          </Button>
+          {manualEntry}
+          {error && (
+            <Text variant="bodyLarge" style={styles.error}>
+              {error}
+            </Text>
+          )}
+        </View>
+      </KeyboardAvoider>
+    );
+  }
+
+  return (
+    <KeyboardAvoider>
       <View style={styles.container}>
-        <Text variant="bodyLarge" style={styles.text}>
-          Cần quyền camera để quét mã.
+        <Text variant="titleLarge" style={styles.title}>
+          Quét mã để vào app
         </Text>
-        <Button mode="outlined" onPress={requestPermission} contentStyle={{ height: tapMin }}>
-          Cho phép dùng camera
-        </Button>
-        {manualEntry}
+        <View style={styles.cameraFrame}>
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={joining ? undefined : ({ data }) => handleScanned(data)}
+          />
+        </View>
         {error && (
           <Text variant="bodyLarge" style={styles.error}>
             {error}
           </Text>
         )}
+        {joining && (
+          <Text variant="bodyLarge" style={styles.text}>
+            Đang ghép máy…
+          </Text>
+        )}
+        {manualEntry}
       </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text variant="titleLarge" style={styles.title}>
-        Quét mã để vào app
-      </Text>
-      <View style={styles.cameraFrame}>
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          onBarcodeScanned={joining ? undefined : ({ data }) => handleScanned(data)}
-        />
-      </View>
-      {error && (
-        <Text variant="bodyLarge" style={styles.error}>
-          {error}
-        </Text>
-      )}
-      {joining && (
-        <Text variant="bodyLarge" style={styles.text}>
-          Đang ghép máy…
-        </Text>
-      )}
-      {manualEntry}
-    </View>
+    </KeyboardAvoider>
   );
 }
 
@@ -127,4 +135,6 @@ const styles = StyleSheet.create({
   error: { marginTop: space.md, color: colors.error, textAlign: 'center' },
   manualBlock: { marginTop: space.lg, width: '100%', alignItems: 'stretch' },
   manualInput: { marginBottom: space.md, textAlign: 'center' },
+  // C1 (vòng 8, AC-27) — ép `--shape-small`, không để mặc định viên thuốc của Paper.
+  actionButton: { borderRadius: shape.small },
 });

@@ -5,7 +5,7 @@ import { Banner, Chip, Text } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { WorkerGroup, WorkerListItem } from '../api/types';
-import { colors, shape, space } from '../theme/tokens';
+import { colors, shape, space, tapMin } from '../theme/tokens';
 import { GROUP_LABEL } from '../orders/orderStatus';
 
 const ALL_GROUPS: WorkerGroup[] = ['do', 'may', 'cat_mut', 'khau_lot', 'nhoi', 'theu'];
@@ -89,7 +89,8 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant, marginTop: space.lg },
   row: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { marginBottom: space.xs, minHeight: 40, justifyContent: 'center' },
+  // AC-34 (vòng 8) — 48px (--tap-min), trước ghi nhầm 40px, xem CreateOrderScreen.
+  chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
   chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
   chipTextSelected: { color: colors.onPrimaryContainer },

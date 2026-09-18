@@ -7,13 +7,18 @@ import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, shape, space } from '../theme/tokens';
 import { isOverdue, lineLabel, statusColor } from '../tasks/taskStatus';
+import { LoadErrorBanner } from '../common/LoadErrorBanner';
+import { SkeletonCard } from '../common/SkeletonCard';
+import { useAuth } from '../auth/AuthContext';
 
 // S4 — "Việc nào làm trước" (CAP-TASK-07, AC-14). Bấm mũi tên đổi vị trí → priority cập
 // nhật NGAY, không có nút "Lưu" riêng (PROTOTYPE.md §1). Mỗi lần đổi gửi NGUYÊN danh sách
 // task_id theo thứ tự mới (DECISIONS.md vòng 5) — server gán lại priority tuần tự.
 export function PriorityScreen() {
+  const { logout } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [error, setError] = useState(false);
+  // AC-30 (vòng 8, CAP-BUG-01) — giữ lỗi gốc để `LoadErrorBanner` phân biệt mất mạng/401/500.
+  const [error, setError] = useState<unknown>(null);
   const [saveError, setSaveError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,9 +27,9 @@ export function PriorityScreen() {
     try {
       const data = await api.get<Task[]>('/tasks');
       setTasks(data.filter((t) => t.status !== 'done'));
-      setError(false);
-    } catch {
-      setError(true);
+      setError(null);
+    } catch (e) {
+      setError(e);
     }
   }, []);
 
@@ -63,6 +68,19 @@ export function PriorityScreen() {
 
   const list = tasks ?? [];
 
+  // AC-36 (vòng 8, CAP-BUG-01) — cùng khuôn đã sửa ở MyTasksScreen/OrderListScreen: trước
+  // khi có lần tải đầu tiên, màn này trắng trơn (ListEmptyComponent trả null).
+  if (tasks === null && error === null) {
+    return (
+      <View style={styles.container}>
+        <ScreenTitle>Việc nào làm trước</ScreenTitle>
+        <View style={{ padding: space.md }}>
+          <SkeletonCard />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <FlatList
       style={styles.container}
@@ -71,7 +89,7 @@ export function PriorityScreen() {
       keyExtractor={(t) => t.id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       ListEmptyComponent={
-        error || tasks === null ? null : (
+        error !== null || tasks === null ? null : (
           <View style={styles.empty}>
             <Text variant="bodyLarge" style={styles.emptyText}>
               Chưa có việc nào để sắp.
@@ -82,11 +100,7 @@ export function PriorityScreen() {
       ListHeaderComponent={
         <>
           <ScreenTitle>Việc nào làm trước</ScreenTitle>
-          {error && (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
-              Mất kết nối — đang thử lại
-            </Banner>
-          )}
+          {error !== null && <LoadErrorBanner error={error} onRetry={load} onReauth={logout} />}
           {saveError && (
             <Banner
               visible

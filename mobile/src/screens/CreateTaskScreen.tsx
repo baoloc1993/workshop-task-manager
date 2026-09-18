@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Banner, Button, Checkbox, List, Text, TextInput } from 'react-native-paper';
+import { Banner, Button, List, RadioButton, Text, TextInput } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 
 export interface CreateTaskPrefill {
   content?: string;
@@ -76,6 +77,10 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
   const [banner, setBanner] = useState<string | null>(null);
   const [usersLoading, setUsersLoading] = useState(true);
   const draftLoaded = useRef(!!prefill); // có prefill (từ giọng nói) thì bỏ qua nháp cũ
+  // AC-25 (vòng 8, CAP-BUG-02) — trước đây khôi phục nháp cũ ÂM THẦM, không có tín hiệu gì
+  // cho người dùng biết nội dung đang gõ là của LẦN TRƯỚC — dễ tưởng nhầm là màn trống rồi
+  // gõ đè lên. Banner báo rõ + nút xoá riêng (DECISIONS.md 2026-09-19: "giữ nháp, thêm banner").
+  const [hasOldDraft, setHasOldDraft] = useState(false);
 
   // Khôi phục nháp CHỈ khi vào màn không kèm prefill (tức đường "Gõ tay" thẳng, không phải
   // vừa nói xong) — nói mới luôn là ý định mới nhất, không nên bị nháp cũ ghi đè.
@@ -88,10 +93,21 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
         setSelected(new Set(draft.assigneeIds));
         setBatGroup(draft.batGroup ?? false); // nháp cũ (vòng 1-3) chưa có field này
         setMeasurements(draft.measurements ?? '');
+        setHasOldDraft(true);
       }
       draftLoaded.current = true;
     });
   }, []);
+
+  function discardDraft() {
+    clearDraft();
+    setContent('');
+    setDueAt('');
+    setSelected(new Set());
+    setBatGroup(false);
+    setMeasurements('');
+    setHasOldDraft(false);
+  }
 
   // Lưu nháp mỗi khi đổi nội dung/hạn/người chọn/mảng/số đo — chỉ sau khi đã khôi phục xong
   // (tránh ghi đè nháp cũ bằng state rỗng lúc mới mount).
@@ -179,6 +195,7 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
       setSelected(new Set());
       setBatGroup(false);
       setMeasurements('');
+      setHasOldDraft(false);
       // Giữ banner đủ lâu để đọc trước khi quay về home — không cắt ngang
       // ngay lập tức (bug dogfood pha I: quay về home mà không thấy xác nhận gì).
       setTimeout(onDone, 1500);
@@ -195,7 +212,18 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
     // Banner (C5) phải "bám mép trên" (DESIGN-SYSTEM.md §4) — dogfood pha I vòng 2
     // phát hiện banner nằm TRONG ScrollView nên cuộn trôi mất khỏi
     // tầm nhìn. Tách banner ra ngoài ScrollView, đứng yên ở đầu màn, không cuộn theo.
+    <KeyboardAvoider>
     <View style={styles.outer}>
+      {hasOldDraft && (
+        <Banner
+          visible
+          icon="pencil"
+          style={styles.draftBanner}
+          actions={[{ label: 'Xoá', onPress: discardDraft }]}
+        >
+          Đang tiếp tục nháp trước đó — Xoá để bắt đầu mới
+        </Banner>
+      )}
       {banner && (
         <Banner visible icon="check-circle" style={styles.successBanner}>
           {banner}
@@ -266,6 +294,10 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
       <Text variant="bodyLarge" style={styles.label}>
         Giao cho
       </Text>
+      {/* C9 (DESIGN-SYSTEM.md §4, AC-27 vòng 8) — "hàng chọn người": vòng tròn bên trái,
+          chọn = tô --color-primary. `Checkbox` (ô vuông) trước đây lệch component đã chốt —
+          `RadioButton` vẽ đúng hình vòng tròn dù ngữ nghĩa vẫn là chọn nhiều (mỗi hàng bấm
+          độc lập, không nhóm loại trừ). */}
       <View style={styles.list}>
         {/* CAP-TASK-06 (AC-13) — "Nhóm bạt" là một hàng chọn trong đúng danh sách này
             (PROTOTYPE.md §1 S3), loại trừ với chọn người may vá bên dưới. */}
@@ -273,7 +305,9 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
           title="Nhóm bạt (điều phối chia tiếp)"
           onPress={toggleBatGroup}
           style={batGroup ? styles.itemSelected : undefined}
-          left={() => <Checkbox status={batGroup ? 'checked' : 'unchecked'} onPress={toggleBatGroup} />}
+          left={() => (
+            <RadioButton value="bat_group" color={colors.primary} status={batGroup ? 'checked' : 'unchecked'} onPress={toggleBatGroup} />
+          )}
         />
         {usersLoading
           ? [0, 1, 2].map((i) => <View key={i} style={styles.itemSkeleton} />)
@@ -284,7 +318,12 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
                 onPress={() => toggle(w.id)}
                 style={selected.has(w.id) ? styles.itemSelected : undefined}
                 left={() => (
-                  <Checkbox status={selected.has(w.id) ? 'checked' : 'unchecked'} onPress={() => toggle(w.id)} />
+                  <RadioButton
+                    value={w.id}
+                    color={colors.primary}
+                    status={selected.has(w.id) ? 'checked' : 'unchecked'}
+                    onPress={() => toggle(w.id)}
+                  />
                 )}
               />
             ))}
@@ -301,6 +340,7 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
       </Button>
       </ScrollView>
     </View>
+    </KeyboardAvoider>
   );
 }
 
@@ -308,6 +348,7 @@ const styles = StyleSheet.create({
   outer: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1, backgroundColor: colors.surface },
   title: { marginBottom: space.md },
+  draftBanner: { backgroundColor: colors.surfaceContainerHigh, marginBottom: space.xs },
   successBanner: { backgroundColor: colors.tertiaryContainer, marginBottom: space.xs },
   errorBanner: { backgroundColor: colors.errorContainer, marginBottom: space.xs },
   input: { marginBottom: space.md },

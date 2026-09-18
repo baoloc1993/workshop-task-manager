@@ -5,6 +5,7 @@ import { HeaderBackButton } from './HeaderBackButton';
 import { thinHeader } from './screenOptions';
 import { ScreenHeader } from '../common/ScreenHeader';
 import { colors } from '../theme/tokens';
+import { useAuth } from '../auth/AuthContext';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
@@ -78,7 +79,9 @@ export function BatCoordinatorNavigator() {
                   onPress={() => navigation.navigate('History')}
                   hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                 >
-                  Đã xong
+                  {/* AC-40 điểm (5), DECISIONS.md 2026-09-19: đổi nhãn — trùng chữ với nhãn
+                      trạng thái "Xong" trên thẻ việc, route vẫn tới History như cũ */}
+                  Lịch sử
                 </Button>
               }
             />
@@ -93,21 +96,31 @@ export function BatCoordinatorNavigator() {
         name="History"
         options={{ headerShown: false }}
       >
-        {({ navigation }) => (
-          <View style={{ flex: 1 }}>
-            {/* S16 — màn danh sách: C13(a) */}
-            <ScreenHeader
-              title="Việc đã xong"
-              canGoBack
-              right={
-                <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('Feedback')}>
-                  Góp ý
-                </Button>
-              }
-            />
-            <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
-          </View>
-        )}
+        {({ navigation }) => {
+          // AC-31 (vòng 8, CAP-BUG-03) — điều phối cũng chưa có S0/màn "Cài đặt" riêng, gắn
+          // "Đăng xuất" ở màn phụ "Việc đã xong" như worker.
+          const { logout } = useAuth();
+          return (
+            <View style={{ flex: 1 }}>
+              {/* S16 — màn danh sách: C13(a) */}
+              <ScreenHeader
+                title="Việc đã xong"
+                canGoBack
+                right={
+                  <>
+                    <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('Feedback')}>
+                      Góp ý
+                    </Button>
+                    <Button textColor={colors.onPrimary} onPress={() => logout()}>
+                      Đăng xuất
+                    </Button>
+                  </>
+                }
+              />
+              <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+            </View>
+          );
+        }}
       </Stack.Screen>
       <Stack.Screen name="Feedback" options={{ title: 'Việc đã xong' }}>
         {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
