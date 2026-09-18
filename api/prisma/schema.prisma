@@ -148,6 +148,13 @@ model Task {
   assignees TaskAssignee[]
   events    TaskEvent[]
 
+  // review pha P vòng 7: cutDone() và onDemTaskDone()
+  // đọc-rồi-ghi ngoài transaction có khoá — hai request đồng thời (double-submit "Chốt số
+  // cắt", hoặc hai Task chặng 2 cuối cùng "Xong" gần như cùng lúc) có thể sinh TRÙNG Task
+  // cùng step cho cùng đơn (2 bộ chặng 2, hoặc 2 Task "nhồi"). Mỗi đơn chỉ có đúng MỘT Task
+  // cho mỗi step theo thiết kế hiện tại (không có luồng tạo lại) — ràng buộc DB chặn đụng
+  // độ thật, không chỉ dựa vào khoá UI. `orderId` NULL (mảng bạt/may vá) không bị ảnh hưởng.
+  @@unique([orderId, step])
   @@map("tasks")
 }
 

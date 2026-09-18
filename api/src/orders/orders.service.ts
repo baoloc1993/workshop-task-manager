@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AuthUser } from '../common/decorators/current-user.decorator.js';
@@ -23,6 +23,20 @@ const ORDER_LIST_SELECT = {
   route: { select: { id: true, name: true } },
   tasks: { select: { id: true, step: true, status: true }, where: { deletedAt: null } },
   createdAt: true,
+} as const;
+
+// S20 — response của updateMeasurements() (owner HOẶC thợ đang đo, KHÔNG owner-only như
+// findOne()) — review bảo mật pha P vòng 7: trước đây trả thẳng kết quả
+// `prisma.order.update()` không `select`, lộ nguyên `price`/`deposit`/`createdById` cho
+// thợ. Cùng khuôn ORDER_LIST_SELECT, cộng các field số đo/gối mà chính S20 vừa ghi.
+const MEASUREMENTS_SELECT = {
+  ...ORDER_LIST_SELECT,
+  measurementLength: true,
+  measurementDepth: true,
+  measurementWidth: true,
+  measurementThickness: true,
+  measurementPhoto: true,
+  pillows: true,
 } as const;
 
 const DUE_DAYS_BY_MODE: Record<'buon' | 'le', number> = { buon: 2, le: 7 };
@@ -190,6 +204,7 @@ export class OrdersService {
         measurementPhoto: dto.measurementPhoto,
         pillows: (dto.pillows as unknown as Prisma.InputJsonValue) ?? undefined,
       },
+      select: MEASUREMENTS_SELECT,
     });
   }
 
@@ -219,26 +234,38 @@ export class OrdersService {
     const allSteps = [...chapter2, ...extraSteps];
     let priority = await this.nextPriority();
 
-    await this.prisma.$transaction([
-      this.prisma.order.update({
-        where: { id: orderId },
-        data: { fabricMeters: dto.fabricMeters, foamSheets: dto.foamSheets, status: 'dang_lam' },
-      }),
-      ...allSteps.map((step) =>
-        this.prisma.task.create({
-          data: {
-            content: `${STEP_LABEL[step]} — ${order.description}`,
-            line: 'dem',
-            step,
-            orderId,
-            dueAt: order.dueAt,
-            priority: priority++,
-            source: 'manual',
-            createdById: order.createdById,
-          },
+    try {
+      await this.prisma.$transaction([
+        this.prisma.order.update({
+          where: { id: orderId },
+          data: { fabricMeters: dto.fabricMeters, foamSheets: dto.foamSheets, status: 'dang_lam' },
         }),
-      ),
-    ]);
+        ...allSteps.map((step) =>
+          this.prisma.task.create({
+            data: {
+              content: `${STEP_LABEL[step]} — ${order.description}`,
+              line: 'dem',
+              step,
+              orderId,
+              dueAt: order.dueAt,
+              priority: priority++,
+              source: 'manual',
+              createdById: order.createdById,
+            },
+          }),
+        ),
+      ]);
+    } catch (e) {
+      // review pha P vòng 7: kiểm "đã chốt chưa" (dòng 225) đọc TRƯỚC
+      // transaction ghi — hai request "Chốt số cắt" gần như đồng thời (double-tap) đều đọc
+      // thấy "chưa chốt" rồi cùng tạo Task chặng 2, sinh trùng cả bộ. Ràng buộc DB mới
+      // `@@unique([orderId, step])` (migration `20260918164547`) chặn request thứ hai ở
+      // tầng dữ liệu — bắt lỗi đó, trả thông báo giống hệt kiểm tra tường minh ở trên.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new BadRequestException('Đơn này đã chốt số cắt rồi');
+      }
+      throw e;
+    }
 
     for (const step of allSteps) {
       void this.notifications.notifyGroup(STEP_GROUP[step], `${STEP_LABEL[step]} chờ nhận`, order.description, {
@@ -271,18 +298,30 @@ export class OrdersService {
 
     const order = await this.prisma.order.findUniqueOrThrow({ where: { id: task.orderId } });
     const priority = await this.nextPriority();
-    await this.prisma.task.create({
-      data: {
-        content: `Nhồi mút vào vỏ — ${order.description}`,
-        line: 'dem',
-        step: 'nhoi',
-        orderId: order.id,
-        dueAt: order.dueAt,
-        priority,
-        source: 'manual',
-        createdById: order.createdById,
-      },
-    });
+    try {
+      await this.prisma.task.create({
+        data: {
+          content: `Nhồi mút vào vỏ — ${order.description}`,
+          line: 'dem',
+          step: 'nhoi',
+          orderId: order.id,
+          dueAt: order.dueAt,
+          priority,
+          source: 'manual',
+          createdById: order.createdById,
+        },
+      });
+    } catch (e) {
+      // review pha P vòng 7: hai Task chặng 2 cuối cùng "Xong" gần như
+      // đồng thời có thể khiến hai lời gọi onDemTaskDone() cùng thấy "allDone" rồi cùng tạo
+      // Task "nhồi" — ràng buộc DB mới `@@unique([orderId, step])` chặn bản trùng, đây là
+      // kết quả BÌNH THƯỜNG của việc thắng-thua khi đua nhau, không phải lỗi cần báo lại
+      // (người thắng đã tạo xong, người thua không cần làm gì thêm). Lỗi KHÁC (mất kết nối
+      // DB…) thì phải ném tiếp — caller (`TasksService.advance`) log qua exception filter,
+      // không được nuốt trắng như trước (`.catch(() => {})` cũ khiến đơn kẹt không dấu vết).
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
+      throw e;
+    }
     void this.notifications.notifyGroup('nhoi', 'Việc nhồi chờ nhận', order.description, { orderId: order.id });
   }
 

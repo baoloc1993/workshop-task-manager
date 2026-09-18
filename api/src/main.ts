@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { json } from 'express';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/node';
 import { AppModule } from './app.module.js';
@@ -12,6 +13,12 @@ if (process.env.SENTRY_DSN) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: new JsonLogger() });
+  // review pha P vòng 7: mặc định Express `json()` giới hạn 100kb —
+  // `UpdateMeasurementsDto.measurementPhoto` khai trần 5.000.000 ký tự (base64, "ảnh đã
+  // nén phía client") không bao giờ tới được tầng validate, chặn cứng bởi body-parser
+  // trước đó (500 lỗi chung, không phải 413 — xác nhận thật bằng request 200KB). Nâng lên
+  // 8mb — đủ dư cho một ảnh base64 nén + payload còn lại (số đo, gối, mô tả).
+  app.use(json({ limit: '8mb' }));
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

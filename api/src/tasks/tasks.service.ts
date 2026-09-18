@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, TaskEventKind, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -58,6 +58,8 @@ const PREV_STATUS_FOR_KIND: Record<TaskEventKind, TaskStatus> = {
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
@@ -357,7 +359,13 @@ export class TasksService {
     // (ranh giới domain, ARCHITECTURE.md §8). Không await chặn response: một Order bị
     // lỗi cập nhật không được làm hỏng việc vừa báo xong đã ghi nhận thành công.
     if (kind === 'done' && task.line === 'dem' && task.orderId) {
-      void this.orders.onDemTaskDone(id).catch(() => {});
+      // review pha P vòng 7: `.catch(() => {})` cũ nuốt TRẮNG mọi lỗi —
+      // một đơn kẹt "chặng 2 done nhưng chưa sinh Task nhồi" (vd mất kết nối DB thoáng qua)
+      // sẽ không ai biết để can thiệp. Log lại thay vì im lặng; không throw vì đúng ý ban
+      // đầu — một Order lỗi không được làm hỏng response "đã báo xong" vừa ghi nhận thành công.
+      void this.orders.onDemTaskDone(id).catch((e: unknown) => {
+        this.logger.error(`onDemTaskDone thất bại cho task ${id}: ${e instanceof Error ? e.message : String(e)}`, e instanceof Error ? e.stack : undefined);
+      });
     }
 
     return updated;
@@ -391,25 +399,37 @@ export class TasksService {
     if (!group || !user.groups.includes(group)) {
       throw new ForbiddenException('Bạn không thuộc nhóm phụ trách việc này');
     }
-    if (task.assignees.length > 0) {
-      throw new ConflictException('Việc này đã có người nhận');
-    }
 
     try {
-      // dogfood pha I vòng 7: "Nhận việc này"/"Tôi đi đo nhà này" giành
-      // chỗ xong, màn liền hiện "Chưa nhận" — cùng một động từ "nhận" cho hai nghĩa khác
-      // nhau (giành chỗ vs. ack) làm người mới tưởng chưa bấm gì. Khác `assign()` (người
-      // KHÁC giao việc, người nhận còn phải tự ack), claim() là TỰ MÌNH giành — không ai
-      // khác có thể đã ack trước, nên gộp claim = ack luôn, bớt một chạm không cần thiết.
-      await this.prisma.$transaction([
-        this.prisma.taskAssignee.create({ data: { taskId: id, userId: user.userId, assignedById: user.userId } }),
-        this.prisma.taskEvent.create({ data: { taskId: id, userId: user.userId, kind: 'acked' } }),
-        this.prisma.task.update({ where: { id }, data: { status: 'acked' } }),
-      ]);
+      // review bảo mật pha P vòng 7: kiểm `assignees.length` TRƯỚC rồi mới
+      // insert ở một transaction riêng là TOCTOU thật — ràng buộc duy nhất trong DB chỉ chặn
+      // (task_id,user_id) TRÙNG, không chặn hai user_id KHÁC NHAU cùng giành một task_id
+      // (không giống lỗi double-submit một người bấm 2 lần). Chuyển kiểm + ghi vào MỘT
+      // transaction Serializable — Postgres tự phát hiện đụng độ, transaction thua ném lỗi
+      // serialization, bắt ở catch bên dưới trả 409 giống hệt ca trùng user cũ.
+      await this.prisma.$transaction(
+        async (tx) => {
+          const fresh = await tx.taskAssignee.findFirst({ where: { taskId: id } });
+          if (fresh) throw new ConflictException('Việc này đã có người nhận');
+          await tx.taskAssignee.create({ data: { taskId: id, userId: user.userId, assignedById: user.userId } });
+          // dogfood pha I vòng 7: "Nhận việc này"/"Tôi đi đo nhà này"
+          // giành chỗ xong, màn liền hiện "Chưa nhận" — cùng một động từ "nhận" cho hai
+          // nghĩa khác nhau (giành chỗ vs. ack) làm người mới tưởng chưa bấm gì. Khác
+          // `assign()` (người KHÁC giao việc, người nhận còn phải tự ack), claim() là TỰ
+          // MÌNH giành — không ai khác có thể đã ack trước, nên gộp claim = ack luôn.
+          await tx.taskEvent.create({ data: { taskId: id, userId: user.userId, kind: 'acked' } });
+          await tx.task.update({ where: { id }, data: { status: 'acked' } });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (e) {
-      // Đua nhau tới server cùng lúc — ràng buộc duy nhất (task_id,user_id) hoặc việc vừa
-      // bị người khác giành ngay giữa lúc kiểm assignees.length ở trên và lúc create() này.
+      if (e instanceof ConflictException) throw e;
+      // Đua nhau tới server cùng lúc — ràng buộc duy nhất (task_id,user_id), hoặc Postgres
+      // tự huỷ một trong hai transaction Serializable đụng độ (mã lỗi 40001).
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new ConflictException('Việc này đã có người nhận');
+      }
+      if (e instanceof Prisma.PrismaClientUnknownRequestError && e.message.includes('40001')) {
         throw new ConflictException('Việc này đã có người nhận');
       }
       throw e;

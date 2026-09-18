@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -45,9 +46,14 @@ export class CreateOrderDto {
   @IsEnum(OrderDifficulty)
   difficulty?: OrderDifficulty;
 
+  // review pha P vòng 7: mảng ảnh không giới hạn số phần tử/độ dài từng
+  // phần tử — vector DoS bộ nhớ/băng thông. 6 ảnh (vừa đủ cho một bộ ghế nhiều góc chụp),
+  // mỗi ảnh base64 tối đa ~1.5MB nén, khớp trần `json({limit:'8mb'})` ở main.ts.
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(6)
   @IsString({ each: true })
+  @MaxLength(2_000_000, { each: true })
   photos?: string[];
 
   @IsOptional()
