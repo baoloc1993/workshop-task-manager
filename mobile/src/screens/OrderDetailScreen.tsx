@@ -109,7 +109,11 @@ export function OrderDetailScreen({
         </View>
         <View style={styles.moneyCol}>
           <Text style={styles.moneyLabel}>Còn lại</Text>
-          <Text style={[styles.moneyValue, styles.moneyRemaining]}>{formatMoney(remaining(order))}</Text>
+          {/* C19: còn lại > 0 tô error, đã trả đủ (=0) tô tertiary — dogfood pha I vòng 7
+              (meta) phát hiện đơn 0đ (chưa nhập giá) hiện đỏ y hệt đơn nợ thật. */}
+          <Text style={[styles.moneyValue, remaining(order) > 0 ? styles.moneyRemaining : styles.moneyPaid]}>
+            {formatMoney(remaining(order))}
+          </Text>
         </View>
       </View>
 
@@ -180,6 +184,7 @@ const styles = StyleSheet.create({
   moneyLabel: { fontSize: fontSize.label, color: colors.onSurfaceVariant },
   moneyValue: { fontSize: 22, fontWeight: '700', color: colors.onSurface },
   moneyRemaining: { color: colors.error },
+  moneyPaid: { color: colors.tertiary },
   sec: { color: colors.onSurfaceVariant, marginTop: space.lg, marginBottom: space.sm },
   taskButton: { borderRadius: shape.small, marginBottom: space.xs },
   actionButton: { borderRadius: shape.small, marginTop: space.md },

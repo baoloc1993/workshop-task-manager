@@ -26,8 +26,11 @@ export function CustomerLookupScreen({ onUseMeasurements }: { onUseMeasurements:
     }
   }
 
+  // dogfood pha I vòng 7: mặc định keyboardShouldPersistTaps="never" của
+  // ScrollView khiến lần chạm đầu vào nút "Tìm" (khi bàn phím còn mở) chỉ tắt bàn phím,
+  // không kích onPress — người dùng phải chạm 2 lần mới chạy tìm kiếm.
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       <TextInput
         label="Số điện thoại hoặc tên khách"
         mode="outlined"

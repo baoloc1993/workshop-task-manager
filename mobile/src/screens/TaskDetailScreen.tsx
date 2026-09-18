@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Text, TextInput } from 'react-native-paper';
@@ -8,6 +8,7 @@ import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { StatusChip } from '../tasks/StatusChip';
 import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
 import { formatMeasurements, modeLabel, pillowSummary } from '../orders/orderStatus';
+import { PhotoBox } from '../orders/PhotoBox';
 import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
@@ -32,11 +33,26 @@ function MeasurementEditor({
   const [photo, setPhoto] = useState<string | null>(order.measurementPhoto);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const loaded = useRef(false);
 
   function toNumber(v: string): number | undefined {
     const n = Number(v.trim());
     return v.trim() && Number.isFinite(n) && n > 0 ? n : undefined;
   }
+
+  // dogfood pha I vòng 7 (meta): chỉ lưu ở onBlur bị mất dữ liệu thật — gõ xong một ô rồi
+  // bấm Back (phần cứng) ngay, không chạm ô khác để kích onBlur, thoát màn mà KHÔNG lưu
+  // (xác nhận bằng curl: ô vừa gõ vẫn null sau khi thoát). Lưu tự động sau một nhịp ngắn
+  // ngừng gõ, không đợi blur — cùng khuôn "không mất dữ liệu đang nhập" (DESIGN-SYSTEM.md §5).
+  useEffect(() => {
+    if (!loaded.current) {
+      loaded.current = true;
+      return;
+    }
+    const t = setTimeout(() => save(), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [length, depth, width, thickness]);
 
   async function save(nextPhoto?: string | null) {
     setSaving(true);
@@ -81,16 +97,17 @@ function MeasurementEditor({
           {saveError}
         </Banner>
       )}
-      <Button
-        mode={photo ? 'outlined' : 'contained'}
+      <PhotoBox
+        photo={photo}
+        label="Chụp ảnh tờ đo"
+        required={order.difficulty === 'kho'}
         onPress={handleTakePhoto}
-        loading={saving}
-        contentStyle={{ height: tapMin }}
-        style={styles.button}
-      >
-        {photo ? 'Chụp lại ảnh tờ đo' : 'Chụp ảnh tờ đo'}
-      </Button>
-      {photo && <Image source={{ uri: photo }} style={styles.photo} />}
+      />
+      {saving && (
+        <Text variant="bodySmall" style={styles.meta}>
+          Đang lưu…
+        </Text>
+      )}
       <View style={styles.measureRow}>
         <TextInput
           label="Dài"
@@ -262,7 +279,11 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
         <StatusChip task={task} />
       </View>
 
-      {action && (
+      {/* PERSONAS.md §2: owner KHÔNG được ack/bắt đầu/xong thay công nhân — server đã chặn
+          (403), nhưng owner mở màn này rất thường (S1 "chưa ai nhận" -> S7, S19 "công đoạn"
+          -> S7) nên phải ẩn nút ở đây, không chỉ dựa vào lỗi từ server (dogfood pha I vòng 7,
+          phát hiện qua luồng owner mở S19 -> Task chưa ai nhận). */}
+      {action && user?.role !== 'owner' && (
         <Button
           mode="contained"
           onPress={handleAction}
@@ -320,7 +341,6 @@ const styles = StyleSheet.create({
   },
   hardTag: { color: colors.error, fontWeight: '700' },
   photo: { width: '100%', height: 160, borderRadius: shape.small, marginTop: space.xs },
-  button: { borderRadius: shape.small, marginTop: space.xs },
   measureRow: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
   measureInput: { flex: 1 },
   content: { marginBottom: space.sm },

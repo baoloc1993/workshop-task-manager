@@ -55,7 +55,7 @@ export function CutDoneScreen({ orderId, onDone }: { orderId: string; onDone: ()
   if (!order) return <View style={styles.container} />;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       {sendError && (
         <Banner visible icon="alert-circle" style={styles.banner}>
           {sendError}

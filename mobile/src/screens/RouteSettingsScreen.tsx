@@ -58,7 +58,7 @@ export function RouteSettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       {error && (
         <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: load }]}>
           Mất kết nối — đang thử lại
@@ -71,7 +71,14 @@ export function RouteSettingsScreen() {
         <View key={r.id} style={styles.block}>
           <View style={styles.blockHeader}>
             <Text variant="titleLarge">{r.name}</Text>
-            <Chip selected={r.active} onPress={() => toggleActive(r)}>
+            {/* C18 (DESIGN-SYSTEM.md §4) — dogfood pha I vòng 7: màu
+                mặc định của Paper không phân biệt rõ bật/tắt, ép màu + chiều cao tường minh. */}
+            <Chip
+              selected={r.active}
+              onPress={() => toggleActive(r)}
+              style={r.active ? styles.chipSelected : styles.chipUnselected}
+              textStyle={r.active ? styles.chipTextSelected : undefined}
+            >
               {r.active ? 'Đang dùng' : 'Đã tắt'}
             </Chip>
           </View>
@@ -122,7 +129,10 @@ const styles = StyleSheet.create({
   block: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   blockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { marginBottom: space.xs },
+  chip: { marginBottom: space.xs, minHeight: 40, justifyContent: 'center' },
+  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0, minHeight: 40, justifyContent: 'center' },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1, minHeight: 40, justifyContent: 'center' },
+  chipTextSelected: { color: colors.onPrimaryContainer },
   addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   addInput: { flex: 1 },
 });

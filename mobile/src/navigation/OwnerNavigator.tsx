@@ -95,6 +95,11 @@ function HomeRoute({
 export function OwnerNavigator() {
   const [prefill, setPrefill] = useState<CreateTaskPrefill | undefined>(undefined);
   const [orderPrefill, setOrderPrefill] = useState<CreateOrderPrefill | undefined>(undefined);
+  // dogfood pha I vòng 7: native-stack KHÔNG unmount
+  // màn cũ khi điều hướng đi (giữ cho vuốt-lùi mượt) — quay lại "Ghi đơn mới" bằng Back phần
+  // cứng trả về ĐÚNG instance cũ, còn nguyên banner "Đã ghi đơn" và dữ liệu form đã gửi.
+  // Đổi `key` mỗi lần MỞ MỚI màn này buộc React tạo instance mới, bỏ hẳn state cũ.
+  const [orderFormNonce, setOrderFormNonce] = useState(0);
 
   return (
     <Stack.Navigator
@@ -186,6 +191,7 @@ export function OwnerNavigator() {
             onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })}
             onCreateOrder={() => {
               setOrderPrefill(undefined);
+              setOrderFormNonce((n) => n + 1);
               navigation.navigate('CreateOrder');
             }}
           />
@@ -194,6 +200,7 @@ export function OwnerNavigator() {
       <Stack.Screen name="CreateOrder" options={{ title: 'Ghi đơn mới' }}>
         {({ navigation }) => (
           <CreateOrderScreen
+            key={orderFormNonce}
             prefill={orderPrefill}
             onDone={() => {
               setOrderPrefill(undefined);
@@ -217,6 +224,7 @@ export function OwnerNavigator() {
           <CustomerLookupScreen
             onUseMeasurements={(p) => {
               setOrderPrefill(p);
+              setOrderFormNonce((n) => n + 1);
               navigation.navigate('CreateOrder');
             }}
           />

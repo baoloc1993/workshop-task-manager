@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Banner, Button, Chip, List, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Banner, Button, Chip, List, Text, TextInput } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
 import type { Customer, Route } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { suggestRoute } from '../orders/orderStatus';
+import { PhotoBox } from '../orders/PhotoBox';
 import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
@@ -45,6 +46,13 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
   const [photo, setPhoto] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  // dogfood pha I vòng 7: sau khi "Ghi đơn" thành công, `onDone()` điều
+  // hướng đi (`navigation.navigate`, không `replace`) nên màn này vẫn còn trong ngăn xếp —
+  // bấm Back (phần cứng) quay LẠI đúng form cũ còn banner xanh cũ + nút "Ghi đơn" còn bật,
+  // dễ khiến người bấm vội tưởng chưa gửi và bấm lại, tạo đơn trùng. Khoá hẳn form sau khi
+  // gửi thành công, không đợi điều hướng.
+  const [submitted, setSubmitted] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -94,7 +102,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
 
   const dueDays = mode === 'buon' ? 2 : 7;
   const canSubmit =
-    phone.trim() && (selectedCustomer || (name.trim() && address.trim())) && description.trim() && !sending;
+    phone.trim() && (selectedCustomer || (name.trim() && address.trim())) && description.trim() && !sending && !submitted;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -122,7 +130,11 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
         measurementPhoto: prefill?.measurements?.photo ?? undefined,
       });
       if (user) track('ghi_don_dem', user.id, { orderId: order.id });
-      onDone();
+      // §4b luật 3 "làm xong phải nói là đã xong" — dogfood pha I vòng 7 (meta): trước đây
+      // quay thẳng về S17 không có xác nhận nào, giống lỗi CreateTaskScreen đã sửa từ vòng 2.
+      setBanner('Đã ghi đơn. Đơn mới hiện ở đầu danh sách.');
+      setSubmitted(true);
+      setTimeout(onDone, 1200);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Mất kết nối — thử lại.');
     } finally {
@@ -130,8 +142,14 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
     }
   }
 
+  // dogfood pha I vòng 7 (cùng phát hiện ở CustomerLookupScreen) — xem giải thích ở đó.
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
+      {banner && (
+        <Banner visible icon="check-circle" style={styles.successBanner}>
+          {banner}
+        </Banner>
+      )}
       {error && (
         <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: handleSubmit }]}>
           {error}
@@ -184,15 +202,27 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
       <Text variant="bodyLarge" style={styles.label}>
         Chế độ
       </Text>
-      <SegmentedButtons
-        value={mode}
-        onValueChange={(v) => setMode(v as 'le' | 'buon')}
-        buttons={[
-          { value: 'le', label: 'Khách lẻ' },
-          { value: 'buon', label: 'Khách buôn' },
-        ]}
-        style={styles.input}
-      />
+      {/* dogfood pha I vòng 7: SegmentedButtons của react-native-paper
+          không có chỗ chỉnh chiều cao — đo được 38dp, dưới --tap-min 48px (§2.3). Thay bằng
+          hai Button thường cùng khuôn contentStyle={{height: tapMin}} đã dùng toàn app. */}
+      <View style={styles.modeRow}>
+        <Button
+          mode={mode === 'le' ? 'contained' : 'outlined'}
+          onPress={() => setMode('le')}
+          style={styles.modeButton}
+          contentStyle={{ height: tapMin }}
+        >
+          Khách lẻ
+        </Button>
+        <Button
+          mode={mode === 'buon' ? 'contained' : 'outlined'}
+          onPress={() => setMode('buon')}
+          style={styles.modeButton}
+          contentStyle={{ height: tapMin }}
+        >
+          Khách buôn
+        </Button>
+      </View>
       <Text variant="bodySmall" style={styles.hint}>
         Hẹn trả mặc định {dueDays} ngày — sửa được ở chi tiết đơn.
       </Text>
@@ -201,19 +231,27 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
         Khu vực trả hàng
       </Text>
       <View style={styles.chipRow}>
-        {[{ id: null, name: 'Xe ôm chuyến lẻ' }, ...routes.filter((r) => r.active)].map((r) => (
-          <Chip
-            key={r.id ?? 'xe_om'}
-            selected={routeId === r.id}
-            onPress={() => {
-              setRouteId(r.id);
-              setRouteTouched(true);
-            }}
-            style={styles.chip}
-          >
-            {r.name}
-          </Chip>
-        ))}
+        {[{ id: null, name: 'Xe ôm chuyến lẻ' }, ...routes.filter((r) => r.active)].map((r) => {
+          const selected = routeId === r.id;
+          return (
+            <Chip
+              key={r.id ?? 'xe_om'}
+              selected={selected}
+              onPress={() => {
+                setRouteId(r.id);
+                setRouteTouched(true);
+              }}
+              // dogfood pha I vòng 7: mặc định react-native-paper tô chip
+              // "selected" bằng secondaryContainer (amber, trùng C17 nhãn BUÔN) và chip
+              // thường/chọn gần như không phân biệt được — C18 đòi bật = primary-container,
+              // tắt = chỉ viền outline-variant. Ép màu tường minh thay vì tin theme mặc định.
+              style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
+              textStyle={selected ? styles.chipTextSelected : undefined}
+            >
+              {r.name}
+            </Chip>
+          );
+        })}
       </View>
 
       <List.Accordion
@@ -223,21 +261,25 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
         style={styles.accordion}
       >
         <View style={styles.accordionBody}>
-          <Chip selected={hasEmbroidery} onPress={() => setHasEmbroidery((v) => !v)} style={styles.chip}>
+          <Chip
+            selected={hasEmbroidery}
+            onPress={() => setHasEmbroidery((v) => !v)}
+            style={[styles.chip, hasEmbroidery ? styles.chipSelected : styles.chipUnselected]}
+            textStyle={hasEmbroidery ? styles.chipTextSelected : undefined}
+          >
             Có thêu
           </Chip>
-          <Chip selected={difficulty === 'kho'} onPress={() => setDifficulty((d) => (d === 'kho' ? 'de' : 'kho'))} style={styles.chip}>
+          <Chip
+            selected={difficulty === 'kho'}
+            onPress={() => setDifficulty((d) => (d === 'kho' ? 'de' : 'kho'))}
+            style={[styles.chip, difficulty === 'kho' ? styles.chipSelected : styles.chipUnselected]}
+            textStyle={difficulty === 'kho' ? styles.chipTextSelected : undefined}
+          >
             Bộ khó (uốn lượn nhiều)
           </Chip>
           <TextInput label="Giá (đ)" mode="outlined" keyboardType="numeric" value={price} onChangeText={setPrice} style={styles.input} />
           <TextInput label="Đã cọc (đ)" mode="outlined" keyboardType="numeric" value={deposit} onChangeText={setDeposit} style={styles.input} />
-          <Button
-            mode={photo ? 'outlined' : 'text'}
-            onPress={async () => setPhoto(await takePhotoAsBase64())}
-            contentStyle={{ height: tapMin }}
-          >
-            {photo ? 'Đã chụp ảnh bộ ghế — chụp lại' : 'Chụp ảnh bộ ghế'}
-          </Button>
+          <PhotoBox photo={photo} label="Chụp ảnh bộ ghế" onPress={async () => setPhoto(await takePhotoAsBase64())} />
         </View>
       </List.Accordion>
 
@@ -258,6 +300,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
+  successBanner: { marginBottom: space.md, backgroundColor: colors.tertiaryContainer },
   foundBanner: { marginBottom: space.md, backgroundColor: colors.tertiaryContainer },
   title: { marginBottom: space.md },
   input: { marginBottom: space.md },
@@ -265,7 +308,14 @@ const styles = StyleSheet.create({
   label: { marginBottom: space.sm },
   hint: { color: colors.onSurfaceVariant, marginTop: -space.sm, marginBottom: space.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
-  chip: { marginBottom: space.xs },
+  // C18 (DESIGN-SYSTEM.md §4): bật = nền --color-primary-container, tắt = chỉ viền
+  // --color-outline-variant; cao ≥ 40px (đo dogfood pha I vòng 7: mặc định Paper chỉ ~32dp).
+  chip: { marginBottom: space.xs, minHeight: 40, justifyContent: 'center' },
+  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
+  chipTextSelected: { color: colors.onPrimaryContainer },
+  modeRow: { flexDirection: 'row', gap: space.sm, marginBottom: space.md },
+  modeButton: { flex: 1, borderRadius: shape.small },
   accordion: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, marginBottom: space.md, paddingHorizontal: 0 },
   accordionBody: { padding: space.md, gap: space.sm },
   button: { borderRadius: shape.small },

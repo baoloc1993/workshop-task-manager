@@ -57,11 +57,22 @@ export function AssignGroupsScreen() {
         <View key={w.id} style={styles.row}>
           <Text variant="titleLarge">{w.name}</Text>
           <View style={styles.chipRow}>
-            {ALL_GROUPS.map((g) => (
-              <Chip key={g} selected={(w.groups ?? []).includes(g)} onPress={() => toggle(w, g)} style={styles.chip}>
-                {GROUP_LABEL[g]}
-              </Chip>
-            ))}
+            {ALL_GROUPS.map((g) => {
+              const selected = (w.groups ?? []).includes(g);
+              return (
+                // C18 — dogfood pha I vòng 7: ép màu bật/tắt tường minh,
+                // không dựa vào mặc định Paper (xem CreateOrderScreen cùng lượt sửa).
+                <Chip
+                  key={g}
+                  selected={selected}
+                  onPress={() => toggle(w, g)}
+                  style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
+                  textStyle={selected ? styles.chipTextSelected : undefined}
+                >
+                  {GROUP_LABEL[g]}
+                </Chip>
+              );
+            })}
           </View>
         </View>
       ))}
@@ -76,5 +87,8 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant, marginTop: space.lg },
   row: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { marginBottom: space.xs },
+  chip: { marginBottom: space.xs, minHeight: 40, justifyContent: 'center' },
+  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
+  chipTextSelected: { color: colors.onPrimaryContainer },
 });

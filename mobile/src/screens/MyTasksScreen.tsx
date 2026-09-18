@@ -66,6 +66,14 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
   async function handleAction(task: Task) {
     const action = nextAction(task.status);
     if (!action || locked) return; // đang gửi hoặc vừa xong — khoá (ARCHITECTURE.md §6 + xem `locked`)
+    // dogfood pha I vòng 7: nút "Báo xong" tắt tại đây gọi thẳng
+    // actionEndpoint(done) — với việc "đi đo" mảng đệm (step='do'), việc đó không bao giờ
+    // đi qua S20 (form số đo/ảnh trong TaskDetailScreen), nên thợ bấm xong mà chưa hề thấy
+    // ô số đo/nút chụp ảnh. Đường "báo xong" của riêng bước đi đo phải qua màn chi tiết.
+    if (action === 'done' && task.line === 'dem' && task.step === 'do') {
+      onOpenTask(task.id);
+      return;
+    }
     setLocked(true);
     setSubmittingId(task.id);
     setActionError(null);
