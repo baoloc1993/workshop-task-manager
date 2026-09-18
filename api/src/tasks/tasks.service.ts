@@ -396,7 +396,16 @@ export class TasksService {
     }
 
     try {
-      await this.prisma.taskAssignee.create({ data: { taskId: id, userId: user.userId, assignedById: user.userId } });
+      // dogfood pha I vòng 7: "Nhận việc này"/"Tôi đi đo nhà này" giành
+      // chỗ xong, màn liền hiện "Chưa nhận" — cùng một động từ "nhận" cho hai nghĩa khác
+      // nhau (giành chỗ vs. ack) làm người mới tưởng chưa bấm gì. Khác `assign()` (người
+      // KHÁC giao việc, người nhận còn phải tự ack), claim() là TỰ MÌNH giành — không ai
+      // khác có thể đã ack trước, nên gộp claim = ack luôn, bớt một chạm không cần thiết.
+      await this.prisma.$transaction([
+        this.prisma.taskAssignee.create({ data: { taskId: id, userId: user.userId, assignedById: user.userId } }),
+        this.prisma.taskEvent.create({ data: { taskId: id, userId: user.userId, kind: 'acked' } }),
+        this.prisma.task.update({ where: { id }, data: { status: 'acked' } }),
+      ]);
     } catch (e) {
       // Đua nhau tới server cùng lúc — ràng buộc duy nhất (task_id,user_id) hoặc việc vừa
       // bị người khác giành ngay giữa lúc kiểm assignees.length ở trên và lúc create() này.
