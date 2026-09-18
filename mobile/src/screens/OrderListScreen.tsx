@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import type { OrderListItem } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { modeLabel, orderProgress } from '../orders/orderStatus';
+import { ScreenHeader } from '../common/ScreenHeader';
 
 function OrderRow({ order, onPress }: { order: OrderListItem; onPress: () => void }) {
   const progress = orderProgress(order);
@@ -77,6 +78,11 @@ export function OrderListScreen({
 
   return (
     <View style={styles.container}>
+      <ScreenHeader
+        title="Đơn đệm"
+        subtitle={orders ? (list.length > 0 ? `${list.length} đơn` : 'chưa có đơn') : undefined}
+        canGoBack
+      />
       <SectionList
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: space.md, flexGrow: 1 }}

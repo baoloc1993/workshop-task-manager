@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { AssignGroupsScreen } from '../screens/AssignGroupsScreen';
@@ -17,6 +16,7 @@ import { IssueQrScreen } from '../screens/IssueQrScreen';
 import { OrderDetailScreen } from '../screens/OrderDetailScreen';
 import { OrderListScreen } from '../screens/OrderListScreen';
 import { OwnerHomeScreen } from '../screens/OwnerHomeScreen';
+import { OwnerMenuScreen } from '../screens/OwnerMenuScreen';
 import { PriorityScreen } from '../screens/PriorityScreen';
 import { RouteSettingsScreen } from '../screens/RouteSettingsScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
@@ -24,6 +24,7 @@ import { VoiceCaptureScreen } from '../screens/VoiceCaptureScreen';
 
 export type OwnerStackParamList = {
   Home: undefined;
+  Overview: undefined;
   VoiceCapture: undefined;
   CreateTask: undefined;
   IssueQr: undefined;
@@ -51,11 +52,46 @@ const Stack = createNativeStackNavigator<OwnerStackParamList>();
 // kiểm thử): cả hai đều navigate trước khi màn đầu kịp rời đi, đẩy chồng 2 màn
 // vào stack, Back phải bấm 2 lần mới đúng. Khoá ngay khi có một lượt điều hướng đang
 // chạy, tự mở lại khi Home lấy lại focus (quay về từ màn con — Back hoặc "Giao việc" xong).
-function HomeRoute({
+// S0 "Trang chủ" — gom lối vào theo mảng + cấu hình (OwnerMenuScreen). Trước vòng 7 đây là
+// một phần của OwnerHomeScreen (10 nút chữ nối đuôi cuối danh sách việc); tách ra thành màn
+// riêng khi mảng đệm mở, đủ 3 mảng để IA theo mảng có ý nghĩa thật (DECISIONS.md 2026-09-15).
+function MenuRoute({ navigation }: { navigation: NativeStackNavigationProp<OwnerStackParamList, 'Home'> }) {
+  const navigatingRef = useRef(false);
+
+  useEffect(() => navigation.addListener('focus', () => {
+    navigatingRef.current = false;
+  }), [navigation]);
+
+  function goOnce(fn: () => void) {
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+    fn();
+  }
+
+  return (
+    <OwnerMenuScreen
+      onOverview={() => goOnce(() => navigation.navigate('Overview'))}
+      onPriority={() => goOnce(() => navigation.navigate('Priority'))}
+      onDelivery={() => goOnce(() => navigation.navigate('Delivery'))}
+      onCustomerLookup={() => goOnce(() => navigation.navigate('CustomerLookup'))}
+      onBatQueue={() => goOnce(() => navigation.navigate('BatQueue'))}
+      onOrders={() => goOnce(() => navigation.navigate('Orders'))}
+      onHistory={() => goOnce(() => navigation.navigate('History'))}
+      onIssueQr={() => goOnce(() => navigation.navigate('IssueQr'))}
+      onDevices={() => goOnce(() => navigation.navigate('Devices'))}
+      onRouteSettings={() => goOnce(() => navigation.navigate('RouteSettings'))}
+      onAssignGroups={() => goOnce(() => navigation.navigate('AssignGroups'))}
+      onFeedback={() => goOnce(() => navigation.navigate('Feedback'))}
+    />
+  );
+}
+
+// S1 "Cả xưởng hôm nay" — danh sách việc, mở từ S0. Trước vòng 7 đây là màn "Home" gốc.
+function OverviewRoute({
   navigation,
   onCreateTask,
 }: {
-  navigation: NativeStackNavigationProp<OwnerStackParamList, 'Home'>;
+  navigation: NativeStackNavigationProp<OwnerStackParamList, 'Overview'>;
   onCreateTask: () => void;
 }) {
   const navigatingRef = useRef(false);
@@ -75,16 +111,6 @@ function HomeRoute({
       onOpenTask={(taskId) => goOnce(() => navigation.navigate('TaskDetail', { taskId }))}
       onCreateTask={() => goOnce(onCreateTask)}
       onVoiceCapture={() => goOnce(() => navigation.navigate('VoiceCapture'))}
-      onPriority={() => goOnce(() => navigation.navigate('Priority'))}
-      onIssueQr={() => goOnce(() => navigation.navigate('IssueQr'))}
-      onDevices={() => goOnce(() => navigation.navigate('Devices'))}
-      onBatQueue={() => goOnce(() => navigation.navigate('BatQueue'))}
-      onHistory={() => goOnce(() => navigation.navigate('History'))}
-      onOrders={() => goOnce(() => navigation.navigate('Orders'))}
-      onCustomerLookup={() => goOnce(() => navigation.navigate('CustomerLookup'))}
-      onDelivery={() => goOnce(() => navigation.navigate('Delivery'))}
-      onRouteSettings={() => goOnce(() => navigation.navigate('RouteSettings'))}
-      onAssignGroups={() => goOnce(() => navigation.navigate('AssignGroups'))}
     />
   );
 }
@@ -105,17 +131,12 @@ export function OwnerNavigator() {
     <Stack.Navigator
       screenOptions={{ headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined) }}
     >
-      <Stack.Screen
-        name="Home"
-        options={({ navigation }) => ({
-          title: 'Chủ xưởng',
-          // Nhóm 4 production-ready (kênh feedback, review pha P vòng 6) — nút chữ ở góc
-          // trên, cùng khuôn với "Việc của tôi"/"Đã xong" đã dùng ở các navigator khác.
-          headerRight: () => <Button onPress={() => navigation.navigate('Feedback')}>Góp ý</Button>,
-        })}
-      >
+      <Stack.Screen name="Home" options={{ headerShown: false }}>
+        {({ navigation }) => <MenuRoute navigation={navigation} />}
+      </Stack.Screen>
+      <Stack.Screen name="Overview" options={{ headerShown: false }}>
         {({ navigation }) => (
-          <HomeRoute
+          <OverviewRoute
             navigation={navigation}
             onCreateTask={() => {
               setPrefill(undefined);
@@ -185,7 +206,7 @@ export function OwnerNavigator() {
       </Stack.Screen>
 
       {/* vòng 7 — mảng đệm ghế (CAP-DEM-01..07) */}
-      <Stack.Screen name="Orders" options={{ title: 'Đơn đệm' }}>
+      <Stack.Screen name="Orders" options={{ headerShown: false }}>
         {({ navigation }) => (
           <OrderListScreen
             onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })}

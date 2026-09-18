@@ -4,9 +4,10 @@ import { SectionList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Banner, Button, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
-import { colors, navHeight, shape, space, tapMin } from '../theme/tokens';
+import { colors, navHeight, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { isDoneToday, lineLabel, taskBucket } from '../tasks/taskStatus';
+import { ScreenHeader } from '../common/ScreenHeader';
 
 // S1 — "Cả xưởng hôm nay" (CAP-TASK-08, AC-15). Đúng bốn nhóm của PROTOTYPE.md §1: quá
 // hạn/đứng yên → đang làm → chưa ai nhận → đã xong hôm nay (gấp lại cuối màn). Dữ liệu từ
@@ -27,30 +28,10 @@ export function OwnerHomeScreen({
   onOpenTask,
   onCreateTask,
   onVoiceCapture,
-  onPriority,
-  onIssueQr,
-  onDevices,
-  onBatQueue,
-  onHistory,
-  onOrders,
-  onCustomerLookup,
-  onDelivery,
-  onRouteSettings,
-  onAssignGroups,
 }: {
   onOpenTask: (id: string) => void;
   onCreateTask: () => void;
   onVoiceCapture: () => void;
-  onPriority: () => void;
-  onIssueQr: () => void;
-  onDevices: () => void;
-  onBatQueue: () => void;
-  onHistory: () => void;
-  onOrders: () => void;
-  onCustomerLookup: () => void;
-  onDelivery: () => void;
-  onRouteSettings: () => void;
-  onAssignGroups: () => void;
 }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState(false);
@@ -99,6 +80,7 @@ export function OwnerHomeScreen({
 
   return (
     <View style={styles.container}>
+      <ScreenHeader title="Cả xưởng hôm nay" canGoBack />
       <SectionList
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: space.md, flexGrow: 1 }}
@@ -128,40 +110,6 @@ export function OwnerHomeScreen({
           </Text>
         )}
         renderItem={({ item }) => <OverviewRow task={item} onPress={() => onOpenTask(item.id)} />}
-        ListFooterComponent={
-          <View style={{ gap: space.md, marginTop: space.md }}>
-            <Button mode="outlined" onPress={onOrders} style={styles.button} contentStyle={{ height: tapMin }}>
-              Đơn đệm
-            </Button>
-            <Button mode="outlined" onPress={onCustomerLookup} style={styles.button} contentStyle={{ height: tapMin }}>
-              Tra khách
-            </Button>
-            <Button mode="outlined" onPress={onDelivery} style={styles.button} contentStyle={{ height: tapMin }}>
-              Hàng trả
-            </Button>
-            <Button mode="outlined" onPress={onPriority} style={styles.button} contentStyle={{ height: tapMin }}>
-              Việc nào làm trước
-            </Button>
-            <Button mode="outlined" onPress={onBatQueue} style={styles.button} contentStyle={{ height: tapMin }}>
-              Việc bạt chờ chia
-            </Button>
-            <Button mode="outlined" onPress={onIssueQr} style={styles.button} contentStyle={{ height: tapMin }}>
-              Cho người mới vào app
-            </Button>
-            <Button mode="outlined" onPress={onDevices} style={styles.button} contentStyle={{ height: tapMin }}>
-              Máy của thợ
-            </Button>
-            <Button mode="outlined" onPress={onHistory} style={styles.button} contentStyle={{ height: tapMin }}>
-              Việc đã xong
-            </Button>
-            <Button mode="outlined" onPress={onRouteSettings} style={styles.button} contentStyle={{ height: tapMin }}>
-              Khu vực trả hàng
-            </Button>
-            <Button mode="outlined" onPress={onAssignGroups} style={styles.button} contentStyle={{ height: tapMin }}>
-              Phân vai thợ
-            </Button>
-          </View>
-        }
       />
       {/* C7 — thanh thêm ghim đáy (DESIGN-SYSTEM.md §4), thay cho FAB micro nổi. */}
       <View style={styles.addBar}>
@@ -191,7 +139,6 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
   secOk: { color: colors.tertiary },
-  button: { borderRadius: shape.small },
   addBar: {
     flexDirection: 'row',
     alignItems: 'center',
