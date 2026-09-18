@@ -159,14 +159,25 @@ export class OrdersService {
   // (step='do') còn hiệu lực của chính đơn này. Không kiểm `User.groups` ở đây — nhóm chỉ
   // quyết ai NHẬN được việc (claim), không quyết ai được sửa sau khi đã nhận.
   async updateMeasurements(user: AuthUser, orderId: string, dto: UpdateMeasurementsDto) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { tasks: { where: { deletedAt: null } } },
+    });
     if (!order || order.deletedAt) throw new NotFoundException('Không tìm thấy đơn này');
 
     if (user.role !== 'owner') {
-      const doTask = await this.prisma.task.findFirst({
+      const isAssignee = await this.prisma.task.findFirst({
         where: { orderId, step: 'do', deletedAt: null, assignees: { some: { userId: user.userId } } },
       });
-      if (!doTask) throw new ForbiddenException('Bạn không phải người đang đo đơn này');
+      if (!isAssignee) throw new ForbiddenException('Bạn không phải người đang đo đơn này');
+    }
+
+    // dogfood pha I vòng 7: sau khi "Chốt số cắt" (cut-done sinh Task
+    // chặng 2), số đo đã dùng để tính fabricMeters/foamSheets — sửa số đo lúc này làm số đo
+    // hiện tại lệch khỏi số vải/mút đã cắt thật ngoài xưởng, không có cách nào biết đơn nào
+    // bị lệch. Khoá sửa từ đây, đúng "không sửa trực tiếp bản ghi cũ" (AC-19/DECISIONS vòng 7).
+    if (order.tasks.some((t) => t.step !== 'do')) {
+      throw new ForbiddenException('Đơn đã chốt số cắt — không sửa số đo được nữa');
     }
 
     return this.prisma.order.update({
