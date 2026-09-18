@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Banner, IconButton, Text } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, shape, space } from '../theme/tokens';
@@ -80,6 +81,7 @@ export function PriorityScreen() {
       }
       ListHeaderComponent={
         <>
+          <ScreenTitle>Việc nào làm trước</ScreenTitle>
           {error && (
             <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
               Mất kết nối — đang thử lại

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Chip, Text } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { WorkerGroup, WorkerListItem } from '../api/types';
 import { colors, shape, space } from '../theme/tokens';
@@ -38,6 +39,7 @@ export function AssignGroupsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+      <ScreenTitle>Phân vai thợ</ScreenTitle>
       {error && (
         <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: load }]}>
           Mất kết nối — đang thử lại

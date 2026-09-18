@@ -1,6 +1,10 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 import { HeaderBackButton } from './HeaderBackButton';
+import { thinHeader } from './screenOptions';
+import { ScreenHeader } from '../common/ScreenHeader';
+import { colors } from '../theme/tokens';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
@@ -26,19 +30,31 @@ const Stack = createNativeStackNavigator<BatCoordinatorStackParamList>();
 // này) nên dùng nút góc trên bên phải để chuyển qua lại, vẫn giữ đúng ngân sách ≤2 chạm.
 export function BatCoordinatorNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined) }}>
+    <Stack.Navigator
+      screenOptions={{
+        ...thinHeader,
+        headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined),
+      }}
+    >
       <Stack.Screen
         name="BatQueue"
-        options={({ navigation }) => ({
-          title: 'Việc bạt chờ chia',
-          // dogfood pha I vòng 4: nút góc trên chỉ có icon, không chữ —
-          // điều phối phải bấm thử mới biết dẫn tới đâu. Đổi sang nút CHỮ, đúng luật §4b
-          // "không dùng icon một mình thay cho chữ" tinh thần chung của cả app.
-          headerRight: () => <Button onPress={() => navigation.navigate('MyTasks')}>Việc của tôi</Button>,
-        })}
+        options={{ headerShown: false }}
       >
         {({ navigation }) => (
-          <BatQueueScreen onOpenTask={(taskId) => navigation.navigate('AssignBatWorkers', { taskId })} />
+          <View style={{ flex: 1 }}>
+            {/* S9 — màn danh sách: C13(a) khối đầu mục. Nút CHỮ (không icon trần) giữ từ
+                dogfood pha I vòng 4 — icon một mình làm điều phối phải bấm
+                thử mới biết dẫn tới đâu, trái luật §4b. */}
+            <ScreenHeader
+              title="Việc bạt chờ chia"
+              right={
+                <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('MyTasks')}>
+                  Việc của tôi
+                </Button>
+              }
+            />
+            <BatQueueScreen onOpenTask={(taskId) => navigation.navigate('AssignBatWorkers', { taskId })} />
+          </View>
         )}
       </Stack.Screen>
       <Stack.Screen name="AssignBatWorkers" options={{ title: 'Chọn thợ để giao' }}>
@@ -48,36 +64,52 @@ export function BatCoordinatorNavigator() {
       </Stack.Screen>
       <Stack.Screen
         name="MyTasks"
-        options={({ navigation }) => ({
-          title: 'Việc của tôi',
-          // dogfood pha I vòng 5 — xem WorkerNavigator.tsx: nút header
-          // mặc định ~38dp cao, dưới --tap-min 64px; mở rộng vùng chạm bằng hitSlop.
-          headerRight: () => (
-            <Button onPress={() => navigation.navigate('History')} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}>
-              Đã xong
-            </Button>
-          ),
-        })}
+        options={{ headerShown: false }}
       >
         {({ navigation }) => (
-          <MyTasksScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+          <View style={{ flex: 1 }}>
+            {/* S6 — màn danh sách: C13(a). hitSlop giữ từ dogfood pha I vòng 5. */}
+            <ScreenHeader
+              title="Việc của tôi"
+              canGoBack
+              right={
+                <Button
+                  textColor={colors.onPrimary}
+                  onPress={() => navigation.navigate('History')}
+                  hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                >
+                  Đã xong
+                </Button>
+              }
+            />
+            <MyTasksScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+          </View>
         )}
       </Stack.Screen>
-      <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
+      <Stack.Screen name="TaskDetail" options={{ title: 'Việc bạt chờ chia' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
       </Stack.Screen>
       <Stack.Screen
         name="History"
-        options={({ navigation }) => ({
-          title: 'Việc đã xong',
-          headerRight: () => <Button onPress={() => navigation.navigate('Feedback')}>Góp ý</Button>,
-        })}
+        options={{ headerShown: false }}
       >
         {({ navigation }) => (
-          <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+          <View style={{ flex: 1 }}>
+            {/* S16 — màn danh sách: C13(a) */}
+            <ScreenHeader
+              title="Việc đã xong"
+              canGoBack
+              right={
+                <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('Feedback')}>
+                  Góp ý
+                </Button>
+              }
+            />
+            <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+          </View>
         )}
       </Stack.Screen>
-      <Stack.Screen name="Feedback" options={{ title: 'Góp ý' }}>
+      <Stack.Screen name="Feedback" options={{ title: 'Việc đã xong' }}>
         {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
     </Stack.Navigator>

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Banner, Button, Card, Text } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { DevicePairing } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
@@ -53,6 +54,7 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
     <FlatList
       style={styles.container}
       contentContainerStyle={{ padding: space.md }}
+      ListHeaderComponent={<ScreenTitle>Máy của thợ</ScreenTitle>}
       data={devices ?? []}
       keyExtractor={(d) => d.id}
       renderItem={({ item }) => (

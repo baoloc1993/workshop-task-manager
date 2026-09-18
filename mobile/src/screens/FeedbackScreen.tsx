@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Banner, Button, Text, TextInput } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api, ApiError } from '../api/client';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 
@@ -43,6 +44,7 @@ export function FeedbackScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={styles.container}>
+      <ScreenTitle>Góp ý</ScreenTitle>
       {error && (
         <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Đóng', onPress: () => setError(null) }]}>
           {error}

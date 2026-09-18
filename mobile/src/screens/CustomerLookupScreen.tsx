@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { Customer } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
@@ -31,6 +32,7 @@ export function CustomerLookupScreen({ onUseMeasurements }: { onUseMeasurements:
   // không kích onPress — người dùng phải chạm 2 lần mới chạy tìm kiếm.
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
+      <ScreenTitle>Tra khách cũ</ScreenTitle>
       <TextInput
         label="Số điện thoại hoặc tên khách"
         mode="outlined"

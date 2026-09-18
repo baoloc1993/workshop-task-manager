@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Chip, Text, TextInput } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { Route } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
@@ -59,6 +60,7 @@ export function RouteSettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
+      <ScreenTitle>Khu vực trả hàng</ScreenTitle>
       {error && (
         <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: load }]}>
           Mất kết nối — đang thử lại

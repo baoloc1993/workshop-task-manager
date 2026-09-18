@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HeaderBackButton } from './HeaderBackButton';
+import { thinHeader } from './screenOptions';
+import { ScreenHeader } from '../common/ScreenHeader';
+import { View } from 'react-native';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
 import { AssignGroupsScreen } from '../screens/AssignGroupsScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
@@ -82,6 +85,7 @@ function MenuRoute({ navigation }: { navigation: NativeStackNavigationProp<Owner
       onRouteSettings={() => goOnce(() => navigation.navigate('RouteSettings'))}
       onAssignGroups={() => goOnce(() => navigation.navigate('AssignGroups'))}
       onFeedback={() => goOnce(() => navigation.navigate('Feedback'))}
+      onVoiceCapture={() => goOnce(() => navigation.navigate('VoiceCapture'))}
     />
   );
 }
@@ -129,7 +133,10 @@ export function OwnerNavigator() {
 
   return (
     <Stack.Navigator
-      screenOptions={{ headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined) }}
+      screenOptions={{
+        ...thinHeader,
+        headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined),
+      }}
     >
       <Stack.Screen name="Home" options={{ headerShown: false }}>
         {({ navigation }) => <MenuRoute navigation={navigation} />}
@@ -145,7 +152,7 @@ export function OwnerNavigator() {
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="VoiceCapture" options={{ title: 'Nói để giao việc' }}>
+      <Stack.Screen name="VoiceCapture" options={{ title: 'Cả xưởng' }}>
         {({ navigation }) => (
           <VoiceCaptureScreen
             onParsed={(result) => {
@@ -179,7 +186,7 @@ export function OwnerNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="IssueQr" options={{ title: 'Cho người mới vào app' }} component={IssueQrScreen} />
-      <Stack.Screen name="Devices" options={{ title: 'Máy của thợ' }}>
+      <Stack.Screen name="Devices" options={{ title: 'Cả xưởng' }}>
         {({ navigation }) => <DevicesScreen onIssueNew={() => navigation.navigate('IssueQr')} />}
       </Stack.Screen>
       <Stack.Screen name="BatQueue" options={{ title: 'Việc bạt chờ chia' }}>
@@ -192,16 +199,20 @@ export function OwnerNavigator() {
           <AssignBatWorkersScreen taskId={route.params.taskId} onDone={() => navigation.goBack()} />
         )}
       </Stack.Screen>
-      <Stack.Screen name="Priority" options={{ title: 'Việc nào làm trước' }} component={PriorityScreen} />
-      <Stack.Screen name="History" options={{ title: 'Việc đã xong' }}>
+      <Stack.Screen name="Priority" options={{ title: 'Cả xưởng' }} component={PriorityScreen} />
+      {/* S16 — màn danh sách: C13(a) khối đầu mục, không phải thanh mảnh (DESIGN-SYSTEM.md §4) */}
+      <Stack.Screen name="History" options={{ headerShown: false }}>
         {({ navigation }) => (
-          <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+          <View style={{ flex: 1 }}>
+            <ScreenHeader title="Việc đã xong" canGoBack />
+            <HistoryScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+          </View>
         )}
       </Stack.Screen>
-      <Stack.Screen name="TaskDetail" options={{ title: 'Chi tiết việc' }}>
+      <Stack.Screen name="TaskDetail" options={{ title: 'Cả xưởng' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}
       </Stack.Screen>
-      <Stack.Screen name="Feedback" options={{ title: 'Góp ý' }}>
+      <Stack.Screen name="Feedback" options={{ title: 'Cả xưởng' }}>
         {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
 
@@ -240,7 +251,7 @@ export function OwnerNavigator() {
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="CustomerLookup" options={{ title: 'Tra khách' }}>
+      <Stack.Screen name="CustomerLookup" options={{ title: 'Cả xưởng' }}>
         {({ navigation }) => (
           <CustomerLookupScreen
             onUseMeasurements={(p) => {
@@ -259,13 +270,17 @@ export function OwnerNavigator() {
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="Delivery" options={{ title: 'Hàng trả' }}>
+      {/* S23 — màn danh sách: C13(a) */}
+      <Stack.Screen name="Delivery" options={{ headerShown: false }}>
         {({ navigation }) => (
-          <DeliveryScreen onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })} />
+          <View style={{ flex: 1 }}>
+            <ScreenHeader title="Hàng trả" subtitle="Theo khu vực · chuyến chiều" canGoBack />
+            <DeliveryScreen onOpenOrder={(orderId) => navigation.navigate('OrderDetail', { orderId })} />
+          </View>
         )}
       </Stack.Screen>
-      <Stack.Screen name="RouteSettings" options={{ title: 'Khu vực trả hàng' }} component={RouteSettingsScreen} />
-      <Stack.Screen name="AssignGroups" options={{ title: 'Phân vai thợ' }} component={AssignGroupsScreen} />
+      <Stack.Screen name="RouteSettings" options={{ title: 'Cả xưởng' }} component={RouteSettingsScreen} />
+      <Stack.Screen name="AssignGroups" options={{ title: 'Cả xưởng' }} component={AssignGroupsScreen} />
     </Stack.Navigator>
   );
 }

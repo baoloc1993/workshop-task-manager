@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Banner, Text, TouchableRipple } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -81,6 +82,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
 
   return (
     <View style={styles.container}>
+      <ScreenTitle>Nói để giao việc</ScreenTitle>
       {error && (
         <Banner visible icon="alert-circle" style={styles.errorBanner} actions={[{ label: 'Gõ tay', onPress: () => onFallbackToManual(heard) }]}>
           {error} Phần đã nghe được vẫn giữ nguyên bên dưới.

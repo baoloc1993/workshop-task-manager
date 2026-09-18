@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Text, TextInput } from 'react-native-paper';
+import { ScreenTitle } from '../common/ScreenTitle';
 import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
@@ -216,6 +217,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
+      <ScreenTitle>Chi tiết việc</ScreenTitle>
       {actionError && (
         <Banner
           visible
