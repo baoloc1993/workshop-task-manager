@@ -10,6 +10,7 @@ import { isOverdue, lineLabel, statusColor } from '../tasks/taskStatus';
 import { LoadErrorBanner } from '../common/LoadErrorBanner';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { useAuth } from '../auth/AuthContext';
+import { ErrorIcon } from '../common/bannerParts';
 
 // S4 — "Việc nào làm trước" (CAP-TASK-07, AC-14). Bấm mũi tên đổi vị trí → priority cập
 // nhật NGAY, không có nút "Lưu" riêng (PROTOTYPE.md §1). Mỗi lần đổi gửi NGUYÊN danh sách
@@ -104,7 +105,7 @@ export function PriorityScreen() {
           {saveError && (
             <Banner
               visible
-              icon="alert-circle"
+              icon={ErrorIcon}
               actions={[{ label: 'Đóng', onPress: () => setSaveError(false) }]}
               style={styles.banner}
             >

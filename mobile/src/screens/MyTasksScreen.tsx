@@ -11,6 +11,7 @@ import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { LoadErrorBanner } from '../common/LoadErrorBanner';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { ErrorIcon } from '../common/bannerParts';
 
 // S6 — "Việc của tôi" (PROTOTYPE.md §1). CAP-TASK-11/12/13 (AC-8/9/10): việc đầu hàng có
 // nút hành động ngay trên thẻ (≤2 chạm); việc khác chạm mở S7 để báo trạng thái ở đó.
@@ -138,7 +139,7 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
           {actionError && (
             <Banner
               visible
-              icon="alert-circle"
+              icon={ErrorIcon}
               style={styles.banner}
               actions={[{ label: 'Đóng', onPress: () => setActionError(null) }]}
             >

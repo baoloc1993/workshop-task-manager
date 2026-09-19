@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { api } from '../api/client';
 import type { CreatePairingResponse, WorkerListItem } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
+import { ErrorIcon } from '../common/bannerParts';
 
 const TTL_MIN = 15;
 
@@ -107,7 +108,7 @@ export function IssueQrScreen() {
     // CreateTaskScreen.tsx, dogfood pha I vòng 2 kiểm thử).
     <View style={styles.outer}>
       {error && (
-        <Banner visible icon="alert-circle" style={styles.banner}>
+        <Banner visible icon={ErrorIcon} style={styles.banner}>
           {error}
         </Banner>
       )}
@@ -128,11 +129,19 @@ export function IssueQrScreen() {
               description={u.paired ? 'Đã quét mã vào app' : undefined}
               onPress={() => handlePick(u.id)}
               style={styles.listItem}
-              right={(props) =>
+              right={() =>
                 u.paired ? (
-                  <Text {...props} style={styles.reissueLabel}>
+                  // picky 2026-09-19 — trước là chữ xám 13px trơn (18dp, không giống nút): nay là nút
+                  // chữ `--color-primary` cao >= --tap-min. Bấm = cùng hành động bấm cả hàng.
+                  <Button
+                    mode="text"
+                    textColor={colors.primary}
+                    onPress={() => handlePick(u.id)}
+                    style={styles.reissueButton}
+                    contentStyle={{ minHeight: tapMin }}
+                  >
                     Cấp lại mã
-                  </Text>
+                  </Button>
                 ) : null
               }
             />
@@ -154,7 +163,7 @@ const styles = StyleSheet.create({
   // dogfood pha I: List.Item mặc định ~49.5dp, dưới --tap-min
   // (DESIGN-SYSTEM.md §2.3 — 48px từ 2026-09-15, xem §1b).
   listItem: { minHeight: tapMin, justifyContent: 'center' },
-  reissueLabel: { alignSelf: 'center', color: colors.onSurfaceVariant, fontSize: 13 },
+  reissueButton: { alignSelf: 'center', minHeight: tapMin, justifyContent: 'center' },
   qrContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },
   qrBox: { padding: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   code: { marginTop: space.lg, letterSpacing: 8, fontVariant: ['tabular-nums'] },

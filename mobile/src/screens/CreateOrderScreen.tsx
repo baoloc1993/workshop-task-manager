@@ -11,6 +11,7 @@ import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // AC-25 (vòng 8, CAP-BUG-02) — cùng khuôn nháp đã có ở CreateTaskScreen từ vòng 2 (S3),
 // S18 "Ghi đơn mới" trước đây CHƯA có gì tương tự — khách gọi lúc chủ xưởng đang gõ dở
@@ -266,7 +267,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
         </Banner>
       )}
       {error && (
-        <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: handleSubmit }]}>
+        <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: handleSubmit }]}>
           {error}
         </Banner>
       )}
@@ -361,7 +362,8 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
               // thường/chọn gần như không phân biệt được — C18 đòi bật = primary-container,
               // tắt = chỉ viền outline-variant. Ép màu tường minh thay vì tin theme mặc định.
               style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
-              textStyle={selected ? styles.chipTextSelected : undefined}
+              textStyle={selected ? styles.chipTextSelected : styles.chipTextUnselected}
+              selectedColor={selected ? colors.onPrimaryContainer : colors.onSurface}
               hitSlop={chipHitSlop}
             >
               {r.name}
@@ -381,7 +383,8 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
             selected={hasEmbroidery}
             onPress={() => setHasEmbroidery((v) => !v)}
             style={[styles.chip, hasEmbroidery ? styles.chipSelected : styles.chipUnselected]}
-            textStyle={hasEmbroidery ? styles.chipTextSelected : undefined}
+            textStyle={hasEmbroidery ? styles.chipTextSelected : styles.chipTextUnselected}
+            selectedColor={hasEmbroidery ? colors.onPrimaryContainer : colors.onSurface}
             hitSlop={chipHitSlop}
           >
             Có thêu
@@ -390,7 +393,8 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
             selected={difficulty === 'kho'}
             onPress={() => setDifficulty((d) => (d === 'kho' ? 'de' : 'kho'))}
             style={[styles.chip, difficulty === 'kho' ? styles.chipSelected : styles.chipUnselected]}
-            textStyle={difficulty === 'kho' ? styles.chipTextSelected : undefined}
+            textStyle={difficulty === 'kho' ? styles.chipTextSelected : styles.chipTextUnselected}
+            selectedColor={difficulty === 'kho' ? colors.onPrimaryContainer : colors.onSurface}
             hitSlop={chipHitSlop}
           >
             Bộ khó (uốn lượn nhiều)
@@ -433,8 +437,9 @@ const styles = StyleSheet.create({
   // chip là hành động bấm được, §2.3 "mọi thứ bấm được" áp cả chip lọc/chọn).
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
-  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },
   chipTextSelected: { color: colors.onPrimaryContainer },
+  chipTextUnselected: { color: colors.onSurface },
   modeRow: { flexDirection: 'row', gap: space.sm, marginBottom: space.md },
   modeButton: { flex: 1, borderRadius: shape.small },
   accordion: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, marginBottom: space.md, paddingHorizontal: 0 },

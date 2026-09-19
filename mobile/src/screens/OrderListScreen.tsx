@@ -6,8 +6,10 @@ import { api } from '../api/client';
 import type { OrderListItem } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { modeLabel, orderProgress } from '../orders/orderStatus';
+import { getOrderListCache, setOrderListCache } from '../orders/orderListCache';
 import { ScreenHeader } from '../common/ScreenHeader';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 function OrderRow({ order, onPress }: { order: OrderListItem; onPress: () => void }) {
   const progress = orderProgress(order);
@@ -39,13 +41,15 @@ export function OrderListScreen({
   onOpenOrder: (id: string) => void;
   onCreateOrder: () => void;
 }) {
-  const [orders, setOrders] = useState<OrderListItem[] | null>(null);
+  const [orders, setOrders] = useState<OrderListItem[] | null>(getOrderListCache());
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setOrders(await api.get<OrderListItem[]>('/orders'));
+      const fresh = await api.get<OrderListItem[]>('/orders');
+      setOrderListCache(fresh);
+      setOrders(fresh);
       setError(false);
     } catch {
       setError(true);
@@ -119,8 +123,10 @@ export function OrderListScreen({
         }
         ListHeaderComponent={
           error ? (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
-              Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.
+            <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
+              {orders !== null
+                ? 'Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.'
+                : 'Mất kết nối — đang thử lại.'}
             </Banner>
           ) : null
         }

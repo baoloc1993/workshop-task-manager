@@ -4,6 +4,7 @@ import { Banner, Button, Text, TextInput } from 'react-native-paper';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../api/client';
 import { colors, shape, space, tapMin } from '../theme/tokens';
+import { ErrorIcon } from '../common/bannerParts';
 
 // Màn bootstrap riêng cho chủ xưởng (email/mật khẩu) — không thuộc bộ mã S<n> của
 // PROTOTYPE.md §1, xem context/DECISIONS.md 2026-09-10 (bản đồ màn chưa phủ bước này).
@@ -34,7 +35,7 @@ export function OwnerLoginScreen() {
         Đăng nhập chủ xưởng
       </Text>
       {error && (
-        <Banner visible icon="alert-circle" style={styles.banner}>
+        <Banner visible icon={ErrorIcon} style={styles.banner}>
           {error}
         </Banner>
       )}

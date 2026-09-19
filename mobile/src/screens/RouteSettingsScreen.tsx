@@ -6,6 +6,7 @@ import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { Route } from '../api/types';
 import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S25 "Khu vực trả hàng" (CAP-DEM-05, AC-23) — cấu hình 4-7 khu vực, chip địa danh (C18)
 // bật/tắt có hiệu lực NGAY, không nút "Lưu" riêng.
@@ -62,7 +63,7 @@ export function RouteSettingsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       <ScreenTitle>Khu vực trả hàng</ScreenTitle>
       {error && (
-        <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: load }]}>
+        <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]}>
           Mất kết nối — đang thử lại
         </Banner>
       )}
@@ -79,7 +80,8 @@ export function RouteSettingsScreen() {
               selected={r.active}
               onPress={() => toggleActive(r)}
               style={r.active ? styles.chipSelected : styles.chipUnselected}
-              textStyle={r.active ? styles.chipTextSelected : undefined}
+              textStyle={r.active ? styles.chipTextSelected : styles.chipTextUnselected}
+              selectedColor={r.active ? colors.onPrimaryContainer : colors.onSurface}
               hitSlop={chipHitSlop}
             >
               {r.active ? 'Đang dùng' : 'Đã tắt'}
@@ -136,8 +138,9 @@ const styles = StyleSheet.create({
   // được" theo §2.3, ép `--tap-min` 48px đồng loạt (trước ép nhầm 40px).
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0, minHeight: tapMin, justifyContent: 'center' },
-  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1, minHeight: tapMin, justifyContent: 'center' },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1, minHeight: tapMin, justifyContent: 'center' },
   chipTextSelected: { color: colors.onPrimaryContainer },
+  chipTextUnselected: { color: colors.onSurface },
   addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   addInput: { flex: 1 },
   // C1 (vòng 8, AC-27) — Button mặc định của react-native-paper bo viên thuốc; ép

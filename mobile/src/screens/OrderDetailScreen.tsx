@@ -9,6 +9,7 @@ import { STEP_LABEL, formatMeasurements, formatMoney, modeLabel, pillowSummary, 
 import { StepsRow } from '../tasks/StepsRow';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S19 "Chi tiết đơn" — CHỈ owner (PROTOTYPE.md §1). Nơi DUY NHẤT hiện giá/cọc/còn lại (C19).
 export function OrderDetailScreen({
@@ -67,7 +68,7 @@ export function OrderDetailScreen({
   if (error) {
     return (
       <View style={styles.container}>
-        <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: load }]}>
+        <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]}>
           Không tải được đơn này.
         </Banner>
       </View>
@@ -79,7 +80,7 @@ export function OrderDetailScreen({
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
       {deliverError && (
-        <Banner visible icon="alert-circle" style={styles.banner}>
+        <Banner visible icon={ErrorIcon} style={styles.banner}>
           {deliverError}
         </Banner>
       )}

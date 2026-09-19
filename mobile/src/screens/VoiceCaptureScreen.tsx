@@ -10,6 +10,7 @@ import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
 import { parseUtterance, type ParsedUtterance } from '../voice/parseUtterance';
 import { colors, space, shape, tapMin } from '../theme/tokens';
+import { ErrorIcon } from '../common/bannerParts';
 
 // S2 — "Nói để giao việc" (PROTOTYPE.md §1, vòng 2). AC-6.
 // Giữ nút micro để nói, thả ra để dừng và nghe kết quả → luôn đưa sang S3 để soát
@@ -84,7 +85,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
     <View style={styles.container}>
       <ScreenTitle>Nói để giao việc</ScreenTitle>
       {error && (
-        <Banner visible icon="alert-circle" style={styles.errorBanner} actions={[{ label: 'Gõ tay', onPress: () => onFallbackToManual(heard) }]}>
+        <Banner visible icon={ErrorIcon} style={styles.errorBanner} actions={[{ label: 'Gõ tay', onPress: () => onFallbackToManual(heard) }]}>
           {error} Phần đã nghe được vẫn giữ nguyên bên dưới.
         </Banner>
       )}

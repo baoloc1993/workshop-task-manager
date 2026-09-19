@@ -8,6 +8,7 @@ import { chipHitSlop, colors, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 type Range = 'week' | 'month';
 
@@ -79,8 +80,8 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
           {error && (
             <Banner
               visible
-              icon="alert-circle"
-              actions={[{ label: 'Thử lại', onPress: () => load(range) }]}
+              icon={ErrorIcon}
+              actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: () => load(range) }]}
               style={styles.banner}
             >
               Không tải được lịch sử
@@ -94,7 +95,8 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
                 selected={range === r}
                 onPress={() => setRange(r)}
                 style={[styles.chip, range === r && styles.chipSelected]}
-                textStyle={range === r ? styles.chipSelectedText : undefined}
+                textStyle={range === r ? styles.chipSelectedText : styles.chipTextUnselected}
+                selectedColor={range === r ? colors.onPrimaryContainer : colors.onSurface}
                 hitSlop={chipHitSlop}
               >
                 {r === 'week' ? 'Tuần này' : 'Tháng này'}
@@ -145,5 +147,6 @@ const styles = StyleSheet.create({
   // react-native-paper vì tông đó đã có nghĩa riêng: nhãn "Đã nhận" trong dòng phụ hàng việc.
   chipSelected: { backgroundColor: colors.primaryContainer },
   chipSelectedText: { color: colors.onPrimaryContainer, fontWeight: '700' },
+  chipTextUnselected: { color: colors.onSurface },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm },
 });

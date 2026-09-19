@@ -7,6 +7,7 @@ import type { BatWorkerItem, Task } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S10 — "Chọn thợ để giao" (PROTOTYPE.md §1). CAP-TASK-06 (AC-13): điều phối (hoặc chủ xưởng)
 // chọn 1..n thợ bạt ĐANG HOẠT ĐỘNG. Chọn lại một việc đã chia thì GHI ĐÈ toàn bộ danh sách
@@ -65,7 +66,7 @@ export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onD
   if (loadError) {
     return (
       <View style={styles.container}>
-        <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+        <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
           Không tải được việc này.
         </Banner>
       </View>
@@ -79,9 +80,9 @@ export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onD
       {sendError && (
         <Banner
           visible
-          icon="alert-circle"
+          icon={ErrorIcon}
           style={styles.banner}
-          actions={[{ label: 'Thử lại', onPress: handleAssign }]}
+          actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: handleAssign }]}
         >
           {sendError}
         </Banner>

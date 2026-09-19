@@ -8,6 +8,7 @@ import { colors, shape, space, tapMin } from '../theme/tokens';
 import { formatMeasurements } from '../orders/orderStatus';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S24 "Tính cắt vải, mút" (CAP-DEM-04, AC-20). CAP-DEM-03 (công thức) đẩy backlog
 // (DECISIONS.md vòng 7) — luôn nhập tay, không có gợi ý điền sẵn.
@@ -50,7 +51,7 @@ export function CutDoneScreen({ orderId, onDone }: { orderId: string; onDone: ()
   if (loadError) {
     return (
       <View style={styles.container}>
-        <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Thử lại', onPress: load }]}>
+        <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]}>
           Không tải được đơn này.
         </Banner>
       </View>
@@ -61,7 +62,7 @@ export function CutDoneScreen({ orderId, onDone }: { orderId: string; onDone: ()
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       {sendError && (
-        <Banner visible icon="alert-circle" style={styles.banner}>
+        <Banner visible icon={ErrorIcon} style={styles.banner}>
           {sendError}
         </Banner>
       )}

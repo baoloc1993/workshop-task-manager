@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Text, TextInput } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
@@ -7,6 +7,7 @@ import type { Customer } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { formatMeasurements } from '../orders/orderStatus';
 import type { CreateOrderPrefill } from './CreateOrderScreen';
+import { ErrorIcon } from '../common/bannerParts';
 
 // S21 "Tra khách cũ" (CAP-DEM-02, AC-19) — tìm số đo năm ngoái theo SĐT/tên thay sổ giấy
 // ~1.000 bộ/năm. "Dùng lại số đo này cho đơn mới" chép SANG đơn mới (ARCHITECTURE.md §6).
@@ -42,7 +43,7 @@ export function CustomerLookupScreen({ onUseMeasurements }: { onUseMeasurements:
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       <ScreenTitle>Tra khách cũ</ScreenTitle>
       {emptyError && (
-        <Banner visible icon="alert-circle" style={styles.errorBanner}>
+        <Banner visible icon={ErrorIcon} style={styles.errorBanner}>
           Nhập số điện thoại hoặc tên khách trước đã.
         </Banner>
       )}
@@ -81,15 +82,15 @@ export function CustomerLookupScreen({ onUseMeasurements }: { onUseMeasurements:
           {/* AC-28 — DESIGN-SYSTEM.md §4d luật 9 "số điện thoại LUÔN bấm gọi được": trước
               đây là Text thường, không có cách nào gọi thẳng từ đây. Chỉ số điện thoại
               (Text lồng) là phần bấm gọi được, địa chỉ vẫn chỉ để đọc. */}
+          <Pressable
+            onPress={() => Linking.openURL(`tel:${c.phone}`)}
+            accessibilityRole="link"
+            accessibilityLabel={`Gọi ${c.phone}`}
+            style={styles.phoneButton}
+          >
+            <Text style={styles.phoneLink}>📞 {c.phone}</Text>
+          </Pressable>
           <Text variant="bodyLarge" style={styles.meta}>
-            <Text
-              style={styles.phoneLink}
-              onPress={() => Linking.openURL(`tel:${c.phone}`)}
-              accessibilityRole="link"
-            >
-              📞 {c.phone}
-            </Text>
-            {' · '}
             {c.address}
           </Text>
           {c.orders.map((o) => {
@@ -141,6 +142,8 @@ const styles = StyleSheet.create({
   button: { borderRadius: shape.small, marginTop: space.sm },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant, marginTop: space.lg },
   phoneLink: { color: colors.primary, fontWeight: '700', fontSize: fontSize.body },
+  // picky 2026-09-19 — nút gọi đo 24dp; nút riêng >= --tap-min thay cho Text lồng.
+  phoneButton: { alignSelf: 'flex-start', minHeight: tapMin, justifyContent: 'center' },
   customerBlock: {
     backgroundColor: colors.surfaceContainer,
     borderRadius: shape.small,

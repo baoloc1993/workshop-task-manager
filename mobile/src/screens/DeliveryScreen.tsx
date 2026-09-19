@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import type { OrderListItem, Route } from '../api/types';
 import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S23 "Hàng trả" (CAP-DEM-05, AC-23) — chọn khu vực + ngày → mọi đơn hẹn trả khu vực đó,
 // tô đỏ đơn CHƯA nhồi (status != cho_tra/da_tra). "Chốt chuyến" hàng loạt KHÔNG dựng —
@@ -119,7 +120,7 @@ export function DeliveryScreen({
       ListHeaderComponent={
         <>
           {error && (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+            <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
               Mất kết nối — đang thử lại
             </Banner>
           )}
@@ -134,7 +135,8 @@ export function DeliveryScreen({
                 selected={areaId === a.id}
                 onPress={() => setAreaId(a.id)}
                 style={[styles.chip, areaId === a.id ? styles.chipSelected : styles.chipUnselected]}
-                textStyle={areaId === a.id ? styles.chipTextSelected : undefined}
+                textStyle={areaId === a.id ? styles.chipTextSelected : styles.chipTextUnselected}
+                selectedColor={areaId === a.id ? colors.onPrimaryContainer : colors.onSurface}
                 hitSlop={chipHitSlop}
               >
                 {a.name} ({a.count})
@@ -148,7 +150,8 @@ export function DeliveryScreen({
                 selected={day === f}
                 onPress={() => setDay(f)}
                 style={[styles.chip, day === f ? styles.chipSelected : styles.chipUnselected]}
-                textStyle={day === f ? styles.chipTextSelected : undefined}
+                textStyle={day === f ? styles.chipTextSelected : styles.chipTextUnselected}
+                selectedColor={day === f ? colors.onPrimaryContainer : colors.onSurface}
                 hitSlop={chipHitSlop}
               >
                 {DAY_LABEL[f]}
@@ -182,8 +185,9 @@ const styles = StyleSheet.create({
   // AC-34 (vòng 8) — chip khu vực/ngày ở S23 chưa từng có minHeight, mặc định Paper ~32dp.
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
-  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outlineVariant, borderWidth: 1 },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },
   chipTextSelected: { color: colors.onPrimaryContainer },
+  chipTextUnselected: { color: colors.onSurface },
   row: {
     backgroundColor: colors.surfaceContainer,
     borderRadius: shape.small,

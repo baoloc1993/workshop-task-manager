@@ -9,6 +9,7 @@ import { TaskRow } from '../tasks/TaskRow';
 import { isDoneToday, lineLabel, taskBucket } from '../tasks/taskStatus';
 import { ScreenHeader } from '../common/ScreenHeader';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S1 — "Cả xưởng hôm nay" (CAP-TASK-08, AC-15). Đúng bốn nhóm của PROTOTYPE.md §1: quá
 // hạn/đứng yên → đang làm → chưa ai nhận → đã xong hôm nay (gấp lại cuối màn). Dữ liệu từ
@@ -113,7 +114,7 @@ export function OwnerHomeScreen({
         }
         ListHeaderComponent={
           error ? (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+            <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
               Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.
             </Banner>
           ) : null

@@ -4,6 +4,7 @@ import { Banner, Button, Text, TextInput } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { api, ApiError } from '../api/client';
 import { colors, shape, space, tapMin } from '../theme/tokens';
+import { ErrorIcon } from '../common/bannerParts';
 
 // Nhóm 4 production-ready — "kênh feedback" (review pha P vòng 6). Một form gửi thẳng
 // là đủ theo shared-production-ready/SKILL.md; chưa cần màn đọc lại (owner tra qua DB
@@ -46,7 +47,7 @@ export function FeedbackScreen({ onDone }: { onDone: () => void }) {
     <View style={styles.container}>
       <ScreenTitle>Góp ý</ScreenTitle>
       {error && (
-        <Banner visible icon="alert-circle" style={styles.banner} actions={[{ label: 'Đóng', onPress: () => setError(null) }]}>
+        <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ label: 'Đóng', onPress: () => setError(null) }]}>
           {error}
         </Banner>
       )}

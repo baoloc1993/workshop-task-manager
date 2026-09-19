@@ -15,6 +15,7 @@ import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { LoadErrorBanner } from '../common/LoadErrorBanner';
+import { ErrorIcon } from '../common/bannerParts';
 
 // CAP-DEM-02 (AC-19) — S20 "Số đo": khi việc đang mở là bước "đi đo" (step='do') và CHƯA
 // xong, TaskDetailScreen (= S29 tái dùng) đổi thành form nhập số đo/ảnh ngay tại đây thay
@@ -96,7 +97,7 @@ function MeasurementEditor({
         <Text style={styles.hardTag}>Bộ khó — bắt buộc chụp ảnh tờ đo trước khi báo xong</Text>
       )}
       {saveError && (
-        <Banner visible icon="alert-circle" style={styles.banner}>
+        <Banner visible icon={ErrorIcon} style={styles.banner}>
           {saveError}
         </Banner>
       )}
@@ -235,7 +236,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       {actionError && (
         <Banner
           visible
-          icon="alert-circle"
+          icon={ErrorIcon}
           style={styles.banner}
           actions={[{ label: 'Đóng', onPress: () => setActionError(null) }]}
         >

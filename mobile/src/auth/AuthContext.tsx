@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { ActivityIndicator, View } from 'react-native';
 import { api, clearToken, clearUser, getToken, getUser, saveToken, saveUser } from '../api/client';
 import { getExpoPushTokenAsync } from '../notifications/registerPushToken';
+import { clearOrderListCache } from '../orders/orderListCache';
 import { track } from '../analytics/track';
 import type { AuthUser, LoginResponse } from '../api/types';
 
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async logout() {
         await Promise.all([clearToken(), clearUser()]);
+        clearOrderListCache();
         setUser(null);
       },
     }),

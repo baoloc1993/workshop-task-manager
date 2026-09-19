@@ -8,6 +8,7 @@ import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 export interface CreateTaskPrefill {
   content?: string;
@@ -230,12 +231,12 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
         </Banner>
       )}
       {error && (
-        <Banner visible icon="alert-circle" style={styles.errorBanner} actions={[{ label: 'Thử lại', onPress: handleSubmit }]}>
+        <Banner visible icon={ErrorIcon} style={styles.errorBanner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: handleSubmit }]}>
           {error}
         </Banner>
       )}
       {usersError && (
-        <Banner visible icon="alert-circle" style={styles.errorBanner} actions={[{ label: 'Thử lại', onPress: fetchUsers }]}>
+        <Banner visible icon={ErrorIcon} style={styles.errorBanner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: fetchUsers }]}>
           {usersError}
         </Banner>
       )}

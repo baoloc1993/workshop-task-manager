@@ -2,6 +2,7 @@ import { Banner, Text } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
 import { ApiError, NetworkError } from '../api/client';
 import { colors, space } from '../theme/tokens';
+import { ErrorIcon, bannerActionStyle } from './bannerParts';
 
 // AC-30 (vòng 8, CAP-BUG-01) — trước đây mọi màn dữ liệu (`catch { setError(true) }`) hiện
 // đúng MỘT câu chung ("Không tải được...") cho mọi loại lỗi — mất mạng, quyền hết hạn
@@ -35,11 +36,11 @@ export function LoadErrorBanner({
 }) {
   const { message, isAuth } = describeLoadError(error);
   const actions =
-    isAuth && onReauth ? [{ label: 'Đăng nhập lại', onPress: onReauth }] : [{ label: 'Thử lại', onPress: onRetry }];
+    isAuth && onReauth ? [{ ...bannerActionStyle, label: 'Đăng nhập lại', onPress: onReauth }] : [{ ...bannerActionStyle, label: 'Thử lại', onPress: onRetry }];
   return (
     // C5 — banner bám mép trên, KHÔNG cuộn theo (DESIGN-SYSTEM.md §4) — nơi gọi phải đặt
     // component này NGOÀI ScrollView/FlatList, đúng khuôn đã sửa ở CreateTaskScreen vòng 2.
-    <Banner visible icon="alert-circle" style={styles.banner} actions={actions}>
+    <Banner visible icon={ErrorIcon} style={styles.banner} actions={actions}>
       <Text style={styles.text}>{message}</Text>
     </Banner>
   );

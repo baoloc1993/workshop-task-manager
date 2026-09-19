@@ -6,6 +6,7 @@ import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { DevicePairing } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S15 — "Máy của thợ" (PROTOTYPE.md §1). AC-5: thu hồi máy cũ, cấp lại mã mới.
 export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
@@ -33,7 +34,7 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
   if (error) {
     return (
       <View style={styles.container}>
-        <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+        <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
           Không tải được danh sách máy.
         </Banner>
       </View>

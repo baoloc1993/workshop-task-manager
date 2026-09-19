@@ -10,6 +10,7 @@ import { GROUP_LABEL, STEP_GROUP, STEP_LABEL } from '../orders/orderStatus';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S22 "Việc nhóm chờ nhận" (CAP-DEM-07, AC-21) — ai rảnh thì nhận, không ai chia (khác
 // hẳn S9 của mảng bạt). Một thợ nhiều nhóm thấy việc GỘP của mọi nhóm mình thuộc trong
@@ -98,14 +99,14 @@ export function DemQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
       ListHeaderComponent={
         <>
           {error && (
-            <Banner visible icon="alert-circle" actions={[{ label: 'Thử lại', onPress: load }]} style={styles.banner}>
+            <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
               Mất kết nối — đang thử lại
             </Banner>
           )}
           {claimError && (
             <Banner
               visible
-              icon="alert-circle"
+              icon={ErrorIcon}
               style={styles.banner}
               actions={[{ label: 'Đóng', onPress: () => setClaimError(null) }]}
             >
