@@ -8,7 +8,7 @@ import { colors, fontSize, navHeight, shape, space, tapMin } from '../theme/toke
 import { isDoneToday, taskBucket } from '../tasks/taskStatus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
-import { MenuRow } from '../common/MenuRow';
+import { LogoutMenuRow, MenuRow } from '../common/MenuRow';
 
 // S0 "Trang chủ" (PROTOTYPE.md §1, DECISIONS.md 2026-09-15: trì hoãn tới khi đủ 3 mảng để
 // IA có ý nghĩa thật — vòng 7 mở mảng đệm là mảng thứ 3, điều kiện đó nay đã đủ). Không
@@ -50,7 +50,7 @@ export function OwnerMenuScreen({
   onFeedback: () => void;
   onVoiceCapture: () => void;
 }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   // S0 là màn gốc, không có header nào phía trên — phải tự trừ tai thỏ/thanh trạng thái,
   // nếu không hàng avatar đè lên đồng hồ (tự bấm thấy ngay sau khi bỏ ScreenHeader khỏi S0).
   const insets = useSafeAreaInsets();
@@ -138,7 +138,7 @@ export function OwnerMenuScreen({
         <View style={styles.divider} />
         <MenuRow icon="✎" tone="cfg" label="Góp ý" onPress={onFeedback} />
         {/* AC-31 (vòng 8, CAP-BUG-03) — owner trước đó không có lối nào đăng xuất trong app */}
-        <MenuRow icon="⏻" tone="warn" label="Đăng xuất" onPress={() => logout()} />
+        <LogoutMenuRow />
       </ScrollView>
       {/* C7 — thanh thêm ghim đáy (DESIGN-SYSTEM.md §4; prototype S0 `.addbar`). Thiếu nó thì
           chủ xưởng ở S0 phải vào "Cả xưởng hôm nay" mới giao được việc bằng giọng nói, đội

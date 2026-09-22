@@ -7,7 +7,7 @@ import { api } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, shape, space } from '../theme/tokens';
 import { useAuth } from '../auth/AuthContext';
-import { MenuRow } from '../common/MenuRow';
+import { LogoutMenuRow, MenuRow } from '../common/MenuRow';
 
 // S0 của điều phối (vai `bat`, PROTOTYPE.md §1 "Năm khối mục của S0, theo vai") — vòng 9, AC-39.
 // Trước vòng 9 điều phối mở thẳng S9 và đi sang "Việc của tôi" bằng nút góc trên; bản đồ vòng 1
@@ -26,7 +26,7 @@ export function BatMenuScreen({
   onHistory: () => void;
   onFeedback: () => void;
 }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [queueCount, setQueueCount] = useState<number | undefined>(undefined);
   const [mineCount, setMineCount] = useState<number | undefined>(undefined);
@@ -76,7 +76,7 @@ export function BatMenuScreen({
         <MenuRow icon="✓" tone="ok" label="Đã xong tuần này" onPress={onHistory} />
         <View style={styles.divider} />
         <MenuRow icon="✎" tone="cfg" label="Góp ý" onPress={onFeedback} />
-        <MenuRow icon="⏻" tone="warn" label="Đăng xuất" onPress={() => logout()} />
+        <LogoutMenuRow />
       </ScrollView>
     </View>
   );

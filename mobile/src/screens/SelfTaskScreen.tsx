@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Banner, Button, Text, TextInput } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
-import type { Task } from '../api/types';
+import type { Task, TaskApproval } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
@@ -27,7 +27,9 @@ function resolveDue(raw: string): { iso: string | null; error: string | null } {
 // S30 "Ghi việc tôi làm" (PROTOTYPE.md §1, vòng 9 — AC-40, CAP-TASK-16). Thợ may vá/bạt và
 // điều phối tự đưa việc mình đang làm lên hệ thống: nội dung + hạn tuỳ chọn, người nhận luôn là
 // chính mình, mảng do server lấy theo `User.line` (ARCHITECTURE.md §6 mở rộng vòng 9).
-export function SelfTaskScreen({ onDone }: { onDone: () => void }) {
+// dogfood vòng 9 (newbie): `onDone` mang `approval` của response về S6 để S6 hiện Snackbar C15
+// nói rõ việc vừa ghi đang chờ duyệt hay đã vào danh sách (§4c: im lặng không phải thành công).
+export function SelfTaskScreen({ onDone }: { onDone: (approval?: TaskApproval) => void }) {
   const { user } = useAuth();
   const [content, setContent] = useState('');
   const [due, setDue] = useState('');
@@ -52,7 +54,8 @@ export function SelfTaskScreen({ onDone }: { onDone: () => void }) {
       const task = await api.post<Task>('/tasks/self', { content: text, ...(iso ? { dueAt: iso } : {}) });
       if (user) track('tu_ghi_viec', user.id, { approval: task?.approval ?? 'unknown' });
       // Về S6 — S6 tải lại khi lấy focus, thẻ mới hiện kèm chip "Chờ chủ duyệt" nếu cần.
-      onDone();
+      // Không giả định `status` của việc mới (server có thể cho bắt đầu ở `acked`).
+      onDone(task?.approval);
     } catch (e) {
       // §5 "Lỗi": giữ nguyên thứ đang gõ, chỉ báo.
       setSendError(e instanceof ApiError ? e.message : 'Mất kết nối — chưa ghi được. Thử lại.');
@@ -116,10 +119,12 @@ export function SelfTaskScreen({ onDone }: { onDone: () => void }) {
                 : ' ')}
           </Text>
           {/* Một dòng nói trước kết quả. Máy thợ không biết cờ "Tự duyệt" của mình (API không
-              trả về cho thợ) nên dùng câu trung tính đúng cho cả hai trường hợp. */}
+              trả về cho thợ) nên dùng câu trung tính đúng cho cả hai trường hợp.
+              dogfood vòng 9 (newbie): câu cũ "Nếu chủ xưởng cần duyệt…" bắt thợ đoán, và chữ
+              "Xong" khác nút thật "Báo xong" — nay gọi đúng chữ trên nút (taskStatus ACTION_LABEL);
+              kết quả thật (chờ duyệt hay không) báo bằng Snackbar ở S6 sau khi ghi. */}
           <Text style={styles.note}>
-            Nếu chủ xưởng cần duyệt, việc sẽ có nhãn "Chờ chủ duyệt". Trong lúc chờ, bạn vẫn bấm Nhận việc / Bắt đầu / Xong
-            được.
+            Chủ xưởng có thể cần duyệt việc bạn tự ghi. Trong lúc chờ, bạn vẫn bấm Bắt đầu làm / Báo xong được.
           </Text>
           <Button
             mode="contained"

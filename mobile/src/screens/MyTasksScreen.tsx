@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Banner, Button, Text } from 'react-native-paper';
+import { Banner, Button, Snackbar, Text } from 'react-native-paper';
 import { api, ApiError } from '../api/client';
-import type { Task } from '../api/types';
+import type { Task, TaskApproval } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { StatusPill } from '../tasks/StatusPill';
@@ -22,13 +22,26 @@ function pendingPill(task: Task) {
   return task.approval === 'pending' ? <StatusPill kind="pending" /> : undefined;
 }
 
+/** dogfood vòng 9 (newbie) — kết quả S30 mang về S6. `at` để cùng một câu ghi hai lần liền
+ * vẫn hiện Snackbar lần hai (param giống hệt thì effect không chạy lại). */
+export type SelfTaskResult = { approval?: TaskApproval; at: number };
+
+function selfResultMessage(approval?: TaskApproval): string {
+  if (approval === 'pending') return 'Đã ghi — chờ chủ xưởng duyệt.';
+  if (approval === 'approved') return 'Đã ghi vào danh sách của bạn.';
+  // response thiếu `approval` (server cũ) — không đoán là đã duyệt hay chưa.
+  return 'Đã ghi việc.';
+}
+
 export function MyTasksScreen({
   onOpenTask,
   onSelfTask,
+  selfResult,
 }: {
   onOpenTask: (id: string) => void;
   // AC-40 — lối "＋ Ghi việc tôi làm" → S30. Không truyền (thợ mảng đệm) thì không hiện.
   onSelfTask?: () => void;
+  selfResult?: SelfTaskResult;
 }) {
   const { user, logout } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
@@ -44,6 +57,13 @@ export function MyTasksScreen({
   // thêm một nhịp ngắn SAU khi request xong, không chỉ trong lúc đang gửi.
   const [locked, setLocked] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // C15 Snackbar — dogfood vòng 9 (newbie): ghi ở S30 xong thợ quay về đây mà không có lời
+  // nào nói việc đã vào chưa / có phải chờ chủ duyệt không (§4c: im lặng ≠ thành công).
+  const [snack, setSnack] = useState<string | null>(null);
+  useEffect(() => {
+    if (selfResult) setSnack(selfResultMessage(selfResult.approval));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selfResult?.at]);
 
   const load = useCallback(async () => {
     try {
@@ -115,15 +135,32 @@ export function MyTasksScreen({
   // AC-36 (vòng 8, CAP-BUG-01) — khuôn tải: trước khi có lần tải đầu tiên (`tasks === null`)
   // FlatList vẫn dựng ListEmptyComponent, chớp qua "Hôm nay chưa có việc" trước khi dữ liệu
   // thật tới — khuôn xám giữ đúng chỗ, đúng DESIGN-SYSTEM.md §5.
+  const snackbar = (
+    // C15 Snackbar — nền on-surface, chữ surface, bo --shape-small, tự tắt (cùng khuôn S31).
+    <Snackbar
+      visible={snack !== null}
+      onDismiss={() => setSnack(null)}
+      duration={3000}
+      style={styles.snack}
+      theme={{ colors: { inverseOnSurface: colors.surface } }}
+    >
+      {snack ?? ''}
+    </Snackbar>
+  );
+
   if (tasks === null && error === null) {
     return (
-      <View style={[styles.container, { padding: space.md }]}>
-        <SkeletonCard />
+      <View style={styles.container}>
+        <View style={{ padding: space.md }}>
+          <SkeletonCard />
+        </View>
+        {snackbar}
       </View>
     );
   }
 
   return (
+    <View style={styles.container}>
     <FlatList
       style={styles.container}
       contentContainerStyle={{ padding: space.md, flexGrow: 1 }}
@@ -227,14 +264,24 @@ export function MyTasksScreen({
             <Text variant="labelLarge" style={[styles.sec, styles.secOk]}>
               Đã xong hôm nay ({doneToday.length})
             </Text>
+            {/* dogfood vòng 9 (newbie): việc tự ghi đã xong nhưng chủ chưa duyệt vẫn giữ chip
+                "Chờ chủ duyệt" — trước đây chip mất ngay khi xong, thợ tưởng đã được duyệt. */}
             {doneToday.map((item) => (
-              <TaskRow key={item.id} task={item} title={item.content} onPress={() => onOpenTask(item.id)} />
+              <TaskRow
+                key={item.id}
+                task={item}
+                title={item.content}
+                pill={pendingPill(item)}
+                onPress={() => onOpenTask(item.id)}
+              />
             ))}
           </>
           ) : null}
         </>
       }
     />
+    {snackbar}
+    </View>
   );
 }
 
@@ -248,4 +295,5 @@ const styles = StyleSheet.create({
   actionButton: { borderRadius: shape.small, marginBottom: space.lg },
   selfButton: { borderRadius: shape.small, borderColor: colors.outline, marginTop: space.md },
   emptyButton: { borderRadius: shape.small, marginTop: space.md },
+  snack: { backgroundColor: colors.onSurface, borderRadius: shape.small },
 });

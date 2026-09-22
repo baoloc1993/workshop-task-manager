@@ -12,7 +12,7 @@ import { SelfTaskScreen } from '../screens/SelfTaskScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
-import { MyTasksScreen } from '../screens/MyTasksScreen';
+import { MyTasksScreen, type SelfTaskResult } from '../screens/MyTasksScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 
 export type BatCoordinatorStackParamList = {
@@ -20,7 +20,8 @@ export type BatCoordinatorStackParamList = {
   SelfTask: undefined;
   BatQueue: undefined;
   AssignBatWorkers: { taskId: string };
-  MyTasks: undefined;
+  // dogfood vòng 9 (newbie) — S30 ghi xong quay về S6 kèm kết quả duyệt (Snackbar C15).
+  MyTasks: { selfResult?: SelfTaskResult } | undefined;
   TaskDetail: { taskId: string };
   History: undefined;
   Feedback: undefined;
@@ -84,7 +85,7 @@ export function BatCoordinatorNavigator() {
         name="MyTasks"
         options={{ headerShown: false }}
       >
-        {({ navigation }) => (
+        {({ navigation, route }) => (
           <View style={{ flex: 1 }}>
             {/* S6 — màn danh sách: C13(a). hitSlop giữ từ dogfood pha I vòng 5. */}
             <ScreenHeader
@@ -106,13 +107,20 @@ export function BatCoordinatorNavigator() {
             <MyTasksScreen
               onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
               onSelfTask={() => navigation.navigate('SelfTask')}
+              selfResult={route.params?.selfResult}
             />
           </View>
         )}
       </Stack.Screen>
       {/* S30 (vòng 9) — form: C13(b) thanh mảnh, vụn đường dẫn "Việc của tôi". */}
       <Stack.Screen name="SelfTask" options={{ title: 'Việc của tôi' }}>
-        {({ navigation }) => <SelfTaskScreen onDone={() => navigation.goBack()} />}
+        {({ navigation }) => (
+          <SelfTaskScreen
+            onDone={(approval) =>
+              navigation.popTo('MyTasks', { selfResult: { approval, at: Date.now() } }, { merge: true })
+            }
+          />
+        )}
       </Stack.Screen>
       <Stack.Screen name="TaskDetail" options={{ title: 'Việc bạt chờ chia' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}

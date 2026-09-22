@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import type { Task } from '../api/types';
 import { chipHitSlop, colors, fontSize, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
+import { StatusPill } from '../tasks/StatusPill';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
@@ -124,7 +125,7 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
             ]}
             // AC-41 (vòng 9) — việc tự ghi bị chủ không duyệt chỉ còn thấy ở lịch sử của
             // chính người ghi, kèm nhãn rõ ràng (ARCHITECTURE.md §6 mở rộng vòng 9). Chữ đỏ đậm
-            // như phần "kẹt" của C8 — không thêm chip C22 (C22 chỉ ở S1/S6/S31).
+            // như phần "kẹt" của C8 — "không duyệt" không có chip C22.
             topLine={
               item.approval === 'rejected' ? <Text style={styles.rejected}>Chủ không duyệt</Text> : undefined
             }
@@ -132,6 +133,9 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
             // <giờ>", nhắc lại trạng thái "Xong" lần nữa là thừa. Riêng việc bị không duyệt
             // có thể chưa xong → hiện trạng thái để khỏi tưởng là đã xong.
             showStatus={item.status !== 'done'}
+            // dogfood vòng 9 (newbie): việc tự ghi đã xong mà chủ chưa duyệt vẫn giữ chip C22
+            // "Chờ chủ duyệt" — trước đây sang tới lịch sử là mất, thợ tưởng đã được duyệt.
+            pill={item.approval === 'pending' ? <StatusPill kind="pending" /> : undefined}
             onPress={() => onOpenTask(item.id)}
           />
         );

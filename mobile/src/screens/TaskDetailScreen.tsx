@@ -7,6 +7,7 @@ import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { StatusChip } from '../tasks/StatusChip';
+import { StatusPill } from '../tasks/StatusPill';
 import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
 import { formatMeasurements, modeLabel, pillowSummary } from '../orders/orderStatus';
 import { PhotoBox } from '../orders/PhotoBox';
@@ -219,8 +220,11 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
   const doneAt = task.events.find((e) => e.kind === 'done')?.at;
   // AC-11 — việc mảng bạt đi qua thêm bước "chia" (điều phối giao từ hàng đợi, ARCHITECTURE.md
   // §7 luồng B) trước khi tới "nhận". Việc may vá giao thẳng, không có bước này.
+  // dogfood vòng 9 (newbie): việc thợ tự ghi (S30, `source='self'`) không có ai giao/chia —
+  // mốc đầu là "Tự ghi", không có "Chia cho bạn", không có dòng "Giao cho".
+  const isSelf = task.source === 'self';
   const assignedAt =
-    task.line === 'bat' && task.assignees.length > 0
+    !isSelf && task.line === 'bat' && task.assignees.length > 0
       ? task.assignees.map((a) => a.assignedAt).sort()[0]
       : undefined;
 
@@ -287,11 +291,16 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
           Hạn: {new Date(task.dueAt).toLocaleDateString('vi-VN')}
         </Text>
       )}
-      <Text variant="bodyLarge" style={styles.meta}>
-        Giao cho: {task.assignees.map((a) => a.user.name).join(', ')}
-      </Text>
+      {!isSelf && (
+        <Text variant="bodyLarge" style={styles.meta}>
+          Giao cho: {task.assignees.map((a) => a.user.name).join(', ')}
+        </Text>
+      )}
       <View style={styles.chipRow}>
         <StatusChip task={task} />
+        {/* dogfood vòng 9 (newbie) — C22 "Chờ chủ duyệt" cả ở S7, kể cả khi việc đã xong:
+            thợ mở chi tiết việc tự ghi phải thấy ngay nó chưa được chủ duyệt. */}
+        {task.approval === 'pending' && <StatusPill kind="pending" />}
       </View>
 
       {/* PERSONAS.md §2: owner KHÔNG được ack/bắt đầu/xong thay công nhân — server đã chặn
@@ -315,7 +324,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
         Việc này đã đi qua
       </Text>
       <Text variant="bodyLarge" style={styles.time}>
-        Giao việc · {formatTime(task.createdAt)}
+        {isSelf ? 'Tự ghi' : 'Giao việc'} · {formatTime(task.createdAt)}
         {assignedAt && (
           <>
             {'\n'}
@@ -361,7 +370,7 @@ const styles = StyleSheet.create({
   measureInput: { flex: 1 },
   content: { marginBottom: space.sm },
   meta: { marginTop: space.xs, color: colors.onSurfaceVariant },
-  chipRow: { marginTop: space.md },
+  chipRow: { marginTop: space.md, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
   actionButton: { borderRadius: shape.small, marginTop: space.md },
   sec: { color: colors.onSurfaceVariant, marginTop: space.lg, marginBottom: space.sm },
   time: { color: colors.onSurfaceVariant, lineHeight: 32 },

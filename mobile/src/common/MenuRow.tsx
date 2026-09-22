@@ -3,6 +3,7 @@
 import { Pressable, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
+import { useAuth } from '../auth/AuthContext';
 
 // C14 (DESIGN-SYSTEM.md §4) — mỗi hàng: ICON MÀU · tên · số đếm. Ký tự và lớp màu lấy
 // đúng của prototype S0 (`.li.sun/.warn/.ok/.pri/.cfg .ic`), không map sang icon font:
@@ -59,3 +60,15 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontSize: fontSize.body, color: colors.onSurface },
   rowCount: { fontSize: fontSize.label, color: colors.onSurfaceVariant },
 });
+
+// dogfood vòng 9 (newbie) — glyph "⏻" (U+23FB) không có trong font Android lẫn Noto Color
+// Emoji: hiện thành ô vuông đỏ lỗi font ở cả ba S0 (chủ xưởng, điều phối, thợ). Gom hàng
+// "Đăng xuất" về MỘT chỗ để ba S0 dùng chung một ký tự; "🚪" có trong Noto Color Emoji
+// nên máy Android nào cũng vẽ được (emoji tự mang màu, bỏ qua tông `warn` — chấp nhận,
+// chữ "Đăng xuất" ngay cạnh vẫn là thứ người dùng đọc).
+export const LOGOUT_ICON = '🚪';
+
+export function LogoutMenuRow() {
+  const { logout } = useAuth();
+  return <MenuRow icon={LOGOUT_ICON} tone="warn" label="Đăng xuất" onPress={() => logout()} />;
+}
