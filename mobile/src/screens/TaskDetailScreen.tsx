@@ -283,7 +283,10 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
           )}
         </View>
       )}
-      <Text variant="titleLarge" style={styles.content} numberOfLines={2}>
+      {/* dogfood vòng 9 (mobile): màn CHI TIẾT phải đọc được hết nội dung — trước đây cắt 2 dòng
+          (AC-35 vòng 8 áp đồng loạt, nhưng AC-35 nói về thẻ trong DANH SÁCH), phần cuối việc dài
+          không đọc được ở màn nào của thợ. */}
+      <Text variant="titleLarge" style={styles.content}>
         {task.content}
       </Text>
       {task.dueAt && (

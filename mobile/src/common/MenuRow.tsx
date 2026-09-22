@@ -1,6 +1,6 @@
 // C14 hàng mục ở trang chủ S0 — tách từ OwnerMenuScreen ở vòng 9 để S0 của điều phối
 // (BatMenuScreen, AC-39) dùng đúng một khuôn với S0 chủ xưởng.
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { useAuth } from '../auth/AuthContext';
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
   rowIcon: { width: 24, textAlign: 'center', fontSize: 18 },
   rowLabel: { flex: 1, fontSize: fontSize.body, color: colors.onSurface },
   rowCount: { fontSize: fontSize.label, color: colors.onSurfaceVariant },
+  logoutGap: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: space.sm, marginHorizontal: space.md },
 });
 
 // dogfood vòng 9 (newbie) — glyph "⏻" (U+23FB) không có trong font Android lẫn Noto Color
@@ -70,5 +71,12 @@ export const LOGOUT_ICON = '🚪';
 
 export function LogoutMenuRow() {
   const { logout } = useAuth();
-  return <MenuRow icon={LOGOUT_ICON} tone="warn" label="Đăng xuất" onPress={() => logout()} />;
+  // dogfood vòng 9 (mobile): "Góp ý" và "Đăng xuất" sát nhau không khe hở — một tay chạm lệch
+  // xuống là đăng xuất. Tách bằng kẻ ngang (cùng khuôn kẻ ngang giữa các nhóm mục C14).
+  return (
+    <>
+      <View style={styles.logoutGap} />
+      <MenuRow icon={LOGOUT_ICON} tone="warn" label="Đăng xuất" onPress={() => logout()} />
+    </>
+  );
 }

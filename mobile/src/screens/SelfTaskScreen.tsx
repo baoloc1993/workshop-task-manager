@@ -111,6 +111,10 @@ export function SelfTaskScreen({ onDone }: { onDone: (approval?: TaskApproval) =
             }}
             error={!!dueError}
             style={styles.input}
+            // dogfood vòng 9 (mobile): máy 360×640dp bàn phím che nút "Ghi việc", cuộn cũng không
+            // kéo ra được — phím ✓ ở ô cuối gửi luôn, khỏi phải đóng bàn phím rồi chạm thêm.
+            returnKeyType="send"
+            onSubmitEditing={() => void handleSubmit()}
           />
           <Text style={dueError ? styles.fieldError : styles.help}>
             {dueError ??
