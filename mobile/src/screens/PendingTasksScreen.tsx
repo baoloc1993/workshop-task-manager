@@ -86,9 +86,9 @@ export function PendingTasksScreen() {
   const header = (
     <>
       <ScreenTitle>Việc chờ duyệt</ScreenTitle>
-      {sorted.length > 0 && (
-        <Text style={styles.hint}>Thợ tự ghi. Duyệt thì việc vào danh sách cả xưởng như việc bạn giao.</Text>
-      )}
+      {/* dogfood vòng 9 (edge): giữ dòng giải thích cả khi rỗng — người mới vào màn rỗng vẫn cần biết
+          màn này để làm gì. */}
+      <Text style={styles.hint}>Thợ tự ghi. Duyệt thì việc vào danh sách cả xưởng như việc bạn giao.</Text>
     </>
   );
 

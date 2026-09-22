@@ -73,7 +73,9 @@ export function OwnerMenuScreen({
     api
       .get<Task[]>('/tasks/pending')
       .then((p) => setPendingCount(p.length))
-      .catch(() => setPendingCount(undefined));
+      // dogfood vòng 9 (edge): mục không số = khuôn "không có việc" — mất mạng mà bỏ số thì chủ
+      // xưởng đọc thành "không có gì chờ duyệt". Giữ số lần trước (như các mục khác).
+      .catch(() => {});
     try {
       const [t, o] = await Promise.all([api.get<Task[]>('/tasks'), api.get<OrderListItem[]>('/orders')]);
       setTasks(t);

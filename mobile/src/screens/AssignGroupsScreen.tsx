@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Banner, Chip, Text } from 'react-native-paper';
+import { Banner, Chip, Snackbar, Text } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { api } from '../api/client';
@@ -20,7 +20,8 @@ export function AssignGroupsScreen() {
   // Thợ mảng đệm không tự ghi việc được (API 400) nên không có công tắc.
   const [selfLoggers, setSelfLoggers] = useState<WorkerListItem[] | null>(null);
   const [error, setError] = useState(false);
-  const [autoError, setAutoError] = useState<string | null>(null);
+  const [autoError, setAutoError] = useState<{ text: string; person: WorkerListItem } | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api
@@ -39,13 +40,19 @@ export function AssignGroupsScreen() {
     const next = !person.autoApprove;
     const setFlag = (v: boolean) =>
       setSelfLoggers((prev) => (prev ?? []).map((u) => (u.id === person.id ? { ...u, autoApprove: v } : u)));
+    // dogfood vòng 9 (edge): mất mạng thì báo lỗi tới sau 3–5 giây; trong lúc đó chip phải KHOÁ
+    // (khỏi bấm lại) và lỗi hiện bằng Snackbar — banner chèn giữa danh sách đẩy hàng xuống
+    // ~380px, lượt bấm lại trúng nhầm người khác.
     setFlag(next);
     setAutoError(null);
+    setSavingId(person.id);
     try {
       await api.patch(`/users/${person.id}/auto-approve`, { autoApprove: next });
     } catch {
       setFlag(!next);
-      setAutoError(`Chưa đổi được "Tự duyệt" của ${person.name} — thử lại.`);
+      setAutoError({ text: `Chưa đổi được "Tự duyệt" của ${person.name}.`, person: { ...person, autoApprove: !next } });
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -64,6 +71,7 @@ export function AssignGroupsScreen() {
   }
 
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }}>
       <ScreenTitle>Phân vai thợ</ScreenTitle>
       {error && (
@@ -118,11 +126,6 @@ export function AssignGroupsScreen() {
           <Text variant="bodyLarge" style={styles.sectionHint}>
             Bật "Tự duyệt" thì việc người đó tự ghi vào thẳng danh sách. Tắt thì bạn duyệt ở "Việc chờ duyệt".
           </Text>
-          {autoError && (
-            <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Đóng', onPress: () => setAutoError(null) }]}>
-              {autoError}
-            </Banner>
-          )}
           {selfLoggers.map((u) => {
             const on = !!u.autoApprove;
             return (
@@ -135,6 +138,7 @@ export function AssignGroupsScreen() {
                 </View>
                 <Chip
                   selected={on}
+                  disabled={savingId === u.id}
                   onPress={() => toggleAutoApprove(u)}
                   style={[styles.chip, on ? styles.chipSelected : styles.chipUnselected]}
                   textStyle={on ? styles.chipTextSelected : styles.chipTextUnselected}
@@ -150,6 +154,15 @@ export function AssignGroupsScreen() {
         </>
       )}
     </ScrollView>
+    <Snackbar
+      visible={autoError !== null}
+      onDismiss={() => setAutoError(null)}
+      duration={5000}
+      action={autoError ? { label: 'Thử lại', onPress: () => toggleAutoApprove(autoError.person) } : undefined}
+    >
+      {autoError?.text ?? ''}
+    </Snackbar>
+    </>
   );
 }
 

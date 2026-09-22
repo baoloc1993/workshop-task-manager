@@ -13,7 +13,7 @@ import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
-import { takePhotoAsBase64 } from './pickPhoto';
+import { takePhoto } from './pickPhoto';
 
 type Preview = { uri: string; mode: 'new' | 'view' };
 
@@ -42,8 +42,8 @@ export function PhotoBox({
     setCapturing(true);
     setPreview(null);
     try {
-      const uri = await takePhotoAsBase64();
-      setPreview(uri ? { uri, mode: 'new' } : back);
+      const { uri, denied } = await takePhoto();
+      setPreview(uri ? { uri, mode: 'new' } : denied ? null : back);
     } finally {
       setCapturing(false);
     }

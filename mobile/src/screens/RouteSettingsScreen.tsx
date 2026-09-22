@@ -64,7 +64,7 @@ export function RouteSettingsScreen() {
       <ScreenTitle>Khu vực trả hàng</ScreenTitle>
       {error && (
         <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]}>
-          Mất kết nối — đang thử lại
+          Mất kết nối — đang thử lại.
         </Banner>
       )}
       {/* AC-45 (vòng 9, feedback B5) — "khu vực" và "địa danh" là hai thứ khác nghĩa, không
@@ -121,6 +121,9 @@ export function RouteSettingsScreen() {
         </View>
       ))}
 
+      {/* dogfood vòng 9 (edge): mất mạng ngay lần mở đầu thì danh sách trống — mở ô thêm lúc đó
+          dễ khiến chủ xưởng thêm trùng khu vực đã có. */}
+      {!(error && routes.length === 0) && (
       <View style={styles.addRow}>
         <TextInput
           mode="outlined"
@@ -134,6 +137,7 @@ export function RouteSettingsScreen() {
           Thêm khu vực
         </Button>
       </View>
+      )}
     </ScrollView>
   );
 }
