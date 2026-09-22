@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Banner, Button, Snackbar, Text } from 'react-native-paper';
@@ -60,7 +60,15 @@ export function MyTasksScreen({
   // C15 Snackbar — dogfood vòng 9 (newbie): ghi ở S30 xong thợ quay về đây mà không có lời
   // nào nói việc đã vào chưa / có phải chờ chủ duyệt không (§4c: im lặng ≠ thành công).
   const [snack, setSnack] = useState<string | null>(null);
+  // dogfood vòng 9 (meta): gửi ở S30 chậm → người dùng chạm lại "Ghi việc", lượt chạm đó rơi
+  // xuống thẻ việc MỚI vừa hiện đúng chỗ nút và mở luôn S7. Bỏ qua chạm ~0,7 giây sau khi quay về.
+  const ignoreTapsUntil = useRef(0);
+  const guarded = <A extends unknown[]>(fn: (...args: A) => void) => (...args: A) => {
+    if (Date.now() < ignoreTapsUntil.current) return;
+    fn(...args);
+  };
   useEffect(() => {
+    if (selfResult) ignoreTapsUntil.current = Date.now() + 700;
     if (selfResult) setSnack(selfResultMessage(selfResult.approval));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selfResult?.at]);
@@ -214,11 +222,11 @@ export function MyTasksScreen({
                 title={first.content}
                 metaParts={[first.dueAt ? `hạn ${new Date(first.dueAt).toLocaleDateString('vi-VN')}` : null]}
                 pill={pendingPill(first)}
-                onPress={() => onOpenTask(first.id)}
+                onPress={guarded(() => onOpenTask(first.id))}
               />
               <Button
                 mode="contained"
-                onPress={() => handleAction(first)}
+                onPress={guarded(() => handleAction(first))}
                 loading={submittingId === first.id}
                 disabled={locked}
                 contentStyle={{ height: tapMin }}
@@ -241,7 +249,7 @@ export function MyTasksScreen({
           title={item.content}
           metaParts={[item.dueAt ? `hạn ${new Date(item.dueAt).toLocaleDateString('vi-VN')}` : null]}
           pill={pendingPill(item)}
-          onPress={() => onOpenTask(item.id)}
+          onPress={guarded(() => onOpenTask(item.id))}
         />
       )}
       ListFooterComponent={
@@ -272,7 +280,7 @@ export function MyTasksScreen({
                 task={item}
                 title={item.content}
                 pill={pendingPill(item)}
-                onPress={() => onOpenTask(item.id)}
+                onPress={guarded(() => onOpenTask(item.id))}
               />
             ))}
           </>
