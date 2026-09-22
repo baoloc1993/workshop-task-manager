@@ -4,6 +4,7 @@ import type { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { AssignTaskDto } from './dto/assign-task.dto.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
+import { CreateSelfTaskDto } from './dto/create-self-task.dto.js';
 import { ReorderTasksDto } from './dto/reorder-tasks.dto.js';
 import { TasksService } from './tasks.service.js';
 
@@ -15,6 +16,23 @@ export class TasksController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateTaskDto) {
     return this.tasks.create(user, dto);
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-40, S30). PERSONAS.md §2 "Tự ghi việc cho chính mình": owner ✗
+  // (chặn ở đây). Route tĩnh 'self' khác method với ':id' nên không đụng nhau, vẫn đặt
+  // trước cho rõ.
+  @Roles('worker', 'bat_coordinator')
+  @Post('self')
+  createSelf(@CurrentUser() user: AuthUser, @Body() dto: CreateSelfTaskDto) {
+    return this.tasks.createSelf(user, dto);
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-41, S31 "Việc chờ duyệt"). Đăng ký TRƯỚC ':id' (cùng lý do
+  // 'bat-queue'). PERSONAS.md §2: chỉ owner thấy việc chờ duyệt của người khác.
+  @Roles('owner')
+  @Get('pending')
+  pending() {
+    return this.tasks.findPending();
   }
 
   // CAP-TASK-08 (AC-15, S1) + CAP-TASK-07 (AC-14, S4) — toàn bộ việc của xưởng, một nguồn
@@ -98,6 +116,19 @@ export class TasksController {
   @Post(':id/assign')
   assign(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: AssignTaskDto) {
     return this.tasks.assign(user, id, dto);
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-41, S31). PERSONAS.md §2 "Duyệt / không duyệt": chỉ owner.
+  @Roles('owner')
+  @Post(':id/approve')
+  approve(@Param('id') id: string) {
+    return this.tasks.decide(id, 'approved');
+  }
+
+  @Roles('owner')
+  @Post(':id/reject')
+  reject(@Param('id') id: string) {
+    return this.tasks.decide(id, 'rejected');
   }
 
   // CAP-DEM-07 (AC-21) — "Nhận việc này": giành chỗ, khác hẳn assign() (xem tasks.service.ts).

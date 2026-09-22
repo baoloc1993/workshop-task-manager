@@ -16,6 +16,8 @@ export class UsersService {
     line: true,
     active: true,
     groups: true,
+    // vòng 9 — CAP-TASK-16 (AC-41): S26 hiện trạng thái công tắc "Tự duyệt" (additive).
+    autoApprove: true,
   } as const;
 
   listAll() {
@@ -65,17 +67,23 @@ export class UsersService {
   // giao, kèm "đang giữ mấy việc" (PROTOTYPE.md §1 S10, thông tin bắt buộc). `select` riêng
   // (không dùng lại listAll) vì điều phối được gọi endpoint này — không lộ email/password hash
   // của owner qua một đường vòng.
+  // AC-39 (vòng 9) — điều phối (mọi bat_coordinator đang hoạt động) cũng là người nhận việc bạt
+  // (ARCHITECTURE.md §6 "Điều phối là người nhận"); client phân biệt bằng `role`.
   async listActiveBatWorkers() {
     const workers = await this.prisma.user.findMany({
-      where: { role: 'worker', line: 'bat', active: true },
+      where: { active: true, OR: [{ role: 'worker', line: 'bat' }, { role: 'bat_coordinator' }] },
       select: { id: true, name: true, role: true, line: true },
       orderBy: { name: 'asc' },
     });
     if (workers.length === 0) return [];
 
+    // vòng 9 — việc tự ghi bị từ chối không còn là việc "đang giữ".
     const counts = await this.prisma.taskAssignee.groupBy({
       by: ['userId'],
-      where: { userId: { in: workers.map((w) => w.id) }, task: { status: { not: 'done' }, deletedAt: null } },
+      where: {
+        userId: { in: workers.map((w) => w.id) },
+        task: { status: { not: 'done' }, deletedAt: null, approval: { not: 'rejected' } },
+      },
       _count: { _all: true },
     });
     const countByUserId = new Map(counts.map((c) => [c.userId, c._count._all]));
@@ -91,6 +99,21 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id: userId },
       data: { groups },
+      select: UsersService.SAFE_SELECT,
+    });
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-41, S26). Chỉ có nghĩa với worker/bat_coordinator (người tự ghi
+  // việc được) — đích là owner hoặc không tồn tại → 404, cùng khuôn updateGroups(). Hiệu lực
+  // cho việc tự ghi từ lúc này trở đi; việc đang chờ KHÔNG tự được duyệt (ARCHITECTURE.md §6).
+  async updateAutoApprove(userId: string, autoApprove: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || (user.role !== 'worker' && user.role !== 'bat_coordinator')) {
+      throw new NotFoundException('Không tìm thấy thợ này');
+    }
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { autoApprove },
       select: UsersService.SAFE_SELECT,
     });
   }

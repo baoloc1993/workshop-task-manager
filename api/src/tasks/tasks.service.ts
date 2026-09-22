@@ -8,6 +8,13 @@ import { STEP_GROUP } from '../common/dem-step.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { AssignTaskDto } from './dto/assign-task.dto.js';
 import { ReorderTasksDto } from './dto/reorder-tasks.dto.js';
+import { CreateSelfTaskDto } from './dto/create-self-task.dto.js';
+
+// vòng 9 — CAP-TASK-16 (ARCHITECTURE.md §6 "Lọc danh sách"): mọi danh sách TOÀN XƯỞNG /
+// của NGƯỜI KHÁC chỉ lấy việc đã duyệt. Việc cũ đều `approved` (default migration) nên kết
+// quả cũ không đổi (BACKWARD-COMPATIBILITY-CHECKLIST.md §1). Ngoại lệ duy nhất: danh sách
+// của chính người tạo (findMine, history của mình) và S31 (findPending).
+const APPROVED_ONLY = { approval: 'approved' } as const;
 
 const HISTORY_WINDOW_DAYS: Record<'week' | 'month', number> = { week: 7, month: 30 };
 
@@ -83,12 +90,21 @@ export class TasksService {
     // này cho phép owner tự thêm chính mình (hoặc thợ mảng khác) làm assignee của việc
     // may vá, việc mà `PERSONAS.md §2` không định nghĩa (owner không phải người "nhận việc").
     if (assigneeIds.length > 0) {
+      // AC-39 (vòng 9) — điều phối (bat_coordinator) được GIAO việc ở mọi mảng trừ đệm như một
+      // thợ (PERSONAS.md §2 "Được chọn làm người nhận"). Quyền CHIA của điều phối không đổi.
       const validWorkers = await this.prisma.user.count({
-        where: { id: { in: assigneeIds }, role: 'worker', line: 'may_va', active: true },
+        where: {
+          id: { in: assigneeIds },
+          active: true,
+          OR:
+            line === 'dem'
+              ? [{ role: 'worker', line: 'may_va' }]
+              : [{ role: 'worker', line: 'may_va' }, { role: 'bat_coordinator' }],
+        },
       });
       if (validWorkers !== assigneeIds.length) {
         throw new BadRequestException(
-          'Có người trong danh sách giao việc không hợp lệ (không phải thợ may vá đang hoạt động)',
+          'Có người trong danh sách giao việc không hợp lệ (không phải thợ may vá / điều phối đang hoạt động)',
         );
       }
     }
@@ -143,7 +159,7 @@ export class TasksService {
   // vòng 5) — đây không phải luật phân quyền, chỉ là cách trình bày.
   findAll() {
     return this.prisma.task.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: null, ...APPROVED_ONLY },
       orderBy: [{ priority: 'asc' }, { dueAt: 'asc' }, { createdAt: 'asc' }],
       include: TASK_INCLUDE,
     });
@@ -156,8 +172,10 @@ export class TasksService {
     // server phải TỰ kiểm chứ không chỉ tin client (review pha P vòng 6). Thiếu dòng này,
     // một client thứ hai (vd. owner-dashboard vòng 8) gửi thiếu sẽ làm priority đụng nhau
     // giữa việc có mặt và việc bị bỏ sót trong danh sách.
+    // vòng 9 — "đủ và đúng" tính trên CÙNG tập mà S4 nhận từ findAll() (chỉ việc đã duyệt):
+    // việc chờ duyệt không có trên màn thì client không thể gửi nó lên.
     const active = await this.prisma.task.findMany({
-      where: { status: { not: 'done' }, deletedAt: null },
+      where: { status: { not: 'done' }, deletedAt: null, ...APPROVED_ONLY },
       select: { id: true },
     });
     const activeIds = new Set(active.map((t) => t.id));
@@ -183,18 +201,40 @@ export class TasksService {
     const since = new Date(Date.now() - HISTORY_WINDOW_DAYS[range] * 24 * 60 * 60 * 1000);
     const doneEventFilter = { events: { some: { kind: 'done' as const, at: { gte: since } } } };
 
-    const where: Prisma.TaskWhereInput = { deletedAt: null, status: 'done', ...doneEventFilter };
+    // vòng 9 — CAP-TASK-16: việc của CHÍNH MÌNH thấy mọi approval (kể cả chờ duyệt đã xong);
+    // việc của người khác (toàn xưởng / nhóm bạt) chỉ việc đã duyệt.
+    const mineDone: Prisma.TaskWhereInput = {
+      status: 'done',
+      ...doneEventFilter,
+      assignees: { some: { userId: user.userId } },
+    };
+    // AC-41 — "không duyệt → người ghi thấy nhãn 'Chủ không duyệt' ở lịch sử": việc bị từ
+    // chối của chính người tạo hiện ở đây DÙ chưa xong (nó đã rời S6), trong cửa sổ thời gian
+    // tính theo lúc bị từ chối (updatedAt — không có cột riêng cho mốc duyệt).
+    const mineRejected: Prisma.TaskWhereInput = {
+      approval: 'rejected',
+      createdById: user.userId,
+      updatedAt: { gte: since },
+    };
+
+    let where: Prisma.TaskWhereInput;
     if (user.role === 'worker') {
-      where.assignees = { some: { userId: user.userId } };
+      where = { deletedAt: null, OR: [mineDone, mineRejected] };
     } else if (user.role === 'bat_coordinator') {
-      where.OR = [{ assignees: { some: { userId: user.userId } } }, { line: 'bat' }];
+      where = {
+        deletedAt: null,
+        OR: [mineDone, mineRejected, { status: 'done', ...doneEventFilter, line: 'bat', ...APPROVED_ONLY }],
+      };
+    } else {
+      // owner: toàn xưởng (PERSONAS.md §2) — chỉ việc đã duyệt.
+      where = { deletedAt: null, status: 'done', ...doneEventFilter, ...APPROVED_ONLY };
     }
-    // owner: không lọc thêm — toàn xưởng (PERSONAS.md §2).
 
     const tasks = await this.prisma.task.findMany({ where, include: TASK_INCLUDE });
     // "Mới nhất trước" tính theo mốc XONG thật (TaskEvent.done.at), không phải updatedAt —
     // updatedAt đổi cả khi owner chỉ sửa nội dung/ưu tiên, không liên quan gì tới lịch sử.
-    return tasks.sort((a, b) => doneAt(b).localeCompare(doneAt(a)));
+    // Việc bị từ chối mà chưa xong (vòng 9) không có mốc xong → dùng updatedAt (lúc từ chối).
+    return tasks.sort((a, b) => historyAt(b).localeCompare(historyAt(a)));
   }
 
   // CAP-TASK-06 (AC-13) — S9 "Việc bạt chờ chia": TOÀN BỘ việc mảng bạt còn hiệu lực, cả
@@ -202,7 +242,7 @@ export class TasksService {
   // assignees.length). PERSONAS.md §2 giới hạn ai gọi được ở @Roles trong controller.
   findBatQueue() {
     return this.prisma.task.findMany({
-      where: { deletedAt: null, line: 'bat' },
+      where: { deletedAt: null, line: 'bat', ...APPROVED_ONLY },
       orderBy: [{ priority: 'asc' }, { dueAt: 'asc' }, { createdAt: 'asc' }],
       include: TASK_INCLUDE,
     });
@@ -225,13 +265,23 @@ export class TasksService {
       // nhận từ dogfood vòng 6 đợt 2 — mã lỗi cũ 400 không nhất quán với mọi ca 403 khác).
       throw new ForbiddenException('Chỉ chia được việc mảng bạt qua đây');
     }
+    // vòng 9 — ARCHITECTURE.md §6: "source=self ⇔ người tạo = người nhận duy nhất". Chia lại
+    // việc tự ghi sẽ phá bất biến đó (việc chờ duyệt cũng không có trên S9).
+    if (task.source === 'self') {
+      throw new ForbiddenException('Việc thợ tự ghi thuộc về người ghi — không chia lại được');
+    }
 
+    // AC-39 (vòng 9) — điều phối cũng là người nhận được việc bạt (kể cả tự chia cho mình).
     const workers = await this.prisma.user.findMany({
-      where: { id: { in: dto.userIds }, role: 'worker', line: 'bat', active: true },
+      where: {
+        id: { in: dto.userIds },
+        active: true,
+        OR: [{ role: 'worker', line: 'bat' }, { role: 'bat_coordinator' }],
+      },
       select: { id: true },
     });
     if (workers.length !== dto.userIds.length) {
-      throw new BadRequestException('Có thợ trong danh sách không hợp lệ (không phải thợ bạt đang hoạt động)');
+      throw new BadRequestException('Có thợ trong danh sách không hợp lệ (không phải thợ bạt / điều phối đang hoạt động)');
     }
 
     await this.prisma.$transaction([
@@ -253,9 +303,11 @@ export class TasksService {
 
   // AC-4 — S6 "Việc của tôi": chỉ việc của chính người gọi, không qua tham số lọc nào
   // mà client tự truyền (chặn ở server, không chỉ ẩn ở UI — PERSONAS.md §2).
+  // vòng 9 — thấy cả việc tự ghi đang chờ duyệt (nhãn "Chờ chủ duyệt"); việc bị từ chối rời
+  // S6, chỉ còn ở lịch sử (ARCHITECTURE.md §6 "Lọc danh sách").
   findMine(user: AuthUser) {
     return this.prisma.task.findMany({
-      where: { deletedAt: null, assignees: { some: { userId: user.userId } } },
+      where: { deletedAt: null, approval: { not: 'rejected' }, assignees: { some: { userId: user.userId } } },
       orderBy: [{ priority: 'asc' }, { dueAt: 'asc' }],
       include: TASK_INCLUDE,
     });
@@ -273,7 +325,10 @@ export class TasksService {
     // được giao — đây là điều kiện để mở S10 "Chọn thợ để giao" từ S9. Bug thật: thiếu
     // dòng này khiến điều phối bị 403 ngay khi mở bất kỳ việc bạt nào không phải của mình
     // (dogfood pha I vòng 4).
-    const isBatCoordinatorOnBatTask = user.role === 'bat_coordinator' && task.line === 'bat';
+    // vòng 9 — trừ việc chưa duyệt / bị từ chối của người khác (PERSONAS.md §2 "Thấy việc
+    // chờ duyệt của người khác": điều phối ✗).
+    const isBatCoordinatorOnBatTask =
+      user.role === 'bat_coordinator' && task.line === 'bat' && task.approval === 'approved';
     if (!isOwner && !isAssignee && !isBatCoordinatorOnBatTask) {
       throw new ForbiddenException('Không được xem việc của người khác');
     }
@@ -288,6 +343,9 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: {
         deletedAt: null,
+        // vòng 9 — việc bị từ chối đã rời mọi danh sách, không nhắc nữa. Việc chờ duyệt vẫn
+        // nhắc chính người ghi (người nhận duy nhất) — họ đang làm thật.
+        approval: { not: 'rejected' },
         status: 'new',
         assignees: { some: { assignedAt: { lte: ackThreshold } } },
         OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: cooldownBefore } }],
@@ -300,6 +358,7 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: {
         deletedAt: null,
+        approval: { not: 'rejected' },
         status: { not: 'done' },
         dueAt: { not: null, lte: dueBefore },
         OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: cooldownBefore } }],
@@ -371,6 +430,85 @@ export class TasksService {
     return updated;
   }
 
+  // vòng 9 — CAP-TASK-16 (AC-40, S30): thợ / điều phối tự ghi việc mình đang làm. Người nhận
+  // LUÔN là chính người gọi (PERSONAS.md §2 "Tự ghi việc cho người khác" ✗ mọi vai), mảng
+  // theo User.line (điều phối không có line → 'bat'), không cho mảng đệm (việc đệm đi theo đơn).
+  // Chưa bật tự duyệt → 'pending': vẫn ack/start/done được (thợ đang làm thật —
+  // DECISIONS.md 2026-09-22), chỉ chưa lên danh sách toàn xưởng.
+  async createSelf(user: AuthUser, dto: CreateSelfTaskDto) {
+    if (dto.assigneeIds?.some((id) => id !== user.userId)) {
+      throw new ForbiddenException('Chỉ tự ghi được việc cho chính mình');
+    }
+
+    // Đọc tươi line/autoApprove (không nằm trong JWT) — công tắc S26 hiệu lực ngay.
+    const me = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { id: true, name: true, line: true, autoApprove: true },
+    });
+    if (!me) throw new NotFoundException('Không tìm thấy tài khoản');
+    if (me.line === 'dem') {
+      throw new BadRequestException('Việc đệm đi theo đơn — nhận ở hàng đợi nhóm');
+    }
+    const line = me.line ?? 'bat';
+    const approval = me.autoApprove ? 'approved' : 'pending';
+
+    // Cùng khuôn create(): việc mới xuống cuối hàng ưu tiên, để khi được duyệt nó nằm cuối S4.
+    const { _max } = await this.prisma.task.aggregate({
+      where: { deletedAt: null },
+      _max: { priority: true },
+    });
+
+    const task = await this.prisma.task.create({
+      data: {
+        content: dto.content,
+        line,
+        dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
+        priority: (_max.priority ?? -1) + 1,
+        source: 'self',
+        approval,
+        createdById: me.id,
+        assignees: { create: [{ userId: me.id, assignedById: me.id }] },
+      },
+      include: TASK_INCLUDE,
+    });
+
+    // AC-41 — "có việc mới chờ duyệt → push tới chủ xưởng". Không await chặn response, lỗi
+    // push không làm hỏng việc tạo task (ARCHITECTURE.md §9) — cùng khuôn create().
+    if (approval === 'pending') {
+      void this.notifications.notifyRole('owner', 'Việc chờ duyệt', `${me.name}: ${task.content}`, {
+        taskId: task.id,
+      });
+    }
+
+    return task;
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-41, S31 "Việc chờ duyệt"): cũ nhất trước (chờ lâu nhất được
+  // xử lý trước). Kèm `createdBy` (chỉ id/tên/vai/mảng) cho dòng "ai ghi".
+  findPending() {
+    return this.prisma.task.findMany({
+      where: { deletedAt: null, approval: 'pending' },
+      orderBy: [{ createdAt: 'asc' }],
+      include: { ...TASK_INCLUDE, createdBy: { select: { id: true, name: true, role: true, line: true } } },
+    });
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-41): máy trạng thái chỉ pending → approved|rejected. Chống đua
+  // (hai chủ cùng bấm / bấm hai lần — ARCHITECTURE.md §6 ca biên vòng 9) bằng update CÓ
+  // ĐIỀU KIỆN: chỉ một request khớp `approval='pending'`, request sau count=0 → 409.
+  async decide(id: string, approval: 'approved' | 'rejected') {
+    const { count } = await this.prisma.task.updateMany({
+      where: { id, deletedAt: null, approval: 'pending' },
+      data: { approval },
+    });
+    if (count === 0) {
+      const task = await this.prisma.task.findUnique({ where: { id }, select: { deletedAt: true } });
+      if (!task || task.deletedAt) throw new NotFoundException('Không tìm thấy việc này');
+      throw new ConflictException('Việc này đã được quyết rồi');
+    }
+    return this.prisma.task.findUnique({ where: { id }, include: TASK_INCLUDE });
+  }
+
   // CAP-DEM-07 (AC-21) — S22 "Việc nhóm chờ nhận": TOÀN BỘ task line=dem, chưa xong, mà
   // `step` khớp BẤT KỲ nhóm nào của người gọi (DECISIONS.md vòng 7 — hợp/union, không
   // chọn 1 nhóm). Gồm cả việc ĐÃ có người nhận (client tự tách "chờ" / "đang có người làm").
@@ -380,7 +518,7 @@ export class TasksService {
       user.groups.includes(STEP_GROUP[step]),
     );
     return this.prisma.task.findMany({
-      where: { deletedAt: null, line: 'dem', status: { not: 'done' }, step: { in: steps } },
+      where: { deletedAt: null, line: 'dem', status: { not: 'done' }, step: { in: steps }, ...APPROVED_ONLY },
       orderBy: [{ dueAt: 'asc' }, { createdAt: 'asc' }],
       include: TASK_INCLUDE,
     });
@@ -445,6 +583,7 @@ function isPastStatus(current: TaskStatus, target: TaskStatus): boolean {
 }
 
 // CAP-TASK-15 (AC-16) — mốc "xong" thật của một việc, dùng để sắp lịch sử mới nhất trước.
-function doneAt(task: { events: { kind: TaskEventKind; at: Date }[] }): string {
-  return (task.events.find((e) => e.kind === 'done')?.at ?? new Date(0)).toISOString();
+// vòng 9: việc bị từ chối mà chưa xong không có mốc xong → lấy updatedAt (lúc bị từ chối).
+function historyAt(task: { updatedAt: Date; events: { kind: TaskEventKind; at: Date }[] }): string {
+  return (task.events.find((e) => e.kind === 'done')?.at ?? task.updatedAt).toISOString();
 }

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UpdateGroupsDto } from './dto/update-groups.dto.js';
+import { UpdateAutoApproveDto } from './dto/update-auto-approve.dto.js';
 import { UsersService } from './users.service.js';
 
 // @Roles ở TỪNG method (không phải class) từ vòng 4 — S10 cần một đường hẹp hơn cho
@@ -32,5 +33,13 @@ export class UsersController {
   @Patch(':id/groups')
   updateGroups(@Param('id') id: string, @Body() dto: UpdateGroupsDto) {
     return this.users.updateGroups(id, dto.groups);
+  }
+
+  // vòng 9 — CAP-TASK-16 (AC-41, S26): công tắc "Tự duyệt việc tự ghi". PERSONAS.md §2:
+  // chỉ owner bật/tắt.
+  @Roles('owner')
+  @Patch(':id/auto-approve')
+  updateAutoApprove(@Param('id') id: string, @Body() dto: UpdateAutoApproveDto) {
+    return this.users.updateAutoApprove(id, dto.autoApprove);
   }
 }

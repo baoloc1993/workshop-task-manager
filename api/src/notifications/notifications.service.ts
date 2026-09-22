@@ -31,8 +31,9 @@ export class NotificationsService {
   }
 
   // Nhắc mọi người đang hoạt động của một vai — dùng cho "việc bạt mới chờ chia"
-  // (không có assignee cụ thể để nhắc riêng từng người).
-  async notifyRole(role: 'bat_coordinator', title: string, body: string, data?: Record<string, unknown>) {
+  // (không có assignee cụ thể để nhắc riêng từng người). vòng 9: thêm 'owner' cho "việc
+  // chờ duyệt" (AC-41).
+  async notifyRole(role: 'bat_coordinator' | 'owner', title: string, body: string, data?: Record<string, unknown>) {
     const pairings = await this.prisma.devicePairing.findMany({
       where: {
         revokedAt: null,
