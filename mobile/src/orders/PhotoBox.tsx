@@ -130,7 +130,9 @@ export function PhotoBox({
 const styles = StyleSheet.create({
   box: { borderRadius: shape.small, minHeight: 120, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   boxEmpty: { borderWidth: 1, borderStyle: 'dashed', borderColor: colors.outline, backgroundColor: colors.surfaceContainer },
-  boxFilled: { borderWidth: 1, borderColor: colors.primary },
+  // dogfood vòng 9: Android giữ lại `dashed` của boxEmpty khi đổi style nếu không ghi đè
+  // tường minh — ô đã có ảnh vẫn nét đứt, lệch C21 ("nét liền khi đã có").
+  boxFilled: { borderWidth: 1, borderStyle: 'solid', borderColor: colors.primary },
   image: { width: '100%', height: 160 },
   emptyText: { color: colors.onSurfaceVariant, padding: space.md, textAlign: 'center', fontSize: fontSize.body },
   retakeLabel: {
