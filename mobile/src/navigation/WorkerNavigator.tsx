@@ -10,6 +10,7 @@ import { DemQueueScreen } from '../screens/DemQueueScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { MyTasksScreen } from '../screens/MyTasksScreen';
+import { SelfTaskScreen } from '../screens/SelfTaskScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 
 export type WorkerStackParamList = {
@@ -18,6 +19,7 @@ export type WorkerStackParamList = {
   History: undefined;
   Feedback: undefined;
   DemQueue: undefined;
+  SelfTask: undefined;
 };
 
 const Stack = createNativeStackNavigator<WorkerStackParamList>();
@@ -31,6 +33,11 @@ const Stack = createNativeStackNavigator<WorkerStackParamList>();
 // không đúng cho người vừa được thêm vào nhóm — DECISIONS.md vòng 7. GET /tasks/dem-queue
 // đã tự trả rỗng đúng nghĩa khi `groups` rỗng, nên hiện nút luôn là an toàn.
 export function WorkerNavigator() {
+  const { user } = useAuth();
+  // AC-40 (vòng 9) — thợ mảng đệm KHÔNG có lối S30 (việc đệm đi theo đơn/hàng đợi nhóm;
+  // API trả 400 nếu gọi). `line` chỉ có trong hồ sơ nếu API trả; thiếu thì nhận biết thợ
+  // đệm qua nhóm chuyên trách (`groups` chỉ có nghĩa với mảng đệm — ARCHITECTURE.md §6).
+  const isDemWorker = user?.line === 'dem' || (!user?.line && (user?.groups?.length ?? 0) > 0);
   return (
     <Stack.Navigator
       screenOptions={{
@@ -74,9 +81,16 @@ export function WorkerNavigator() {
                 </>
               }
             />
-            <MyTasksScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+            <MyTasksScreen
+              onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
+              onSelfTask={isDemWorker ? undefined : () => navigation.navigate('SelfTask')}
+            />
           </View>
         )}
+      </Stack.Screen>
+      {/* S30 (vòng 9) — form: C13(b) thanh mảnh, vụn đường dẫn "Việc của tôi". */}
+      <Stack.Screen name="SelfTask" options={{ title: 'Việc của tôi' }}>
+        {({ navigation }) => <SelfTaskScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
       <Stack.Screen name="TaskDetail" options={{ title: 'Việc của tôi' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}

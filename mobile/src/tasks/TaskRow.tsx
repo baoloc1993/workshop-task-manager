@@ -20,6 +20,7 @@ export function TaskRow({
   metaParts,
   showStatus = true,
   topLine,
+  pill,
   onPress,
 }: {
   task: Pick<Task, 'status' | 'dueAt'>;
@@ -27,6 +28,8 @@ export function TaskRow({
   metaParts?: (string | null | undefined | false)[];
   showStatus?: boolean;
   topLine?: ReactNode;
+  /** C22 (vòng 9, AC-44) — chip trạng thái đứng ĐẦU dòng phụ; chỉ S1/S6/S31 truyền vào. */
+  pill?: ReactNode;
   onPress: () => void;
 }) {
   const late = isOverdue(task);
@@ -44,11 +47,14 @@ export function TaskRow({
         <Text style={[styles.title, done && styles.titleDone]} numberOfLines={2}>
           {title}
         </Text>
-        <Text style={styles.subtitle} numberOfLines={2}>
-          {meta}
-          {meta && showStatus ? ' · ' : ''}
-          {showStatus && <Text style={{ color: statusColor(task), fontWeight: '700' }}>{statusText}</Text>}
-        </Text>
+        <View style={styles.subRow}>
+          {pill}
+          <Text style={[styles.subtitle, styles.subText]} numberOfLines={2}>
+            {meta}
+            {meta && showStatus ? ' · ' : ''}
+            {showStatus && <Text style={{ color: statusColor(task), fontWeight: '700' }}>{statusText}</Text>}
+          </Text>
+        </View>
       </View>
       {late && <Text style={styles.star}>★</Text>}
     </Pressable>
@@ -78,5 +84,7 @@ const styles = StyleSheet.create({
   title: { fontSize: fontSize.body, color: colors.onSurface },
   titleDone: { textDecorationLine: 'line-through', color: colors.onSurfaceVariant },
   subtitle: { fontSize: fontSize.label, color: colors.onSurfaceVariant },
+  subRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.sm, rowGap: 2 },
+  subText: { flexShrink: 1 },
   star: { fontSize: fontSize.title, color: colors.error },
 });

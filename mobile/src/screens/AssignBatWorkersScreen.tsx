@@ -109,7 +109,9 @@ export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onD
             <List.Item
               key={w.id}
               title={w.name}
-              description={`Đang giữ ${w.activeTaskCount} việc`}
+              // AC-39 (vòng 9) — API trả thêm mọi bat_coordinator (điều phối) trong danh sách này
+              // (ARCHITECTURE.md §6 mở rộng vòng 9); ghi rõ vai để không lẫn với thợ bạt.
+              description={`${w.role === 'bat_coordinator' ? 'Điều phối bạt · ' : ''}Đang giữ ${w.activeTaskCount} việc`}
               onPress={() => toggle(w.id)}
               style={selected.has(w.id) ? styles.itemSelected : undefined}
               // C9 (DESIGN-SYSTEM.md §4, AC-27 vòng 8) — vòng tròn chọn, không phải ô vuông.

@@ -6,7 +6,7 @@ import { ScreenTitle } from '../common/ScreenTitle';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { api } from '../api/client';
 import type { WorkerGroup, WorkerListItem } from '../api/types';
-import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { GROUP_LABEL } from '../orders/orderStatus';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
@@ -16,17 +16,38 @@ const ALL_GROUPS: WorkerGroup[] = ['do', 'may', 'cat_mut', 'khau_lot', 'nhoi', '
 // báo nhóm 0 người (việc sẽ không ai nhận được).
 export function AssignGroupsScreen() {
   const [workers, setWorkers] = useState<WorkerListItem[] | null>(null);
+  // AC-41 (vòng 9) — người được tự ghi việc: thợ may vá/bạt + điều phối (bat_coordinator).
+  // Thợ mảng đệm không tự ghi việc được (API 400) nên không có công tắc.
+  const [selfLoggers, setSelfLoggers] = useState<WorkerListItem[] | null>(null);
   const [error, setError] = useState(false);
+  const [autoError, setAutoError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api
       .get<WorkerListItem[]>('/users')
       .then((w) => {
         setWorkers(w.filter((u) => u.role === 'worker'));
+        setSelfLoggers(w.filter((u) => (u.role === 'worker' && u.line !== 'dem') || u.role === 'bat_coordinator'));
         setError(false);
       })
       .catch(() => setError(true));
   }, []);
+
+  // Hiệu lực NGAY, lạc quan: đổi chip trước, lỗi thì trả về giá trị cũ + báo (không tải lại
+  // cả màn để khỏi nháy mất vị trí đang cuộn).
+  async function toggleAutoApprove(person: WorkerListItem) {
+    const next = !person.autoApprove;
+    const setFlag = (v: boolean) =>
+      setSelfLoggers((prev) => (prev ?? []).map((u) => (u.id === person.id ? { ...u, autoApprove: v } : u)));
+    setFlag(next);
+    setAutoError(null);
+    try {
+      await api.patch(`/users/${person.id}/auto-approve`, { autoApprove: next });
+    } catch {
+      setFlag(!next);
+      setAutoError(`Chưa đổi được "Tự duyệt" của ${person.name} — thử lại.`);
+    }
+  }
 
   useFocusEffect(load);
 
@@ -86,6 +107,48 @@ export function AssignGroupsScreen() {
           </View>
         </View>
       ))}
+
+      {/* AC-41 (vòng 9) — prototype S26: khối riêng "Việc thợ tự ghi", mỗi người một chip C18
+          "Tự duyệt" (mặc định tắt). */}
+      {selfLoggers && selfLoggers.length > 0 && (
+        <>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Việc thợ tự ghi
+          </Text>
+          <Text variant="bodyLarge" style={styles.sectionHint}>
+            Bật "Tự duyệt" thì việc người đó tự ghi vào thẳng danh sách. Tắt thì bạn duyệt ở "Việc chờ duyệt".
+          </Text>
+          {autoError && (
+            <Banner visible icon={ErrorIcon} style={styles.banner} actions={[{ ...bannerActionStyle, label: 'Đóng', onPress: () => setAutoError(null) }]}>
+              {autoError}
+            </Banner>
+          )}
+          {selfLoggers.map((u) => {
+            const on = !!u.autoApprove;
+            return (
+              <View key={u.id} style={[styles.row, styles.autoRow]}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="titleLarge">{u.name}</Text>
+                  <Text style={styles.autoSub}>
+                    {u.role === 'bat_coordinator' ? 'Điều phối bạt' : u.line === 'bat' ? 'Bạt' : 'May vá'}
+                  </Text>
+                </View>
+                <Chip
+                  selected={on}
+                  onPress={() => toggleAutoApprove(u)}
+                  style={[styles.chip, on ? styles.chipSelected : styles.chipUnselected]}
+                  textStyle={on ? styles.chipTextSelected : styles.chipTextUnselected}
+                  selectedColor={on ? colors.onPrimaryContainer : colors.onSurface}
+                  hitSlop={chipHitSlop}
+                  accessibilityLabel={`Tự duyệt việc ${u.name} tự ghi: ${on ? 'đang bật' : 'đang tắt'}`}
+                >
+                  Tự duyệt
+                </Chip>
+              </View>
+            );
+          })}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -103,4 +166,8 @@ const styles = StyleSheet.create({
   chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },
   chipTextSelected: { color: colors.onPrimaryContainer },
   chipTextUnselected: { color: colors.onSurface },
+  sectionTitle: { marginTop: space.md, marginBottom: space.xs },
+  sectionHint: { color: colors.onSurfaceVariant, marginBottom: space.md },
+  autoRow: { flexDirection: 'row', alignItems: 'center' },
+  autoSub: { color: colors.onSurfaceVariant, fontSize: fontSize.label },
 });

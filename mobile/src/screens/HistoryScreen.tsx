@@ -4,7 +4,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Banner, Chip, Text } from 'react-native-paper';
 import { api } from '../api/client';
 import type { Task } from '../api/types';
-import { chipHitSlop, colors, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, fontSize, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
 import { formatTime, lineLabel } from '../tasks/taskStatus';
 import { SkeletonCard } from '../common/SkeletonCard';
@@ -122,9 +122,16 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
               lineLabel(item.line),
               doneAt ? `xong ${new Date(doneAt).toLocaleDateString('vi-VN')} lúc ${formatTime(doneAt)}` : null,
             ]}
+            // AC-41 (vòng 9) — việc tự ghi bị chủ không duyệt chỉ còn thấy ở lịch sử của
+            // chính người ghi, kèm nhãn rõ ràng (ARCHITECTURE.md §6 mở rộng vòng 9). Chữ đỏ đậm
+            // như phần "kẹt" của C8 — không thêm chip C22 (C22 chỉ ở S1/S6/S31).
+            topLine={
+              item.approval === 'rejected' ? <Text style={styles.rejected}>Chủ không duyệt</Text> : undefined
+            }
             // Mọi việc ở S16 đều đã xong (server chỉ trả done) — dòng phụ đã nói "xong lúc
-            // <giờ>", nhắc lại trạng thái "Xong" lần nữa là thừa.
-            showStatus={false}
+            // <giờ>", nhắc lại trạng thái "Xong" lần nữa là thừa. Riêng việc bị không duyệt
+            // có thể chưa xong → hiện trạng thái để khỏi tưởng là đã xong.
+            showStatus={item.status !== 'done'}
             onPress={() => onOpenTask(item.id)}
           />
         );
@@ -149,4 +156,5 @@ const styles = StyleSheet.create({
   chipSelectedText: { color: colors.onPrimaryContainer, fontWeight: '700' },
   chipTextUnselected: { color: colors.onSurface },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm },
+  rejected: { color: colors.error, fontWeight: '700', fontSize: fontSize.label },
 });

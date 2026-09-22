@@ -10,7 +10,6 @@ import { StatusChip } from '../tasks/StatusChip';
 import { actionEndpoint, actionLabel, formatTime, nextAction } from '../tasks/taskStatus';
 import { formatMeasurements, modeLabel, pillowSummary } from '../orders/orderStatus';
 import { PhotoBox } from '../orders/PhotoBox';
-import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
@@ -77,9 +76,8 @@ function MeasurementEditor({
     }
   }
 
-  async function handleTakePhoto() {
-    const dataUri = await takePhotoAsBase64();
-    if (!dataUri) return;
+  // AC-42 (vòng 9) — PhotoBox tự chụp + xem trước, chỉ gọi hàm này khi "Dùng ảnh này".
+  async function handleConfirmPhoto(dataUri: string) {
     setPhoto(dataUri);
     await save(dataUri);
   }
@@ -105,7 +103,7 @@ function MeasurementEditor({
         photo={photo}
         label="Chụp ảnh tờ đo"
         required={order.difficulty === 'kho'}
-        onPress={handleTakePhoto}
+        onConfirm={handleConfirmPhoto}
       />
       {saving && (
         <Text variant="bodySmall" style={styles.meta}>

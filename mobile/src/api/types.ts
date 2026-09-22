@@ -10,6 +10,8 @@ export interface AuthUser {
   name: string;
   role: Role;
   groups: WorkerGroup[];
+  // Vòng 9 — optional: API chỉ trả nếu có; S6 dùng để ẩn "Ghi việc tôi làm" với thợ đệm.
+  line?: WorkerListItem['line'];
 }
 
 export interface LoginResponse {
@@ -21,10 +23,14 @@ export interface WorkerListItem {
   id: string;
   name: string;
   role: Role;
-  line: 'may_va' | 'bat' | null;
+  // 'dem' — thợ mảng đệm (vòng 7); trước vòng 9 type cắt mất giá trị này dù DB có.
+  line: 'may_va' | 'bat' | 'dem' | null;
   groups?: WorkerGroup[];
   // AC-32 (vòng 8) — chỉ có mặt khi gọi `GET /users?paired=all` (S5).
   paired?: boolean;
+  // AC-41 (vòng 9) — cờ "Tự duyệt việc tự ghi" (ARCHITECTURE.md §6 mở rộng vòng 9), chỉ có
+  // nghĩa với worker/bat_coordinator. Optional: API cũ chưa trả thì coi như tắt.
+  autoApprove?: boolean;
 }
 
 // S10 (CAP-TASK-06, vòng 4) — GET /users/bat-workers: "danh sách thợ bạt (ai đang cầm
@@ -96,6 +102,9 @@ export interface TaskOrderInfo {
   route: { id: string; name: string } | null;
 }
 
+// Vòng 9 (CAP-TASK-16) — `pending`/`rejected` chỉ có khi `source='self'` (thợ tự ghi).
+export type TaskApproval = 'approved' | 'pending' | 'rejected';
+
 export interface Task {
   id: string;
   content: string;
@@ -107,6 +116,9 @@ export interface Task {
   assignees: TaskAssignee[];
   events: TaskEvent[];
   createdAt: string;
+  // vòng 9 — optional để đọc được response API cũ (thiếu = việc chủ giao, đã duyệt).
+  source?: 'voice' | 'manual' | 'self';
+  approval?: TaskApproval;
   // vòng 7 — chỉ có ý nghĩa khi line='dem'.
   orderId?: string | null;
   step?: TaskStep | null;

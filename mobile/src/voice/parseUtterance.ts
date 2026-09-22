@@ -8,10 +8,9 @@
 // nghe được — không tách number/unit có cấu trúc (DECISIONS.md, vòng 4: không ai đối chiếu
 // tự động, PRD.md §5 đã loại trừ nghiệm thu).
 
-export interface VoiceWorker {
-  id: string;
-  name: string;
-}
+import { matchAssignees, stripDiacritics, type NameCandidate } from './matchAssignees';
+
+export type VoiceWorker = NameCandidate;
 
 export interface ParsedUtterance {
   assigneeId: string | null;
@@ -21,6 +20,9 @@ export interface ParsedUtterance {
   rawText: string;
   line: 'may_va' | 'bat';
   measurements: string | null;
+  // AC-38 (vòng 9) — người gần đúng / khớp chắc ở phương án nghe sau, tối đa 3. S3 chỉ gợi
+  // ý, KHÔNG tự tick (matchAssignees.ts).
+  suggestedAssigneeIds: string[];
 }
 
 const WEEKDAY_WORDS: Record<string, number> = {
@@ -33,30 +35,14 @@ const WEEKDAY_WORDS: Record<string, number> = {
   'thứ bảy': 6,
 };
 
-function stripDiacritics(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
 function lastToken(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts[parts.length - 1];
 }
 
-/** Tìm người nhận: so khớp tên gọi (từ cuối họ tên) xuất hiện trong câu, không phân biệt hoa/thường/dấu. */
-function findAssignee(text: string, workers: VoiceWorker[]): { id: string; name: string } | null {
-  const normText = stripDiacritics(text);
-  const matches = workers.filter((w) => {
-    const key = stripDiacritics(lastToken(w.name));
-    if (!key) return false;
-    return new RegExp(`\\b${key}\\b`).test(normText);
-  });
-  // Trùng tên gọi giữa nhiều người: không đoán, để chủ xưởng tự chọn ở S3.
-  if (matches.length !== 1) return null;
-  return { id: matches[0].id, name: matches[0].name };
-}
-
-/** Tìm hạn: hôm nay / mai / mốt / thứ trong tuần → ngày ISO tới gần nhất. */
-function findDueAt(text: string, now: Date): { dueAt: string | null; matchedPhrase: string | null } {
+/** Tìm hạn: hôm nay / mai / mốt / thứ trong tuần → ngày ISO tới gần nhất. Export từ vòng 9
+ * để S30 (tự ghi việc) cho gõ hạn bằng chữ ("thứ Sáu", "mai") như lúc nói. */
+export function findDueAt(text: string, now: Date): { dueAt: string | null; matchedPhrase: string | null } {
   const norm = stripDiacritics(text);
 
   if (/\bhom nay\b/.test(norm)) {
@@ -119,12 +105,20 @@ function cleanContent(
   dueMatchedPhrase: string | null,
   line: 'may_va' | 'bat',
   measureMatchedPhrase: string | null,
+  stripGenericName = false,
 ): string {
   let out = text;
+  const beforeName = out;
   if (assigneeName) {
     const key = lastToken(assigneeName);
     out = out.replace(new RegExp(`giao\\s+cho\\s+${key}`, 'i'), '');
     out = out.replace(new RegExp(`\\bcho\\s+${key}\\b`, 'i'), '');
+  }
+  if (out === beforeName && stripGenericName) {
+    // Vòng 9 (AC-37) — tên nghe lệch ("Toán" cho "Toàn", khớp ở phương án sau, hoặc chỉ gần
+    // đúng): tên thật không nằm nguyên văn trong câu nên bóc theo tên không ăn — bóc chung
+    // "giao cho <từ>", không để chữ nghe sai lọt vào tên việc.
+    out = out.replace(/giao\s+cho\s+\S+/i, '');
   }
   if (dueMatchedPhrase) {
     out = out.replace(new RegExp(dueMatchedPhrase, 'i'), '');
@@ -146,13 +140,31 @@ function cleanContent(
   return out.length > 0 ? out : text.trim();
 }
 
-export function parseUtterance(rawText: string, workers: VoiceWorker[], now: Date = new Date()): ParsedUtterance {
+/**
+ * `alternatives` (vòng 9, AC-37): các phương án nghe khác của bộ nhận dạng, theo độ tin cậy
+ * giảm dần — phương án đầu chính là `rawText`. Nội dung/hạn/số đo vẫn tách từ `rawText`;
+ * riêng người nhận khớp trên mọi phương án (matchAssignees.ts).
+ */
+export function parseUtterance(
+  rawText: string,
+  workers: VoiceWorker[],
+  now: Date = new Date(),
+  alternatives: string[] = [],
+): ParsedUtterance {
   const text = rawText.trim();
   const { line, measurements, matchedPhrase: measureMatch } = findLineAndMeasurements(text);
   // Mảng bạt luôn vào "Việc bạt chờ chia" (CAP-TASK-06) — không đoán người nhận trong câu nói.
-  const assignee = line === 'bat' ? null : findAssignee(text, workers);
+  const match = line === 'bat' ? { matchedId: null, suggestedIds: [] } : matchAssignees([text, ...alternatives], workers);
+  const assignee = match.matchedId ? workers.find((w) => w.id === match.matchedId) ?? null : null;
   const due = findDueAt(text, now);
-  const content = cleanContent(text, assignee?.name ?? null, due.matchedPhrase, line, measureMatch);
+  const content = cleanContent(
+    text,
+    assignee?.name ?? null,
+    due.matchedPhrase,
+    line,
+    measureMatch,
+    line !== 'bat' && (!!assignee || match.suggestedIds.length > 0),
+  );
 
   return {
     assigneeId: assignee?.id ?? null,
@@ -162,5 +174,6 @@ export function parseUtterance(rawText: string, workers: VoiceWorker[], now: Dat
     rawText: text,
     line,
     measurements,
+    suggestedAssigneeIds: match.suggestedIds,
   };
 }

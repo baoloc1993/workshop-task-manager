@@ -8,42 +8,7 @@ import { colors, fontSize, navHeight, shape, space, tapMin } from '../theme/toke
 import { isDoneToday, taskBucket } from '../tasks/taskStatus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
-
-// C14 (DESIGN-SYSTEM.md §4) — mỗi hàng: ICON MÀU · tên · số đếm. Ký tự và lớp màu lấy
-// đúng của prototype S0 (`.li.sun/.warn/.ok/.pri/.cfg .ic`), không map sang icon font:
-// bộ ký tự này đã là thứ Authority xem và chốt, đổi sang MaterialCommunityIcons là dựng lại
-// một lần nữa cái đã chốt. §4b luật 1 "không icon đứng một mình" vẫn đúng — icon nào cũng
-// có chữ ngay cạnh.
-const ICON_COLOR = {
-  sun: colors.secondary,
-  warn: colors.error,
-  ok: colors.tertiary,
-  pri: colors.primary,
-  cfg: colors.onSurfaceVariant,
-} as const;
-
-function MenuRow({
-  icon,
-  tone,
-  label,
-  count,
-  onPress,
-}: {
-  icon: string;
-  tone: keyof typeof ICON_COLOR;
-  label: string;
-  count?: number;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-      <Text style={[styles.rowIcon, { color: ICON_COLOR[tone] }]}>{icon}</Text>
-      <Text style={styles.rowLabel}>{label}</Text>
-      {/* C14 trạng thái bắt buộc: "mục 0 (KHÔNG hiện số)" — kiểm thử 2026-09-19 */}
-      {count !== undefined && count > 0 && <Text style={styles.rowCount}>{count}</Text>}
-    </Pressable>
-  );
-}
+import { MenuRow } from '../common/MenuRow';
 
 // S0 "Trang chủ" (PROTOTYPE.md §1, DECISIONS.md 2026-09-15: trì hoãn tới khi đủ 3 mảng để
 // IA có ý nghĩa thật — vòng 7 mở mảng đệm là mảng thứ 3, điều kiện đó nay đã đủ). Không
@@ -52,6 +17,8 @@ function MenuRow({
 // cuối danh sách việc như trước.
 export function OwnerMenuScreen({
   onOverview,
+  onMayVa,
+  onPendingTasks,
   onPriority,
   onDelivery,
   onCustomerLookup,
@@ -66,6 +33,10 @@ export function OwnerMenuScreen({
   onVoiceCapture,
 }: {
   onOverview: () => void;
+  // AC-43 (vòng 9) — trước đây mục "Việc may vá" gọi `onOverview` (lỗi thật, DECISIONS.md
+  // 2026-09-22): mở S1 không lọc. Nay mở S1 với chip May vá bật sẵn.
+  onMayVa: () => void;
+  onPendingTasks: () => void;
   onPriority: () => void;
   onDelivery: () => void;
   onCustomerLookup: () => void;
@@ -94,8 +65,15 @@ export function OwnerMenuScreen({
       .join('') || 'CX';
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [orders, setOrders] = useState<OrderListItem[] | null>(null);
+  // AC-41 (vòng 9) — số việc chờ duyệt, tải riêng: lỗi (vd API cũ chưa có endpoint) thì
+  // chỉ bỏ số, không làm mất số đếm của các mục khác.
+  const [pendingCount, setPendingCount] = useState<number | undefined>(undefined);
 
   const load = useCallback(async () => {
+    api
+      .get<Task[]>('/tasks/pending')
+      .then((p) => setPendingCount(p.length))
+      .catch(() => setPendingCount(undefined));
     try {
       const [t, o] = await Promise.all([api.get<Task[]>('/tasks'), api.get<OrderListItem[]>('/orders')]);
       setTasks(t);
@@ -143,10 +121,11 @@ export function OwnerMenuScreen({
       <ScrollView contentContainerStyle={styles.body}>
         <MenuRow icon="☀" tone="sun" label="Cả xưởng hôm nay" count={tasks ? active.length : undefined} onPress={onOverview} />
         <MenuRow icon="!" tone="warn" label="Việc nào làm trước" count={tasks ? overdueOrStale : undefined} onPress={onPriority} />
+        <MenuRow icon="⏳" tone="sun" label="Việc chờ duyệt" count={pendingCount} onPress={onPendingTasks} />
         <MenuRow icon="🚚" tone="ok" label="Hàng trả theo khu vực" onPress={onDelivery} />
         <MenuRow icon="👤" tone="pri" label="Tra khách cũ" onPress={onCustomerLookup} />
         <View style={styles.divider} />
-        <MenuRow icon="▤" tone="sun" label="Việc may vá" count={tasks ? mayVaCount : undefined} onPress={onOverview} />
+        <MenuRow icon="▤" tone="sun" label="Việc may vá" count={tasks ? mayVaCount : undefined} onPress={onMayVa} />
         <MenuRow icon="▤" tone="ok" label="Việc bạt" count={tasks ? batCount : undefined} onPress={onBatQueue} />
         <MenuRow icon="▤" tone="pri" label="Đơn đệm" count={orders ? demOrderCount : undefined} onPress={onOrders} />
         <MenuRow icon="✓" tone="ok" label="Việc đã xong" count={tasks ? doneToday : undefined} onPress={onHistory} />
@@ -183,19 +162,6 @@ export function OwnerMenuScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   body: { paddingBottom: space.sm },
-  // prototype `.li`: `background:none` — hàng menu NẰM THẲNG trên nền màn hình, không phải
-  // thẻ trắng. Nền trắng + bóng là khuôn C3 (hàng VIỆC), khác khuôn C14 (mục ở trang chủ);
-  // dùng nhầm C3 ở đây làm S0 trông như một danh sách việc.
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    minHeight: tapMin,
-    borderRadius: shape.small,
-    // picky 2026-09-19: lề trái đo được 23.2dp, lệch khỏi avatar/ô tìm (16dp) và không nằm
-    // trên thang §2.3. Về đúng --space-md để mọi thứ trên S0 thẳng một đường.
-    paddingHorizontal: space.md,
-  },
   rowPressed: { backgroundColor: colors.surfaceContainerHigh },
   top: {
     flexDirection: 'row',
@@ -232,9 +198,6 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   searchText: { color: colors.onSurfaceVariant, fontSize: fontSize.label },
-  rowIcon: { width: 24, textAlign: 'center', fontSize: 18 },
-  rowLabel: { flex: 1, fontSize: fontSize.body, color: colors.onSurface },
-  rowCount: { fontSize: fontSize.label, color: colors.onSurfaceVariant },
   divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: 6, marginHorizontal: space.md },
   addBar: {
     flexDirection: 'row',

@@ -5,7 +5,7 @@ import { Banner, Button, Chip, Text, TextInput } from 'react-native-paper';
 import { ScreenTitle } from '../common/ScreenTitle';
 import { api } from '../api/client';
 import type { Route } from '../api/types';
-import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 // S25 "Khu vực trả hàng" (CAP-DEM-05, AC-23) — cấu hình 4-7 khu vực, chip địa danh (C18)
@@ -67,6 +67,11 @@ export function RouteSettingsScreen() {
           Mất kết nối — đang thử lại
         </Banner>
       )}
+      {/* AC-45 (vòng 9, feedback B5) — "khu vực" và "địa danh" là hai thứ khác nghĩa, không
+          gộp (DECISIONS.md 2026-09-22): nói rõ bằng chữ ngay đầu màn. */}
+      <Text variant="bodyLarge" style={styles.explain}>
+        Khu vực = một chuyến xe. Địa danh = tên làng/xã thuộc khu vực đó — app dò địa chỉ khách để gợi ý khu vực.
+      </Text>
       <Text variant="bodyLarge" style={styles.hint}>
         Xe ôm chuyến lẻ · Khách tự lấy luôn có sẵn, không cần cấu hình.
       </Text>
@@ -94,19 +99,25 @@ export function RouteSettingsScreen() {
               </Chip>
             ))}
           </View>
-          <View style={styles.addRow}>
-            <TextInput
-              mode="outlined"
-              placeholder="Thêm địa danh (vd. Khu A, Khu B)"
-              value={landmarkDrafts[r.id] ?? ''}
-              onChangeText={(v) => setLandmarkDrafts((d) => ({ ...d, [r.id]: v }))}
-              onSubmitEditing={() => addLandmark(r)}
-              style={styles.addInput}
-            />
-            <Button mode="outlined" onPress={() => addLandmark(r)} contentStyle={{ height: tapMin }} style={styles.actionButton}>
-              Thêm
-            </Button>
-          </View>
+          {/* AC-45 — chữ mới dài hơn chữ cũ: nhãn đặt TRÊN ô (C2 "nhãn nhỏ phía trên"), ô
+              rộng cả hàng, nút "Thêm" xuống dòng dưới — không để chữ bị cắt ở máy 360dp. */}
+          <Text style={styles.addLabel}>＋ Thêm tên làng/xã thuộc khu vực này</Text>
+          <TextInput
+            mode="outlined"
+            placeholder="Ví dụ: Khu A, Khu B"
+            accessibilityLabel="Thêm tên làng/xã thuộc khu vực này"
+            value={landmarkDrafts[r.id] ?? ''}
+            onChangeText={(v) => setLandmarkDrafts((d) => ({ ...d, [r.id]: v }))}
+            onSubmitEditing={() => addLandmark(r)}
+          />
+          <Button
+            mode="outlined"
+            onPress={() => addLandmark(r)}
+            contentStyle={{ height: tapMin }}
+            style={[styles.actionButton, styles.addLandmarkButton]}
+          >
+            Thêm
+          </Button>
         </View>
       ))}
 
@@ -131,6 +142,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   hint: { color: colors.onSurfaceVariant, marginBottom: space.md },
+  explain: { color: colors.onSurface, marginBottom: space.sm },
+  addLabel: { fontSize: fontSize.label, color: colors.primary, fontWeight: '600', marginTop: space.xs },
+  addLandmarkButton: { alignSelf: 'flex-start' },
   block: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   blockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

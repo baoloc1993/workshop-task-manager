@@ -7,6 +7,8 @@ import { ScreenHeader } from '../common/ScreenHeader';
 import { colors } from '../theme/tokens';
 import { useAuth } from '../auth/AuthContext';
 import { AssignBatWorkersScreen } from '../screens/AssignBatWorkersScreen';
+import { BatMenuScreen } from '../screens/BatMenuScreen';
+import { SelfTaskScreen } from '../screens/SelfTaskScreen';
 import { BatQueueScreen } from '../screens/BatQueueScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
@@ -14,6 +16,8 @@ import { MyTasksScreen } from '../screens/MyTasksScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 
 export type BatCoordinatorStackParamList = {
+  Menu: undefined;
+  SelfTask: undefined;
   BatQueue: undefined;
   AssignBatWorkers: { taskId: string };
   MyTasks: undefined;
@@ -37,6 +41,18 @@ export function BatCoordinatorNavigator() {
         headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined),
       }}
     >
+      {/* S0 điều phối (vòng 9, AC-39) — màn mở đầu mới, thay S9. S9 vẫn giữ nguyên nút "Việc của
+          tôi" ở khối đầu mục (không phá lối cũ điều phối đã quen). */}
+      <Stack.Screen name="Menu" options={{ headerShown: false }}>
+        {({ navigation }) => (
+          <BatMenuScreen
+            onBatQueue={() => navigation.navigate('BatQueue')}
+            onMyTasks={() => navigation.navigate('MyTasks')}
+            onHistory={() => navigation.navigate('History')}
+            onFeedback={() => navigation.navigate('Feedback')}
+          />
+        )}
+      </Stack.Screen>
       <Stack.Screen
         name="BatQueue"
         options={{ headerShown: false }}
@@ -48,6 +64,7 @@ export function BatCoordinatorNavigator() {
                 thử mới biết dẫn tới đâu, trái luật §4b. */}
             <ScreenHeader
               title="Việc bạt chờ chia"
+              canGoBack
               right={
                 <Button textColor={colors.onPrimary} onPress={() => navigation.navigate('MyTasks')}>
                   Việc của tôi
@@ -85,9 +102,17 @@ export function BatCoordinatorNavigator() {
                 </Button>
               }
             />
-            <MyTasksScreen onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })} />
+            {/* AC-40 (vòng 9) — điều phối tự ghi việc như thợ (mảng = bạt, server tự lấy). */}
+            <MyTasksScreen
+              onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
+              onSelfTask={() => navigation.navigate('SelfTask')}
+            />
           </View>
         )}
+      </Stack.Screen>
+      {/* S30 (vòng 9) — form: C13(b) thanh mảnh, vụn đường dẫn "Việc của tôi". */}
+      <Stack.Screen name="SelfTask" options={{ title: 'Việc của tôi' }}>
+        {({ navigation }) => <SelfTaskScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
       <Stack.Screen name="TaskDetail" options={{ title: 'Việc bạt chờ chia' }}>
         {({ route }) => <TaskDetailScreen taskId={route.params.taskId} />}

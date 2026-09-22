@@ -9,6 +9,8 @@ import {
 import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
 import { parseUtterance, type ParsedUtterance } from '../voice/parseUtterance';
+import { voiceContextStrings } from '../voice/matchAssignees';
+import { isMayVaAssignee } from '../tasks/assignees';
 import { colors, space, shape, tapMin } from '../theme/tokens';
 import { ErrorIcon } from '../common/bannerParts';
 
@@ -23,12 +25,17 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const workersRef = useRef<WorkerListItem[]>([]);
+  // AC-37 (vòng 9) — mọi phương án nghe của lần nói gần nhất (theo độ tin cậy giảm dần),
+  // không chỉ `results[0]`: tên riêng hay bị nghe lệch ở phương án đầu nhưng đúng ở phương án sau.
+  const alternativesRef = useRef<string[]>([]);
 
   useEffect(() => {
     api
       .get<WorkerListItem[]>('/users')
       .then((list) => {
-        workersRef.current = list.filter((w) => w.role === 'worker' && w.line === 'may_va');
+        // AC-39 (vòng 9) — điều phối (bat_coordinator) nhận được việc may vá như thợ, nên cũng
+        // có trong danh sách khớp tên (cùng tập người nhận của S3, CreateTaskScreen.tsx).
+        workersRef.current = list.filter(isMayVaAssignee);
       })
       .catch(() => {
         // Danh sách người chỉ cần để khớp tên trong câu nói — thiếu thì vẫn cho nói,
@@ -39,6 +46,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
 
   useSpeechRecognitionEvent('result', (event) => {
     const text = event.results[0]?.transcript ?? '';
+    alternativesRef.current = event.results.map((r) => r.transcript).filter(Boolean);
     setHeard(text);
   });
 
@@ -54,6 +62,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
   const startListening = useCallback(async () => {
     setError(null);
     setHeard('');
+    alternativesRef.current = [];
     const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!perm.granted) {
       setError('Chưa được cấp quyền micro. Bạn gõ tay giúp phần này.');
@@ -64,6 +73,11 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
       lang: 'vi-VN',
       interimResults: true,
       continuous: false,
+      // AC-37 (vòng 9) — cả hai option có sẵn trong expo-speech-recognition 57 (không thêm
+      // native module). `contextualStrings` chỉ có tác dụng trên Android API 33+ / iOS; máy
+      // cũ bỏ qua, vẫn còn lớp khớp trên nhiều phương án + gợi ý gần đúng.
+      maxAlternatives: 5,
+      contextualStrings: voiceContextStrings(workersRef.current),
     });
   }, []);
 
@@ -77,7 +91,8 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
       onFallbackToManual('');
       return;
     }
-    const parsed = parseUtterance(finalText, workersRef.current);
+    const others = alternativesRef.current.filter((a) => a.trim() !== finalText);
+    const parsed = parseUtterance(finalText, workersRef.current, new Date(), others);
     onParsed(parsed);
   }, [heard, onParsed, onFallbackToManual]);
 

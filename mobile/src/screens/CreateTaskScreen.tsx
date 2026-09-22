@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Banner, Button, List, RadioButton, Text, TextInput } from 'react-native-paper';
+import { Banner, Button, Chip, List, RadioButton, Text, TextInput } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../api/client';
 import type { WorkerListItem } from '../api/types';
-import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
+import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { track } from '../analytics/track';
+import { isMayVaAssignee } from '../tasks/assignees';
 import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
@@ -16,7 +17,11 @@ export interface CreateTaskPrefill {
   assigneeId?: string | null;
   line?: 'may_va' | 'bat'; // CAP-TASK-06 (vòng 4)
   measurements?: string | null; // CAP-TASK-05 (vòng 4) — chỉ có ý nghĩa khi line='bat'
+  // AC-38 (vòng 9) — người gần đúng từ giọng nói (voice/matchAssignees.ts), tối đa 3, gần
+  // nhất trước. Chỉ để HIỆN chip gợi ý — không bao giờ tự tick.
+  suggestedAssigneeIds?: string[];
 }
+
 
 // Nháp CHƯA GỬI, không phải "việc" — không phạm ARCHITECTURE.md §10 "không lưu việc
 // xuống máy" (điều đó nói về bản ghi đã tồn tại). Xoá ngay sau khi giao việc thành công.
@@ -207,7 +212,19 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
     }
   }
 
-  const mayVaWorkers = workers.filter((w) => w.role === 'worker' && w.line === 'may_va');
+  const mayVaWorkers = workers.filter(isMayVaAssignee);
+  // AC-38 — giữ đúng thứ tự gợi ý (gần nhất trước), bỏ người không còn trong danh sách.
+  const suggested = (prefill?.suggestedAssigneeIds ?? [])
+    .map((id) => mayVaWorkers.find((w) => w.id === id))
+    .filter((w): w is WorkerListItem => !!w)
+    .slice(0, 3);
+
+  // Chạm chip gợi ý = CHỌN người đó (không bỏ chọn nếu đã chọn — chip là lối tắt tới hàng
+  // C9 bên dưới, bỏ chọn thì chạm hàng đó).
+  function pickSuggested(id: string) {
+    if (selected.has(id)) return;
+    toggle(id);
+  }
 
   return (
     // Banner (C5) phải "bám mép trên" (DESIGN-SYSTEM.md §4) — dogfood pha I vòng 2
@@ -295,6 +312,32 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
       <Text variant="bodyLarge" style={styles.label}>
         Giao cho
       </Text>
+      {/* AC-38 (vòng 9) — hàng chip "Gợi ý" (C18) ngay trên danh sách người nhận, chỉ hiện
+          khi giọng nói có tên gần đúng. Xuống dòng, không cuộn ngang (§4b luật 3). */}
+      {!usersLoading && suggested.length > 0 && (
+        <View style={styles.suggestBlock}>
+          <Text style={styles.suggestLabel}>Gợi ý — có phải bạn nói:</Text>
+          <View style={styles.chipRow}>
+            {suggested.map((w) => {
+              const on = selected.has(w.id);
+              return (
+                <Chip
+                  key={w.id}
+                  selected={on}
+                  onPress={() => pickSuggested(w.id)}
+                  style={[styles.chip, on ? styles.chipSelected : styles.chipUnselected]}
+                  textStyle={on ? styles.chipTextSelected : styles.chipTextUnselected}
+                  selectedColor={on ? colors.onPrimaryContainer : colors.onSurface}
+                  hitSlop={chipHitSlop}
+                  accessibilityLabel={`Gợi ý: chọn ${w.name}`}
+                >
+                  {w.name}
+                </Chip>
+              );
+            })}
+          </View>
+        </View>
+      )}
       {/* C9 (DESIGN-SYSTEM.md §4, AC-27 vòng 8) — "hàng chọn người": vòng tròn bên trái,
           chọn = tô --color-primary. `Checkbox` (ô vuông) trước đây lệch component đã chốt —
           `RadioButton` vẽ đúng hình vòng tròn dù ngữ nghĩa vẫn là chọn nhiều (mỗi hàng bấm
@@ -316,6 +359,8 @@ export function CreateTaskScreen({ onDone, prefill }: { onDone: () => void; pref
               <List.Item
                 key={w.id}
                 title={w.name}
+                // AC-39 — điều phối nằm chung danh sách, ghi rõ vai để khỏi lẫn với thợ cùng tên.
+                description={w.role === 'bat_coordinator' ? 'Điều phối bạt' : undefined}
                 onPress={() => toggle(w.id)}
                 style={selected.has(w.id) ? styles.itemSelected : undefined}
                 left={() => (
@@ -371,6 +416,15 @@ const styles = StyleSheet.create({
   label: { marginBottom: space.sm },
   list: { marginBottom: space.lg, backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
   itemSelected: { backgroundColor: colors.primaryContainer },
+  // C18 (DESIGN-SYSTEM.md §4) — cùng khuôn ép màu với AssignGroupsScreen/CreateOrderScreen.
+  suggestBlock: { marginBottom: space.sm },
+  suggestLabel: { fontSize: fontSize.label, color: colors.onSurfaceVariant, marginBottom: space.xs },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
+  chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
+  chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },
+  chipTextSelected: { color: colors.onPrimaryContainer },
+  chipTextUnselected: { color: colors.onSurface },
   itemSkeleton: {
     height: tapMin,
     margin: space.sm,

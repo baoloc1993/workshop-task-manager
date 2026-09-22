@@ -6,6 +6,7 @@ import { api, ApiError } from '../api/client';
 import type { Task } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { TaskRow } from '../tasks/TaskRow';
+import { StatusPill } from '../tasks/StatusPill';
 import { actionEndpoint, actionLabel, isDoneToday, isOverdue, nextAction } from '../tasks/taskStatus';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
@@ -15,7 +16,20 @@ import { ErrorIcon } from '../common/bannerParts';
 
 // S6 — "Việc của tôi" (PROTOTYPE.md §1). CAP-TASK-11/12/13 (AC-8/9/10): việc đầu hàng có
 // nút hành động ngay trên thẻ (≤2 chạm); việc khác chạm mở S7 để báo trạng thái ở đó.
-export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
+// Vòng 9 (AC-40, C22) — việc tự ghi đang chờ chủ duyệt: chip "Chờ chủ duyệt" đầu dòng phụ,
+// vẫn giữ chữ trạng thái C8 phía sau (thợ vẫn bấm nhận/bắt đầu/xong được trong lúc chờ).
+function pendingPill(task: Task) {
+  return task.approval === 'pending' ? <StatusPill kind="pending" /> : undefined;
+}
+
+export function MyTasksScreen({
+  onOpenTask,
+  onSelfTask,
+}: {
+  onOpenTask: (id: string) => void;
+  // AC-40 — lối "＋ Ghi việc tôi làm" → S30. Không truyền (thợ mảng đệm) thì không hiện.
+  onSelfTask?: () => void;
+}) {
   const { user, logout } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   // AC-30 (vòng 8, CAP-BUG-01) — giữ nguyên lỗi gốc (NetworkError/ApiError) thay vì gộp
@@ -130,6 +144,13 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
             <Text variant="bodyLarge" style={styles.emptyText}>
               Hôm nay chưa có việc nào được giao cho bạn.
             </Text>
+            {/* C4 — rỗng có đúng MỘT nút khi vai có quyền tạo (§5); nút ghim dưới danh sách
+                ẩn ở trạng thái này để không trùng hai nút cùng nghĩa. */}
+            {onSelfTask && (
+              <Button mode="contained" onPress={onSelfTask} style={styles.emptyButton} contentStyle={{ height: tapMin }}>
+                ＋ Ghi việc tôi làm
+              </Button>
+            )}
           </View>
         )
       }
@@ -155,6 +176,7 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
                 task={first}
                 title={first.content}
                 metaParts={[first.dueAt ? `hạn ${new Date(first.dueAt).toLocaleDateString('vi-VN')}` : null]}
+                pill={pendingPill(first)}
                 onPress={() => onOpenTask(first.id)}
               />
               <Button
@@ -181,11 +203,26 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
           task={item}
           title={item.content}
           metaParts={[item.dueAt ? `hạn ${new Date(item.dueAt).toLocaleDateString('vi-VN')}` : null]}
+          pill={pendingPill(item)}
           onPress={() => onOpenTask(item.id)}
         />
       )}
       ListFooterComponent={
-        doneToday.length > 0 ? (
+        <>
+          {/* AC-40 — prototype S6 `.btn.ghost` ngay dưới việc đang làm, trên "Đã xong hôm nay".
+              Nút phụ (viền outline) — nút chính C1 của màn vẫn là nút hành động việc đầu. */}
+          {onSelfTask && (first || doneToday.length > 0) && (
+            <Button
+              mode="outlined"
+              onPress={onSelfTask}
+              style={styles.selfButton}
+              contentStyle={{ height: tapMin }}
+              textColor={colors.primary}
+            >
+              ＋ Ghi việc tôi làm
+            </Button>
+          )}
+          {doneToday.length > 0 ? (
           <>
             <Text variant="labelLarge" style={[styles.sec, styles.secOk]}>
               Đã xong hôm nay ({doneToday.length})
@@ -194,7 +231,8 @@ export function MyTasksScreen({ onOpenTask }: { onOpenTask: (id: string) => void
               <TaskRow key={item.id} task={item} title={item.content} onPress={() => onOpenTask(item.id)} />
             ))}
           </>
-        ) : null
+          ) : null}
+        </>
       }
     />
   );
@@ -208,4 +246,6 @@ const styles = StyleSheet.create({
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
   secOk: { color: colors.tertiary },
   actionButton: { borderRadius: shape.small, marginBottom: space.lg },
+  selfButton: { borderRadius: shape.small, borderColor: colors.outline, marginTop: space.md },
+  emptyButton: { borderRadius: shape.small, marginTop: space.md },
 });

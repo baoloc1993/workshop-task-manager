@@ -18,8 +18,9 @@ import { HistoryScreen } from '../screens/HistoryScreen';
 import { IssueQrScreen } from '../screens/IssueQrScreen';
 import { OrderDetailScreen } from '../screens/OrderDetailScreen';
 import { OrderListScreen } from '../screens/OrderListScreen';
-import { OwnerHomeScreen } from '../screens/OwnerHomeScreen';
+import { OwnerHomeScreen, type LineFilter } from '../screens/OwnerHomeScreen';
 import { OwnerMenuScreen } from '../screens/OwnerMenuScreen';
+import { PendingTasksScreen } from '../screens/PendingTasksScreen';
 import { PriorityScreen } from '../screens/PriorityScreen';
 import { RouteSettingsScreen } from '../screens/RouteSettingsScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
@@ -27,7 +28,9 @@ import { VoiceCaptureScreen } from '../screens/VoiceCaptureScreen';
 
 export type OwnerStackParamList = {
   Home: undefined;
-  Overview: undefined;
+  // AC-43 (vòng 9) — `line` = chip lọc bật sẵn khi mở S1 (mục "Việc may vá" ở S0).
+  Overview: { line?: LineFilter } | undefined;
+  PendingTasks: undefined;
   VoiceCapture: undefined;
   CreateTask: undefined;
   IssueQr: undefined;
@@ -73,7 +76,9 @@ function MenuRoute({ navigation }: { navigation: NativeStackNavigationProp<Owner
 
   return (
     <OwnerMenuScreen
-      onOverview={() => goOnce(() => navigation.navigate('Overview'))}
+      onOverview={() => goOnce(() => navigation.navigate('Overview', { line: 'all' }))}
+      onMayVa={() => goOnce(() => navigation.navigate('Overview', { line: 'may_va' }))}
+      onPendingTasks={() => goOnce(() => navigation.navigate('PendingTasks'))}
       onPriority={() => goOnce(() => navigation.navigate('Priority'))}
       onDelivery={() => goOnce(() => navigation.navigate('Delivery'))}
       onCustomerLookup={() => goOnce(() => navigation.navigate('CustomerLookup'))}
@@ -93,9 +98,11 @@ function MenuRoute({ navigation }: { navigation: NativeStackNavigationProp<Owner
 // S1 "Cả xưởng hôm nay" — danh sách việc, mở từ S0. Trước vòng 7 đây là màn "Home" gốc.
 function OverviewRoute({
   navigation,
+  line,
   onCreateTask,
 }: {
   navigation: NativeStackNavigationProp<OwnerStackParamList, 'Overview'>;
+  line?: LineFilter;
   onCreateTask: () => void;
 }) {
   const navigatingRef = useRef(false);
@@ -115,6 +122,7 @@ function OverviewRoute({
       onOpenTask={(taskId) => goOnce(() => navigation.navigate('TaskDetail', { taskId }))}
       onCreateTask={() => goOnce(onCreateTask)}
       onVoiceCapture={() => goOnce(() => navigation.navigate('VoiceCapture'))}
+      initialFilter={line ?? 'all'}
     />
   );
 }
@@ -142,9 +150,10 @@ export function OwnerNavigator() {
         {({ navigation }) => <MenuRoute navigation={navigation} />}
       </Stack.Screen>
       <Stack.Screen name="Overview" options={{ headerShown: false }}>
-        {({ navigation }) => (
+        {({ navigation, route }) => (
           <OverviewRoute
             navigation={navigation}
+            line={route.params?.line}
             onCreateTask={() => {
               setPrefill(undefined);
               navigation.navigate('CreateTask');
@@ -162,6 +171,7 @@ export function OwnerNavigator() {
                 assigneeId: result.assigneeId,
                 line: result.line,
                 measurements: result.measurements,
+                suggestedAssigneeIds: result.suggestedAssigneeIds,
               });
               // replace, không navigate: Xong ở CreateTask phải quay thẳng về Home,
               // không lùi lại màn nghe giọng nói đã kết thúc.
@@ -283,6 +293,9 @@ export function OwnerNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="RouteSettings" options={{ title: 'Cả xưởng' }} component={RouteSettingsScreen} />
+      {/* S31 (vòng 9, AC-41) — màn chi tiết/form: C13(b) thanh mảnh, vụn đường dẫn "Trang chủ"
+          như prototype S31. */}
+      <Stack.Screen name="PendingTasks" options={{ title: 'Trang chủ' }} component={PendingTasksScreen} />
       <Stack.Screen name="AssignGroups" options={{ title: 'Cả xưởng' }} component={AssignGroupsScreen} />
     </Stack.Navigator>
   );

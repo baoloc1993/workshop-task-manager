@@ -7,7 +7,6 @@ import type { Customer, Route } from '../api/types';
 import { chipHitSlop, colors, shape, space, tapMin } from '../theme/tokens';
 import { suggestRoute } from '../orders/orderStatus';
 import { PhotoBox } from '../orders/PhotoBox';
-import { takePhotoAsBase64 } from '../orders/pickPhoto';
 import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
@@ -401,7 +400,8 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
           </Chip>
           <TextInput label="Giá (đ)" mode="outlined" keyboardType="numeric" value={price} onChangeText={setPrice} style={styles.input} />
           <TextInput label="Đã cọc (đ)" mode="outlined" keyboardType="numeric" value={deposit} onChangeText={setDeposit} style={styles.input} />
-          <PhotoBox photo={photo} label="Chụp ảnh bộ ghế" onPress={async () => setPhoto(await takePhotoAsBase64())} />
+          {/* AC-42 (vòng 9) — PhotoBox tự chụp + xem trước; chỉ gán khi "Dùng ảnh này". */}
+          <PhotoBox photo={photo} label="Chụp ảnh bộ ghế" onConfirm={setPhoto} />
         </View>
       </List.Accordion>
 
