@@ -1,16 +1,8 @@
 import { Transform } from 'class-transformer';
-import {
-  IsArray,
-  IsDateString,
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { Line } from '@prisma/client';
 import { IsNotPastDate } from '../../common/validators/is-not-past-date.js';
+import { HasNoNul } from '../../common/validators/has-no-nul.js';
 
 // dogfood pha I: dueAt quá khứ không bị PRD cấm rõ, nhưng chủ xưởng
 // tạo việc mới với hạn đã qua chỉ có thể là gõ nhầm — chặn sớm rẻ hơn để lọt rồi phát hiện
@@ -24,6 +16,8 @@ export class CreateTaskDto {
   @IsString()
   @MinLength(1)
   @MaxLength(500)
+  // dogfood vòng 9 (breaker): ký tự NUL → Postgres từ chối → 500. Chặn thành 400.
+  @HasNoNul({ message: 'Nội dung việc có ký tự lạ' })
   content: string;
 
   @IsOptional()

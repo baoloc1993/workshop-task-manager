@@ -383,6 +383,11 @@ export class TasksService {
     if (!isAssignee) {
       throw new ForbiddenException('Không được báo trạng thái việc của người khác');
     }
+    // dogfood vòng 9 (breaker): việc chủ đã "Không duyệt" đã rời mọi danh sách — không nhận
+    // thêm mốc thời gian (ARCHITECTURE.md §6 ca biên vòng 9).
+    if (task.approval === 'rejected') {
+      throw new ConflictException('Chủ xưởng đã không duyệt việc này');
+    }
 
     const targetStatus = STATUS_FOR_KIND[kind];
     // Bấm lại khi đã ở trạng thái đích (hoặc đã đi xa hơn — vd F5 gọi lại "ack" sau khi đã

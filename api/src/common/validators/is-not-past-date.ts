@@ -14,6 +14,9 @@ export function IsNotPastDate(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: string) {
           if (!value) return true;
+          // dogfood vòng 9 (breaker): ngày không đọc được thì để @IsDateString báo, khỏi kèm
+          // thêm câu "quá khứ" sai lý do.
+          if (Number.isNaN(new Date(value).getTime())) return true;
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           return new Date(value) >= today;

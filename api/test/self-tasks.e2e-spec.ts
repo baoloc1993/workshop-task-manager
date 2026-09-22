@@ -245,6 +245,36 @@ describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều p
     expect(fresh.autoApprove).toBe(false);
   });
 
+  it('dogfood vòng 9 (breaker): ký tự NUL → 400 (không 500), hạn quá 2 năm → 400, việc đã không duyệt không nhận mốc (409)', async () => {
+    const owner = await createTestUser(ctx.prisma, { role: 'owner' });
+    const worker = await createTestUser(ctx.prisma, { role: 'worker', line: 'may_va' });
+    userIds.push(owner.id, worker.id);
+    const w = authHeader(ctx.jwt, worker);
+
+    const nul = await http().post('/tasks/self').set('Authorization', w).send({ content: 'vá áo lỗi' });
+    expect(nul.status).toBe(400);
+    const nulOwner = await http()
+      .post('/tasks')
+      .set('Authorization', authHeader(ctx.jwt, owner))
+      .send({ content: 'may áo lỗi', line: 'may_va', assigneeIds: [worker.id] });
+    expect(nulOwner.status).toBe(400);
+
+    const far = await http().post('/tasks/self').set('Authorization', w).send({ content: 'hạn xa', dueAt: '9999-12-31T00:00:00Z' });
+    expect(far.status).toBe(400);
+    const bad = await http().post('/tasks/self').set('Authorization', w).send({ content: 'hạn sai', dueAt: '2026-13-45' });
+    expect(bad.status).toBe(400);
+    expect(JSON.stringify(bad.body)).not.toContain('quá khứ');
+
+    const created = await http().post('/tasks/self').set('Authorization', w).send({ content: 'việc sẽ bị không duyệt' });
+    expect(created.status).toBe(201);
+    taskIds.push(created.body.id);
+    const rej = await http().post(`/tasks/${created.body.id}/reject`).set('Authorization', authHeader(ctx.jwt, owner));
+    expect(rej.status).toBe(201);
+    const ack = await http().patch(`/tasks/${created.body.id}/ack`).set('Authorization', w);
+    expect(ack.status).toBe(409);
+    expect(await ctx.prisma.taskEvent.count({ where: { taskId: created.body.id } })).toBe(0);
+  });
+
   it('owner đăng ký / xoá push token của máy mình; thợ gọi → 403', async () => {
     const owner = await createTestUser(ctx.prisma, { role: 'owner' });
     const worker = await createTestUser(ctx.prisma, { role: 'worker', line: 'may_va' });
