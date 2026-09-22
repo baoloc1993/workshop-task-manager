@@ -472,7 +472,12 @@ export class TasksService {
         source: 'self',
         approval,
         createdById: me.id,
+        // dogfood vòng 9 (newbie + edge): người tự ghi CHÍNH LÀ người nhận — bắt họ bấm "Nhận việc"
+        // cho việc của chính mình là thừa một chạm ("tôi tự ghi mà còn phải nhận của ai?").
+        // Bắt đầu ở `acked` + đúng một mốc `acked` (ARCHITECTURE.md §6 mốc ngầm, CAP-TASK-09).
+        status: 'acked',
         assignees: { create: [{ userId: me.id, assignedById: me.id }] },
+        events: { create: [{ userId: me.id, kind: 'acked' }] },
       },
       include: TASK_INCLUDE,
     });

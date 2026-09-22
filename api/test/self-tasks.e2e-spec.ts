@@ -272,7 +272,9 @@ describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều p
     expect(rej.status).toBe(201);
     const ack = await http().patch(`/tasks/${created.body.id}/ack`).set('Authorization', w);
     expect(ack.status).toBe(409);
-    expect(await ctx.prisma.taskEvent.count({ where: { taskId: created.body.id } })).toBe(0);
+    // Việc tự ghi bắt đầu ở `acked` với đúng MỘT mốc lúc tạo; bị không duyệt thì không thêm mốc nào.
+    expect(created.body.status).toBe('acked');
+    expect(await ctx.prisma.taskEvent.count({ where: { taskId: created.body.id } })).toBe(1);
   });
 
   it('owner đăng ký / xoá push token của máy mình; thợ gọi → 403', async () => {
