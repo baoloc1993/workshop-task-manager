@@ -251,11 +251,13 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
     <KeyboardAvoider>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       {hasOldDraft && (
+        // picky vòng 9 (L1): chữ "Xoá" --color-primary trên nền surface-container-high chỉ 4.16:1 và
+        // vùng chạm 41×38dp — đổi sang on-primary-container (~8:1) + bannerActionStyle (≥48dp).
         <Banner
           visible
           icon="pencil"
           style={styles.draftBanner}
-          actions={[{ label: 'Xoá', onPress: discardDraft }]}
+          actions={[{ ...bannerActionStyle, label: 'Xoá', textColor: colors.onPrimaryContainer, onPress: discardDraft }]}
         >
           Đang tiếp tục nháp trước đó — Xoá để bắt đầu mới
         </Banner>

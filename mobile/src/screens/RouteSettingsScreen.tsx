@@ -143,7 +143,9 @@ const styles = StyleSheet.create({
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   hint: { color: colors.onSurfaceVariant, marginBottom: space.md },
   explain: { color: colors.onSurface, marginBottom: space.sm },
-  addLabel: { fontSize: fontSize.label, color: colors.primary, fontWeight: '600', marginTop: space.xs },
+  // picky vòng 9 (L16): chữ primary trông như lối bấm trong khi đây chỉ là nhãn ô nhập (C2 "nhãn nhỏ
+  // phía trên") — về màu nhãn C2.
+  addLabel: { fontSize: fontSize.label, color: colors.onSurfaceVariant, marginTop: space.xs },
   addLandmarkButton: { alignSelf: 'flex-start' },
   block: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   blockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

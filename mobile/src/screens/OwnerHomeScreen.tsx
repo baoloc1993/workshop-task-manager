@@ -18,8 +18,9 @@ import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 // AC-44 (vòng 9) — chip trạng thái C22 đầu dòng phụ thay cho chữ trạng thái C8; việc đã xong
 // không có chip C22 (§4 C22 chỉ bốn trạng thái chưa xong) nên giữ chữ "Xong" C8 như cũ.
 function OverviewRow({ task, onPress }: { task: Task; onPress: () => void }) {
-  const who = task.assignees.length > 0 ? task.assignees.map((a) => a.user.name).join(', ') : 'Chưa ai nhận';
   const kind = pillKindOf(task);
+  // picky vòng 9 (L13): chip C22 "Chưa nhận" đã nói ý này — không lặp "Chưa ai nhận" ở dòng phụ.
+  const who = task.assignees.length > 0 ? task.assignees.map((a) => a.user.name).join(', ') : kind ? null : 'Chưa ai nhận';
   return (
     <TaskRow
       task={task}
@@ -27,6 +28,7 @@ function OverviewRow({ task, onPress }: { task: Task; onPress: () => void }) {
       metaParts={[who, lineLabel(task.line), task.dueAt ? `hạn ${new Date(task.dueAt).toLocaleDateString('vi-VN')}` : null]}
       pill={kind ? <StatusPill kind={kind} /> : undefined}
       showStatus={!kind}
+      alert={taskBucket(task) === 'overdueOrStale'}
       onPress={onPress}
     />
   );
@@ -151,7 +153,10 @@ export function OwnerHomeScreen({
           <>
             {error ? (
               <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
-                Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.
+                {/* picky vòng 9 (L8): chưa từng tải được thì không có danh sách nào để hứa. */}
+                {tasks && tasks.length > 0
+                  ? 'Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.'
+                  : 'Mất kết nối — đang thử lại.'}
               </Banner>
             ) : null}
             {/* C18 — xuống dòng, không cuộn ngang (§4b luật 3). Ẩn khi cả xưởng chưa có việc. */}
@@ -163,6 +168,7 @@ export function OwnerHomeScreen({
                     <Chip
                       key={f.key}
                       selected={on}
+                      compact
                       onPress={() => setFilter(f.key)}
                       style={[styles.chip, on ? styles.chipSelected : styles.chipUnselected]}
                       textStyle={on ? styles.chipTextSelected : styles.chipTextUnselected}
@@ -212,7 +218,9 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
   secOk: { color: colors.tertiary },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.sm },
+  // picky vòng 9 (L12): bốn chip thiếu ~17dp để vừa một hàng ở máy 1080px — khe 8→6dp và Chip `compact`
+  // (đệm chữ hẹp hơn); vẫn xuống dòng (không cuộn ngang) ở máy hẹp hơn, đúng §4b luật 3.
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: space.sm },
   chip: { minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
   chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },

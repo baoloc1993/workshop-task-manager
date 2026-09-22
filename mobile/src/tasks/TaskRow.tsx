@@ -8,8 +8,8 @@ import type { Task } from '../api/types';
 import { colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { isOverdue, statusColor, statusLabel } from './taskStatus';
 
-function StatusDot({ task }: { task: Pick<Task, 'status' | 'dueAt'> }) {
-  const color = statusColor(task);
+function StatusDot({ task, alert }: { task: Pick<Task, 'status' | 'dueAt'>; alert?: boolean }) {
+  const color = alert ? colors.error : statusColor(task);
   const filled = task.status === 'done';
   return <View style={[styles.dot, { borderColor: color }, filled && { backgroundColor: color }]} />;
 }
@@ -21,6 +21,7 @@ export function TaskRow({
   showStatus = true,
   topLine,
   pill,
+  alert,
   onPress,
 }: {
   task: Pick<Task, 'status' | 'dueAt'>;
@@ -30,16 +31,19 @@ export function TaskRow({
   topLine?: ReactNode;
   /** C22 (vòng 9, AC-44) — chip trạng thái đứng ĐẦU dòng phụ; chỉ S1/S6/S31 truyền vào. */
   pill?: ReactNode;
+  /** picky vòng 9 (L2) — ép khuôn "sắp trễ" của C3 (viền + sao đỏ) cho việc không quá hạn theo
+   *  `dueAt` nhưng đứng yên ≥24 giờ (nhóm "Quá hạn hoặc đứng yên" của S1, AC-15). */
+  alert?: boolean;
   onPress: () => void;
 }) {
-  const late = isOverdue(task);
+  const late = alert || isOverdue(task);
   const done = task.status === 'done';
   const meta = (metaParts ?? []).filter(Boolean).join(' · ');
   const statusText = late ? 'Quá hạn' : statusLabel(task.status);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-      <StatusDot task={task} />
+      <StatusDot task={task} alert={late && task.status !== 'done'} />
       <View style={styles.body}>
         {topLine}
         {/* AC-27 (vòng 8, CAP-BUG-01) — C3 "xong": gạch ngang + chữ --color-on-surface-variant,
