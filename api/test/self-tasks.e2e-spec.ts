@@ -245,6 +245,29 @@ describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều p
     expect(fresh.autoApprove).toBe(false);
   });
 
+  it('owner đăng ký / xoá push token của máy mình; thợ gọi → 403', async () => {
+    const owner = await createTestUser(ctx.prisma, { role: 'owner' });
+    const worker = await createTestUser(ctx.prisma, { role: 'worker', line: 'may_va' });
+    userIds.push(owner.id, worker.id);
+
+    const set = await http()
+      .put('/users/me/push-token')
+      .set('Authorization', authHeader(ctx.jwt, owner))
+      .send({ token: 'ExponentPushToken[e2e-owner]' });
+    expect(set.status).toBe(200);
+    expect((await ctx.prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).pushToken).toBe('ExponentPushToken[e2e-owner]');
+
+    const cleared = await http().put('/users/me/push-token').set('Authorization', authHeader(ctx.jwt, owner)).send({ token: null });
+    expect(cleared.status).toBe(200);
+    expect((await ctx.prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).pushToken).toBeNull();
+
+    const byWorker = await http()
+      .put('/users/me/push-token')
+      .set('Authorization', authHeader(ctx.jwt, worker))
+      .send({ token: 'ExponentPushToken[x]' });
+    expect(byWorker.status).toBe(403);
+  });
+
   it('AC-39 — điều phối được giao việc may vá và việc bạt, tự báo nhận/bắt đầu/xong; quyền chia vẫn chỉ mảng bạt', async () => {
     const owner = await createTestUser(ctx.prisma, { role: 'owner' });
     const coordinator = await createTestUser(ctx.prisma, { role: 'bat_coordinator' });

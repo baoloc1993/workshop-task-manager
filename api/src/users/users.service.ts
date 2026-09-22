@@ -106,6 +106,11 @@ export class UsersService {
   // vòng 9 — CAP-TASK-16 (AC-41, S26). Chỉ có nghĩa với worker/bat_coordinator (người tự ghi
   // việc được) — đích là owner hoặc không tồn tại → 404, cùng khuôn updateGroups(). Hiệu lực
   // cho việc tự ghi từ lúc này trở đi; việc đang chờ KHÔNG tự được duyệt (ARCHITECTURE.md §6).
+  async updatePushToken(userId: string, token: string | null) {
+    await this.prisma.user.update({ where: { id: userId }, data: { pushToken: token } });
+    return { ok: true };
+  }
+
   async updateAutoApprove(userId: string, autoApprove: boolean) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || (user.role !== 'worker' && user.role !== 'bat_coordinator')) {

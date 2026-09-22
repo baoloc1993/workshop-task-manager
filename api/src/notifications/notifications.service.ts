@@ -42,7 +42,16 @@ export class NotificationsService {
       },
       select: { deviceToken: true },
     });
-    await this.push(pairings.map((p) => ({ to: p.deviceToken as string, title, body, data })));
+    const tokens = pairings.map((p) => p.deviceToken as string);
+    // vòng 9 — owner không có DevicePairing; token nằm ở `User.pushToken` (AC-41).
+    if (role === 'owner') {
+      const owners = await this.prisma.user.findMany({
+        where: { role: 'owner', active: true, pushToken: { not: null } },
+        select: { pushToken: true },
+      });
+      tokens.push(...owners.map((o) => o.pushToken as string));
+    }
+    await this.push([...new Set(tokens)].map((to) => ({ to, title, body, data })));
   }
 
   // vòng 7 — CAP-DEM-07 (AC-21): việc hàng-đợi-nhóm mảng đệm không có assignee cụ thể

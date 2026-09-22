@@ -1,7 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Put, Query } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import type { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UpdateGroupsDto } from './dto/update-groups.dto.js';
 import { UpdateAutoApproveDto } from './dto/update-auto-approve.dto.js';
+import { UpdatePushTokenDto } from './dto/update-push-token.dto.js';
 import { UsersService } from './users.service.js';
 
 // @Roles ở TỪNG method (không phải class) từ vòng 4 — S10 cần một đường hẹp hơn cho
@@ -33,6 +36,14 @@ export class UsersController {
   @Patch(':id/groups')
   updateGroups(@Param('id') id: string, @Body() dto: UpdateGroupsDto) {
     return this.users.updateGroups(id, dto.groups);
+  }
+
+  // vòng 9 — AC-41: owner đăng ký push token của máy đang đăng nhập (route tĩnh `me` khai
+  // TRƯỚC các route `:id`).
+  @Roles('owner')
+  @Put('me/push-token')
+  updatePushToken(@CurrentUser() user: AuthUser, @Body() dto: UpdatePushTokenDto) {
+    return this.users.updatePushToken(user.userId, dto.token ?? null);
   }
 
   // vòng 9 — CAP-TASK-16 (AC-41, S26): công tắc "Tự duyệt việc tự ghi". PERSONAS.md §2:

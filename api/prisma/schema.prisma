@@ -123,6 +123,10 @@ model User {
   // vòng 9 — CAP-TASK-16 (AC-41): việc người này tự ghi có vào thẳng danh sách không.
   // Mặc định TẮT (DECISIONS.md 2026-09-22) — chỉ có nghĩa với worker/bat_coordinator.
   autoApprove Boolean @default(false) @map("auto_approve")
+  // vòng 9 — AC-41: owner đăng nhập bằng email, không có DevicePairing nên trước đây
+  // không có chỗ lưu push token → "có việc chờ duyệt" không tới được máy chủ xưởng.
+  // Chỉ owner dùng; thợ/điều phối vẫn giữ token trên DevicePairing như cũ.
+  pushToken String? @map("push_token")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
