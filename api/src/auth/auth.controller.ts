@@ -9,8 +9,8 @@ import { CreatePairingDto } from './dto/create-pairing.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RedeemPairingDto } from './dto/redeem-pairing.dto.js';
 
-// Nhóm 2 production-ready (SECURITY.md §4 "rate limit ít nhất cho đăng nhập"): 10 lần/phút
-// theo IP — đủ cho người thật gõ sai vài lần, chặn dò brute-force (ROADMAP.md §3 đã đo:
+// 10 lần/phút
+// theo IP — đủ cho người thật gõ sai vài lần, chặn dò brute-force (đã đo:
 // 50 lần/2.37s không bị chặn trước khi có dòng này). `/auth/pairings/redeem` siết chặt hơn
 // vì mã chỉ 6 chữ số (≤1 triệu khả năng, không giới hạn số lần thử theo mã).
 const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
@@ -51,7 +51,7 @@ export class AuthController {
     return this.auth.revokeDevice(id);
   }
 
-  // Nhóm 2 production-ready (SECURITY.md §3 "đăng xuất được") — máy chủ xưởng mất/lộ
+  // máy chủ xưởng mất/lộ
   // thì đây là cách duy nhất vô hiệu hoá token cũ mà không phải đổi JWT_SECRET (kéo theo
   // đăng xuất toàn bộ công nhân/điều phối đang dùng DevicePairing).
   @Roles('owner')

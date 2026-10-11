@@ -7,7 +7,7 @@ import { UpdateRouteDto } from './dto/update-route.dto.js';
 export class RoutesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // S25 — cả khu vực đang bật lẫn tắt đều hiện (owner tự bật lại được), khác S9/S22
+  // cả khu vực đang bật lẫn tắt đều hiện (owner tự bật lại được), khác S9/S22
   // (chỉ hiện việc CHƯA xong) vì đây là màn cấu hình, không phải hàng đợi việc.
   findAll() {
     return this.prisma.route.findMany({ orderBy: { name: 'asc' } });

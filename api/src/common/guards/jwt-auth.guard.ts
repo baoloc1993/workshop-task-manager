@@ -38,7 +38,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
     }
 
-    // vòng 7 (S26 "Phân vai thợ", DECISIONS.md) — `User.groups` đổi "hiệu lực ngay", nên
+    // `User.groups` đổi "hiệu lực ngay", nên
     // không thể nằm trong JWT payload (worker không đăng nhập lại — phiên sống 180 ngày
     // qua DevicePairing). Đọc DB mỗi request, giống hệt cách tokenVersion đã đọc cho owner.
     const user = await this.prisma.user.findUnique({
@@ -47,7 +47,7 @@ export class JwtAuthGuard implements CanActivate {
     });
     if (!user) throw new UnauthorizedException('Người dùng không còn tồn tại');
 
-    // Máy bị thu hồi mất quyền NGAY ở request kế tiếp (ARCHITECTURE.md §6) — chữ ký JWT
+    // Máy bị thu hồi mất quyền NGAY ở request kế tiếp — chữ ký JWT
     // còn hợp lệ không đủ, thiết bị đã ghép phải kiểm revoked_at ở DB mỗi request.
     if (payload.pairingId) {
       const pairing = await this.prisma.devicePairing.findUnique({
@@ -59,7 +59,7 @@ export class JwtAuthGuard implements CanActivate {
     } else {
       // Token owner (đăng nhập email/mật khẩu, không có pairingId nên không đi qua nhánh
       // trên) — chữ ký JWT sống 180 ngày, thu hồi thật sự đi qua `User.tokenVersion`
-      // (review pha P vòng 6, SECURITY.md §3 "đăng xuất được"). `POST /auth/logout-everywhere`
+      // `POST /auth/logout-everywhere`
       // bump field này, làm mọi token owner cũ hết tác dụng ngay ở request kế tiếp.
       if (user.tokenVersion !== (payload.tokenVersion ?? 0)) {
         throw new UnauthorizedException('Phiên đã bị đăng xuất — đăng nhập lại');

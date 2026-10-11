@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions } from 'class-validator';
 
-// dogfood vòng 9: `POST /tasks/self` nhận hạn năm 9999. Việc trong xưởng
+// `POST /tasks/self` nhận hạn năm 9999. Việc trong xưởng
 // không có hạn quá 2 năm — xa hơn chỉ có thể là gõ nhầm. Ngày không đọc được thì để
 // @IsDateString báo, hàm này bỏ qua.
 export function IsNotTooFarDate(validationOptions?: ValidationOptions) {

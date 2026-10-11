@@ -20,12 +20,12 @@ import { UsersModule } from './users/users.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Repo đã tách khỏi repo gốc (DECISIONS.md 2026-09-10) — .env ở gốc repo này.
+      // Repo đã tách khỏi repo gốc — .env ở gốc repo này.
       envFilePath: ['.env'],
     }),
-    // Nhóm 2 production-ready — mặc định toàn app (chống dò/spam thô), riêng
+    // mặc định toàn app (chống dò/spam thô), riêng
     // /auth/login và /auth/pairings/redeem siết chặt hơn qua @Throttle ở controller
-    // (ROADMAP.md §3: đây là kênh đăng nhập DUY NHẤT của worker/bat-coordinator).
+    // (đây là kênh đăng nhập DUY NHẤT của worker/bat-coordinator).
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
     AuthModule,

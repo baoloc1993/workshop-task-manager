@@ -17,9 +17,9 @@ import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { LoadErrorBanner } from '../common/LoadErrorBanner';
 import { ErrorIcon } from '../common/bannerParts';
 
-// CAP-DEM-02 (AC-19) — S20 "Số đo": khi việc đang mở là bước "đi đo" (step='do') và CHƯA
+// Khi việc đang mở là bước "đi đo" (step='do') và CHƯA
 // xong, TaskDetailScreen (= S29 tái dùng) đổi thành form nhập số đo/ảnh ngay tại đây thay
-// vì màn riêng — đúng tinh thần "tái dùng tối đa" của `_PROPOSAL.md`. Lưu nháp qua
+// vì màn riêng — đúng tinh thần "tái dùng tối đa" của dự án. Lưu nháp qua
 // PATCH /orders/:id/measurements PHẢI luôn thành công dù thiếu số (S20 rỗng: "chụp tờ giấy
 // đo là đủ") — chỉ "Xong" mới đòi ảnh nếu bộ khó (chặn ở server, tasks.service.ts).
 function MeasurementEditor({
@@ -44,10 +44,10 @@ function MeasurementEditor({
     return v.trim() && Number.isFinite(n) && n > 0 ? n : undefined;
   }
 
-  // dogfood pha I vòng 7 (meta): chỉ lưu ở onBlur bị mất dữ liệu thật — gõ xong một ô rồi
+  // (meta): chỉ lưu ở onBlur bị mất dữ liệu thật — gõ xong một ô rồi
   // bấm Back (phần cứng) ngay, không chạm ô khác để kích onBlur, thoát màn mà KHÔNG lưu
   // (xác nhận bằng curl: ô vừa gõ vẫn null sau khi thoát). Lưu tự động sau một nhịp ngắn
-  // ngừng gõ, không đợi blur — cùng khuôn "không mất dữ liệu đang nhập" (DESIGN-SYSTEM.md §5).
+  // ngừng gõ, không đợi blur — cùng khuôn "không mất dữ liệu đang nhập".
   useEffect(() => {
     if (!loaded.current) {
       loaded.current = true;
@@ -77,7 +77,7 @@ function MeasurementEditor({
     }
   }
 
-  // AC-42 (vòng 9) — PhotoBox tự chụp + xem trước, chỉ gọi hàm này khi "Dùng ảnh này".
+  // PhotoBox tự chụp + xem trước, chỉ gọi hàm này khi "Dùng ảnh này".
   async function handleConfirmPhoto(dataUri: string) {
     setPhoto(dataUri);
     await save(dataUri);
@@ -155,12 +155,12 @@ function MeasurementEditor({
   );
 }
 
-// S7 — chi tiết việc. CAP-TASK-11/12/13 (AC-8/9/10): một nút lớn theo đúng trạng thái hiện
-// tại. CAP-TASK-09 (AC-11): khối "Việc này đã đi qua" hiện mốc thời gian ngầm, tự ghi.
+// chi tiết việc.: một nút lớn theo đúng trạng thái hiện
+// tại.: khối "Việc này đã đi qua" hiện mốc thời gian ngầm, tự ghi.
 export function TaskDetailScreen({ taskId }: { taskId: string }) {
   const { user, logout } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
-  // AC-30 (vòng 8, CAP-BUG-01) — giữ lỗi gốc để `LoadErrorBanner` phân biệt mất mạng/401/500.
+  // giữ lỗi gốc để `LoadErrorBanner` phân biệt mất mạng/401/500.
   const [error, setError] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -180,7 +180,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
   async function handleAction() {
     if (!task) return;
     const action = nextAction(task.status);
-    if (!action || submitting) return; // đang gửi — khoá, chống bấm hai lần (ARCHITECTURE.md §6)
+    if (!action || submitting) return; // đang gửi — khoá, chống bấm hai lần
     setSubmitting(true);
     setActionError(null);
     try {
@@ -204,8 +204,8 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
 
   if (!task) return <View style={styles.container} />;
 
-  // AC-24 (vòng 8, CAP-BUG-03) — trước đây khoá theo `task.status !== 'done'`: đi đo xong là
-  // KHOÁ NGAY, sớm hơn ý PRD.md §3 AC-24. Người đang đo (status chưa done) luôn thấy form;
+  // trước đây khoá theo `task.status !== 'done'`: đi đo xong là
+  // KHOÁ NGAY, sớm hơn ý. Người đang đo (status chưa done) luôn thấy form;
   // sau khi done, chỉ owner reopen được (từ nút "Sửa số đo" ở S19), và chỉ tới khi
   // "Chốt số cắt" thật sự chạy — `task.order.status` chuyển khỏi `moi` (orders.service.ts).
   const isMeasuring =
@@ -218,9 +218,9 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
   const ackAt = task.events.find((e) => e.kind === 'acked')?.at;
   const startAt = task.events.find((e) => e.kind === 'started')?.at;
   const doneAt = task.events.find((e) => e.kind === 'done')?.at;
-  // AC-11 — việc mảng bạt đi qua thêm bước "chia" (điều phối giao từ hàng đợi, ARCHITECTURE.md
+  // việc mảng bạt đi qua thêm bước "chia" (điều phối giao từ hàng đợi
   // §7 luồng B) trước khi tới "nhận". Việc may vá giao thẳng, không có bước này.
-  // dogfood vòng 9 (newbie): việc thợ tự ghi (S30, `source='self'`) không có ai giao/chia —
+  // việc thợ tự ghi (S30, `source='self'`) không có ai giao/chia —
   // mốc đầu là "Tự ghi", không có "Chia cho bạn", không có dòng "Giao cho".
   const isSelf = task.source === 'self';
   const assignedAt =
@@ -229,7 +229,7 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       : undefined;
 
   return (
-    // AC-26 (vòng 8, CAP-BUG-02) — bàn phím số của MeasurementEditor có thể che ô "Dày"/nút
+    // bàn phím số của MeasurementEditor có thể che ô "Dày"/nút
     // cuối form trên máy màn nhỏ; `KeyboardAvoider` dùng chung, an toàn cho cả nhánh không
     // đo (không có TextInput nào bị ảnh hưởng).
     <KeyboardAvoider>
@@ -250,10 +250,10 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
           {task.measurements}
         </Text>
       )}
-      {/* vòng 7 (S29 tái dùng màn này, DECISIONS.md) — khối riêng của mảng đệm: số đo,
+      {/* (S29 tái dùng màn này) — khối riêng của mảng đệm: số đo,
           khách, gối, khu vực. CỐ Ý không có giá/cọc — `task.order` không mang field đó
           (TASK_INCLUDE.order, tasks.service.ts). Bước "đi đo" chưa xong → form nhập
-          (MeasurementEditor, CAP-DEM-02); mọi bước khác → chỉ đọc. */}
+          (MeasurementEditor); mọi bước khác → chỉ đọc. */}
       {isMeasuring && task.order && (
         <MeasurementEditor task={task} onSaved={(u) => setTask({ ...task, order: { ...task.order!, ...u } })} />
       )}
@@ -283,8 +283,8 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
           )}
         </View>
       )}
-      {/* dogfood vòng 9 (mobile): màn CHI TIẾT phải đọc được hết nội dung — trước đây cắt 2 dòng
-          (AC-35 vòng 8 áp đồng loạt, nhưng AC-35 nói về thẻ trong DANH SÁCH), phần cuối việc dài
+      {/* màn CHI TIẾT phải đọc được hết nội dung — trước đây cắt 2 dòng
+          (áp đồng loạt, nhưng chỉ nói về thẻ trong DANH SÁCH), phần cuối việc dài
           không đọc được ở màn nào của thợ. */}
       <Text variant="titleLarge" style={styles.content}>
         {task.content}
@@ -301,15 +301,15 @@ export function TaskDetailScreen({ taskId }: { taskId: string }) {
       )}
       <View style={styles.chipRow}>
         <StatusChip task={task} />
-        {/* dogfood vòng 9 (newbie) — C22 "Chờ chủ duyệt" cả ở S7, kể cả khi việc đã xong:
+        {/* C22 "Chờ chủ duyệt" cả ở S7, kể cả khi việc đã xong:
             thợ mở chi tiết việc tự ghi phải thấy ngay nó chưa được chủ duyệt. */}
         {task.approval === 'pending' && <StatusPill kind="pending" />}
       </View>
 
-      {/* PERSONAS.md §2: owner KHÔNG được ack/bắt đầu/xong thay công nhân — server đã chặn
+      {/* owner KHÔNG được ack/bắt đầu/xong thay công nhân — server đã chặn
           (403), nhưng owner mở màn này rất thường (S1 "chưa ai nhận" -> S7, S19 "công đoạn"
-          -> S7) nên phải ẩn nút ở đây, không chỉ dựa vào lỗi từ server (dogfood pha I vòng 7,
-          phát hiện qua luồng owner mở S19 -> Task chưa ai nhận). */}
+          -> S7) nên phải ẩn nút ở đây, không chỉ dựa vào lỗi từ server
+          (phát hiện qua luồng owner mở S19 -> Task chưa ai nhận). */}
       {action && user?.role !== 'owner' && (
         <Button
           mode="contained"

@@ -8,9 +8,9 @@ import { ApiError, NetworkError } from '../api/client';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
 
-// S8 — "Quét mã để vào app" (PROTOTYPE.md §1). Người mới, chưa có phiên nào.
+// "Quét mã để vào app". Người mới, chưa có phiên nào.
 //
-// Dogfood pha I: màn xin quyền camera có thể đứng yên dù quyền
+// màn xin quyền camera có thể đứng yên dù quyền
 // hệ thống đã cấp (Expo Go + Android không luôn đồng bộ lại state của hook ngay —
 // đặc biệt khi quyền được cấp ngoài luồng requestPermission() của chính màn này).
 // Hai lớp vá: (1) tự kiểm tra lại quyền mỗi khi màn lấy lại focus, không chỉ dựa
@@ -75,7 +75,7 @@ export function ScanQrScreen() {
     </View>
   );
 
-  // AC-26 (vòng 8, CAP-BUG-02) — bàn phím số khi gõ mã tay che nút "Vào app" (layout
+  // bàn phím số khi gõ mã tay che nút "Vào app" (layout
   // `justifyContent: 'center'` không tự cuộn) — `KeyboardAvoider` dùng chung (§ wrapper).
   if (!permission || !permission.granted) {
     return (
@@ -135,6 +135,6 @@ const styles = StyleSheet.create({
   error: { marginTop: space.md, color: colors.error, textAlign: 'center' },
   manualBlock: { marginTop: space.lg, width: '100%', alignItems: 'stretch' },
   manualInput: { marginBottom: space.md, textAlign: 'center' },
-  // C1 (vòng 8, AC-27) — ép `--shape-small`, không để mặc định viên thuốc của Paper.
+  // ép `--shape-small`, không để mặc định viên thuốc của Paper.
   actionButton: { borderRadius: shape.small },
 });

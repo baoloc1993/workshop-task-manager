@@ -1,8 +1,8 @@
-// C12 (DESIGN-SYSTEM.md §4) — "Steps" (kiểu Microsoft To Do): mỗi công đoạn một hàng, vòng
+// "Steps" (kiểu Microsoft To Do): mỗi công đoạn một hàng, vòng
 // tròn nhỏ bên trái (xong tô --color-tertiary, đang làm viền --color-primary, kẹt viền
-// --color-error + chữ đỏ, chờ chỉ viền outline), tên bước, bên phải "ai · khi nào".
-// AC-27 (vòng 8, CAP-BUG-01) — S19 "Công đoạn" trước đây dựng bằng <Button mode="outlined">
-// xếp chồng (nút chữ nhật viền), không phải Steps thật — lệch hẳn C12 đã chốt ở pha V.
+// color-error + chữ đỏ, chờ chỉ viền outline), tên bước, bên phải "ai · khi nào".
+// S19 "Công đoạn" trước đây dựng bằng <Button mode="outlined">
+// xếp chồng (nút chữ nhật viền), không phải Steps thật — lệch hẳn C12 đã chốt.
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import type { Task } from '../api/types';

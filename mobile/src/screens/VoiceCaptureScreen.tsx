@@ -14,9 +14,9 @@ import { isMayVaAssignee } from '../tasks/assignees';
 import { colors, space, shape, tapMin } from '../theme/tokens';
 import { ErrorIcon } from '../common/bannerParts';
 
-// S2 — "Nói để giao việc" (PROTOTYPE.md §1, vòng 2). AC-6.
+// "Nói để giao việc"..
 // Giữ nút micro để nói, thả ra để dừng và nghe kết quả → luôn đưa sang S3 để soát
-// (ARCHITECTURE.md §6/§8: "không bao giờ phát việc thẳng từ kết quả nhận dạng").
+// (/§8: "không bao giờ phát việc thẳng từ kết quả nhận dạng").
 export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
   onParsed: (result: ParsedUtterance) => void;
   onFallbackToManual: (partialHeard: string) => void;
@@ -25,7 +25,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const workersRef = useRef<WorkerListItem[]>([]);
-  // AC-37 (vòng 9) — mọi phương án nghe của lần nói gần nhất (theo độ tin cậy giảm dần),
+  // mọi phương án nghe của lần nói gần nhất (theo độ tin cậy giảm dần),
   // không chỉ `results[0]`: tên riêng hay bị nghe lệch ở phương án đầu nhưng đúng ở phương án sau.
   const alternativesRef = useRef<string[]>([]);
 
@@ -33,7 +33,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
     api
       .get<WorkerListItem[]>('/users')
       .then((list) => {
-        // AC-39 (vòng 9) — điều phối (bat_coordinator) nhận được việc may vá như thợ, nên cũng
+        // điều phối (bat_coordinator) nhận được việc may vá như thợ, nên cũng
         // có trong danh sách khớp tên (cùng tập người nhận của S3, CreateTaskScreen.tsx).
         workersRef.current = list.filter(isMayVaAssignee);
       })
@@ -73,7 +73,7 @@ export function VoiceCaptureScreen({ onParsed, onFallbackToManual }: {
       lang: 'vi-VN',
       interimResults: true,
       continuous: false,
-      // AC-37 (vòng 9) — cả hai option có sẵn trong expo-speech-recognition 57 (không thêm
+      // cả hai option có sẵn trong expo-speech-recognition 57 (không thêm
       // native module). `contextualStrings` chỉ có tác dụng trên Android API 33+ / iOS; máy
       // cũ bỏ qua, vẫn còn lớp khớp trên nhiều phương án + gợi ý gần đúng.
       maxAlternatives: 5,
@@ -150,8 +150,8 @@ const styles = StyleSheet.create({
   heard: { flex: 1, marginBottom: space.lg },
   mic: {
     // Nút giữ-để-nói riêng của S2 — không phải C7 (thanh thêm ghim đáy của các màn danh
-    // sách; DESIGN-SYSTEM.md §4 từ 2026-09-15). Nút nổi góc dưới phải trong tầm ngón cái,
-    // tô --color-primary — dogfood pha I vòng 2 (edge + picky) phát hiện nút này trước đó
+    // sách; từ 2026-09-15). Nút nổi góc dưới phải trong tầm ngón cái,
+    // tô --color-primary — (edge + picky) phát hiện nút này trước đó
     // nằm giữa/đáy màn full-width và tô nhầm --color-primary-container (màu chip).
     //
     // LƯU Ý MÔI TRƯỜNG DEV (không phải bug sản phẩm): trên bản debug qua Expo dev client/Metro,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     // đối khi giữ nút là do lớp che này, xác nhận bằng cách di chuyển nút sang góc khác thì bấm
     // được ngay (đo `onPressIn` bắn đúng, "Đang nghe…" hiện đúng). Bản production/release
     // không có dev tools nên không có lớp che này — vị trí góc dưới-phải theo đúng spec vẫn đúng.
-    // AC-27 (vòng 8, CAP-BUG-01) — C1 "bo --shape-small (góc 4-6px, không viên thuốc)":
+    // C1 "bo --shape-small (góc 4-6px, không viên thuốc)":
     // nút này trước đây dùng `shape.full`, một viên thuốc tròn lọt qua khỏi luật đã chốt
     // cho MỌI nút chính (kể cả nút nổi riêng như nút này, không chỉ <Button> của Paper).
     position: 'absolute',

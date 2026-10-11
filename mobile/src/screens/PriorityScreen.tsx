@@ -12,13 +12,13 @@ import { SkeletonCard } from '../common/SkeletonCard';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorIcon } from '../common/bannerParts';
 
-// S4 — "Việc nào làm trước" (CAP-TASK-07, AC-14). Bấm mũi tên đổi vị trí → priority cập
-// nhật NGAY, không có nút "Lưu" riêng (PROTOTYPE.md §1). Mỗi lần đổi gửi NGUYÊN danh sách
-// task_id theo thứ tự mới (DECISIONS.md vòng 5) — server gán lại priority tuần tự.
+// "Việc nào làm trước". Bấm mũi tên đổi vị trí → priority cập
+// nhật NGAY, không có nút "Lưu" riêng. Mỗi lần đổi gửi NGUYÊN danh sách
+// task_id theo thứ tự mới — server gán lại priority tuần tự.
 export function PriorityScreen() {
   const { logout } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
-  // AC-30 (vòng 8, CAP-BUG-01) — giữ lỗi gốc để `LoadErrorBanner` phân biệt mất mạng/401/500.
+  // giữ lỗi gốc để `LoadErrorBanner` phân biệt mất mạng/401/500.
   const [error, setError] = useState<unknown>(null);
   const [saveError, setSaveError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +60,7 @@ export function PriorityScreen() {
     try {
       await api.patch<Task[]>('/tasks/reorder', { taskIds: reordered.map((t) => t.id) });
     } catch (e) {
-      setTasks(previous); // Không lưu được thứ tự — trả về thứ tự cũ (PROTOTYPE.md §1)
+      setTasks(previous); // Không lưu được thứ tự — trả về thứ tự cũ
       setSaveError(true);
     } finally {
       setSaving(false);
@@ -69,7 +69,7 @@ export function PriorityScreen() {
 
   const list = tasks ?? [];
 
-  // AC-36 (vòng 8, CAP-BUG-01) — cùng khuôn đã sửa ở MyTasksScreen/OrderListScreen: trước
+  // cùng khuôn đã sửa ở MyTasksScreen/OrderListScreen: trước
   // khi có lần tải đầu tiên, màn này trắng trơn (ListEmptyComponent trả null).
   if (tasks === null && error === null) {
     return (
@@ -123,7 +123,7 @@ export function PriorityScreen() {
         const who = item.assignees.length > 0 ? item.assignees.map((a) => a.user.name).join(', ') : 'Chưa ai nhận';
         const dotColor = statusColor(item);
         return (
-          // C3 — hàng việc (DESIGN-SYSTEM.md §4): không dùng TaskRow dùng chung ở đây vì
+          // hàng việc: không dùng TaskRow dùng chung ở đây vì
           // hàng này không bấm-mở-chi-tiết mà mang hai IconButton lên/xuống ngay trên hàng.
           <View style={styles.row}>
             <View style={[styles.dot, { borderColor: dotColor }, item.status === 'done' && { backgroundColor: dotColor }]} />

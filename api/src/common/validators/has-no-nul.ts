@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions } from 'class-validator';
 
-// dogfood vòng 9: ký tự NUL (\0) trong ô chữ khiến Postgres từ chối cột
+// ký tự NUL (\0) trong ô chữ khiến Postgres từ chối cột
 // text → 500 chung. Chặn ở tầng validate thành 400 có câu báo.
 export function HasNoNul(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {

@@ -1,4 +1,4 @@
-// Phân quyền — SPEC bắt buộc: PERSONAS.md §2 (ma trận vai × hành động). Mỗi ô ✗ ở đó là
+// Phân quyền — SPEC bắt buộc: (ma trận vai × hành động). Mỗi ô ✗ ở đó là
 // một ca kiểm ở đây: gọi thẳng API bằng token đúng vai nhưng SAI quyền phải bị chặn ở
 // server, không chỉ ẩn nút trên app. Đây là nhóm test đáng giá nhất trong bài — dữ liệu
 // của xưởng này không được rò sang tài khoản khác.
@@ -13,7 +13,7 @@ import {
   type TestCtx,
 } from './utils/test-app.js';
 
-describe('Phân quyền — gọi thẳng API sai vai phải bị chặn (PERSONAS.md §2)', () => {
+describe('Phân quyền — gọi thẳng API sai vai phải bị chặn', () => {
   let ctx: TestCtx;
   let app: INestApplication<App>;
   const userIds: string[] = [];
@@ -130,7 +130,7 @@ describe('Phân quyền — gọi thẳng API sai vai phải bị chặn (PERSON
       .send({ userIds: [mayVaWorker.id] });
 
     // Biết hiện trả 400 (BadRequestException "Chỉ chia được việc mảng bạt qua đây"), không
-    // phải 403 — sai theo PERSONAS.md §2 nhưng KHÔNG sửa code ở đây (báo lại, xem cuối bài).
+    // phải 403 — sai nhưng KHÔNG sửa code ở đây (báo lại, xem cuối bài).
     // Test chỉ xác nhận CÓ bị chặn và assignee gốc không đổi, không khoá vào mã lỗi cụ thể.
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(res.status).toBeLessThan(500);
@@ -163,7 +163,7 @@ describe('Phân quyền — gọi thẳng API sai vai phải bị chặn (PERSON
     expect(idsSeenByA).toContain(taskA.body.id);
     expect(idsSeenByA).not.toContain(taskB.body.id);
 
-    // Gọi thẳng chi tiết việc của B bằng token của A → không đọc được (AC-4).
+    // Gọi thẳng chi tiết việc của B bằng token của A → không đọc được.
     const detailOfBByA = await request(app.getHttpServer())
       .get(`/tasks/${taskB.body.id}`)
       .set('Authorization', authHeader(ctx.jwt, workerA));

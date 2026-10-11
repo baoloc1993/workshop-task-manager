@@ -1,5 +1,5 @@
-// AC-36 (vòng 8, CAP-BUG-01) — khuôn "đang tải" (DESIGN-SYSTEM.md §5): khung xám
-// --color-surface-container-high giữ đúng chỗ nội dung sắp hiện, cỡ một thẻ — không nhảy
+// khuôn "đang tải": khung xám
+// color-surface-container-high giữ đúng chỗ nội dung sắp hiện, cỡ một thẻ — không nhảy
 // bố cục, không vòng xoay giữa màn trắng. Dùng chung cho mọi màn danh sách (TaskRow/OrderRow
 // đều cao ~--tap-min + padding, một khuôn dùng chung là đủ, không cần khuôn riêng từng màn).
 import { StyleSheet, View } from 'react-native';

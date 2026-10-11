@@ -8,7 +8,7 @@ import type { DevicePairing } from '../api/types';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S15 — "Máy của thợ" (PROTOTYPE.md §1). AC-5: thu hồi máy cũ, cấp lại mã mới.
+// "Máy của thợ".: thu hồi máy cũ, cấp lại mã mới.
 export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
   const [devices, setDevices] = useState<DevicePairing[] | null>(null);
   const [error, setError] = useState(false);
@@ -63,7 +63,7 @@ export function DevicesScreen({ onIssueNew }: { onIssueNew: () => void }) {
           <Card.Content>
             <Text variant="titleLarge">{item.user.name}</Text>
             <Text variant="bodyLarge" style={styles.meta}>
-              {/* AC-32 (vòng 8) — đổi "ghép ngày" -> "vào app ngày", tránh thuật ngữ nội bộ
+              {/* đổi "ghép ngày" -> "vào app ngày", tránh thuật ngữ nội bộ
                   "ghép"/"pairing"; đúng chữ EntryScreen đã dùng ("Quét mã để vào app"). */}
               {item.deviceLabel ?? 'Máy chưa đặt tên'} · vào app ngày{' '}
               {item.usedAt ? new Date(item.usedAt).toLocaleDateString('vi-VN') : '—'}

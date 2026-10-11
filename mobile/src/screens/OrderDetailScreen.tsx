@@ -11,7 +11,7 @@ import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S19 "Chi tiết đơn" — CHỈ owner (PROTOTYPE.md §1). Nơi DUY NHẤT hiện giá/cọc/còn lại (C19).
+// CHỈ owner. Nơi DUY NHẤT hiện giá/cọc/còn lại.
 export function OrderDetailScreen({
   orderId,
   onOpenTask,
@@ -43,8 +43,8 @@ export function OrderDetailScreen({
 
   const doTask = order?.tasks.find((t) => t.step === 'do');
   const canCutDone = order && doTask?.status === 'done' && order.tasks.length === 1;
-  // AC-24 (vòng 8, CAP-BUG-03) — trước đây "Sửa số đo" chỉ mở được khi Task "đi đo" chưa
-  // `done`, tức KHOÁ NGAY sau khi đo xong — sớm hơn ý PRD.md §3 AC-24 ("bất kể Task.status,
+  // trước đây "Sửa số đo" chỉ mở được khi Task "đi đo" chưa
+  // `done`, tức KHOÁ NGAY sau khi đo xong — sớm hơn ý ("bất kể Task.status,
   // tới khi Chốt số cắt"). Điều kiện đúng là `order.status === 'moi'` (server chỉ khoá thật
   // ở `cutDone()`, xem orders.service.ts) — không đọc `Task.status` nữa.
   const canEditMeasurements = order && order.status === 'moi' && !!doTask;
@@ -54,7 +54,7 @@ export function OrderDetailScreen({
     setDeliverError(null);
     try {
       await api.post(`/orders/${orderId}/delivered`);
-      // H3 (PRD.md §6) cho mảng đệm: "hoàn tất luồng lõi" là đơn TRẢ HÀNG, không phải một
+      // H3 cho mảng đệm: "hoàn tất luồng lõi" là đơn TRẢ HÀNG, không phải một
       // Task đơn lẻ xong — đây là chỉ số quyết định go/pivot/kill của mảng này ở pilot.
       if (user) track('don_dem_da_tra', user.id, { orderId });
       onMarkDelivered();
@@ -109,7 +109,7 @@ export function OrderDetailScreen({
         </Text>
       )}
 
-      {/* C19 — khối tiền, DUY NHẤT ở màn này (không bao giờ ở màn vai worker). */}
+      {/* khối tiền, DUY NHẤT ở màn này (không bao giờ ở màn vai worker). */}
       <View style={styles.moneyBlock}>
         <View style={styles.moneyCol}>
           <Text style={styles.moneyLabel}>Giá</Text>
@@ -121,7 +121,7 @@ export function OrderDetailScreen({
         </View>
         <View style={styles.moneyCol}>
           <Text style={styles.moneyLabel}>Còn lại</Text>
-          {/* C19: còn lại > 0 tô error, đã trả đủ (=0) tô tertiary — dogfood pha I vòng 7
+          {/* còn lại > 0 tô error, đã trả đủ (=0) tô tertiary
               (meta) phát hiện đơn 0đ (chưa nhập giá) hiện đỏ y hệt đơn nợ thật. */}
           <Text style={[styles.moneyValue, remaining(order) > 0 ? styles.moneyRemaining : styles.moneyPaid]}>
             {formatMoney(remaining(order))}
@@ -132,8 +132,8 @@ export function OrderDetailScreen({
       <Text variant="labelLarge" style={styles.sec}>
         Công đoạn
       </Text>
-      {/* C12 (DESIGN-SYSTEM.md §4) — Steps thật (vòng tròn + tên + ai/khi nào), thay cho
-          danh sách <Button mode="outlined"> chồng nhau trước đây (AC-27, vòng 8). */}
+      {/* Steps thật (vòng tròn + tên + ai/khi nào), thay cho
+          danh sách <Button mode="outlined"> chồng nhau trước đây. */}
       <View style={styles.stepsBlock}>
         {order.tasks.map((t) => (
           <StepsRow key={t.id} task={t} label={t.step ? STEP_LABEL[t.step] : t.content} onPress={() => onOpenTask(t.id)} />

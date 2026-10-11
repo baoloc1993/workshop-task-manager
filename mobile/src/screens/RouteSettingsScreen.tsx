@@ -8,7 +8,7 @@ import type { Route } from '../api/types';
 import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/tokens';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S25 "Khu vực trả hàng" (CAP-DEM-05, AC-23) — cấu hình 4-7 khu vực, chip địa danh (C18)
+// cấu hình 4-7 khu vực, chip địa danh
 // bật/tắt có hiệu lực NGAY, không nút "Lưu" riêng.
 export function RouteSettingsScreen() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -67,8 +67,8 @@ export function RouteSettingsScreen() {
           Mất kết nối — đang thử lại.
         </Banner>
       )}
-      {/* AC-45 (vòng 9, feedback B5) — "khu vực" và "địa danh" là hai thứ khác nghĩa, không
-          gộp (DECISIONS.md 2026-09-22): nói rõ bằng chữ ngay đầu màn. */}
+      {/* (feedback B5) — "khu vực" và "địa danh" là hai thứ khác nghĩa, không
+          gộp: nói rõ bằng chữ ngay đầu màn. */}
       <Text variant="bodyLarge" style={styles.explain}>
         Khu vực = một chuyến xe. Địa danh = tên làng/xã thuộc khu vực đó — app dò địa chỉ khách để gợi ý khu vực.
       </Text>
@@ -79,7 +79,7 @@ export function RouteSettingsScreen() {
         <View key={r.id} style={styles.block}>
           <View style={styles.blockHeader}>
             <Text variant="titleLarge">{r.name}</Text>
-            {/* C18 (DESIGN-SYSTEM.md §4) — dogfood pha I vòng 7: màu
+            {/* màu
                 mặc định của Paper không phân biệt rõ bật/tắt, ép màu + chiều cao tường minh. */}
             <Chip
               selected={r.active}
@@ -99,7 +99,7 @@ export function RouteSettingsScreen() {
               </Chip>
             ))}
           </View>
-          {/* AC-45 — chữ mới dài hơn chữ cũ: nhãn đặt TRÊN ô (C2 "nhãn nhỏ phía trên"), ô
+          {/* chữ mới dài hơn chữ cũ: nhãn đặt TRÊN ô (C2 "nhãn nhỏ phía trên"), ô
               rộng cả hàng, nút "Thêm" xuống dòng dưới — không để chữ bị cắt ở máy 360dp. */}
           <Text style={styles.addLabel}>＋ Thêm tên làng/xã thuộc khu vực này</Text>
           <TextInput
@@ -121,7 +121,7 @@ export function RouteSettingsScreen() {
         </View>
       ))}
 
-      {/* dogfood vòng 9 (edge): mất mạng ngay lần mở đầu thì danh sách trống — mở ô thêm lúc đó
+      {/* mất mạng ngay lần mở đầu thì danh sách trống — mở ô thêm lúc đó
           dễ khiến chủ xưởng thêm trùng khu vực đã có. */}
       {!(error && routes.length === 0) && (
       <View style={styles.addRow}>
@@ -147,14 +147,14 @@ const styles = StyleSheet.create({
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   hint: { color: colors.onSurfaceVariant, marginBottom: space.md },
   explain: { color: colors.onSurface, marginBottom: space.sm },
-  // picky vòng 9 (L16): chữ primary trông như lối bấm trong khi đây chỉ là nhãn ô nhập (C2 "nhãn nhỏ
+  // chữ primary trông như lối bấm trong khi đây chỉ là nhãn ô nhập (C2 "nhãn nhỏ
   // phía trên") — về màu nhãn C2.
   addLabel: { fontSize: fontSize.label, color: colors.onSurfaceVariant, marginTop: space.xs },
   addLandmarkButton: { alignSelf: 'flex-start' },
   block: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   blockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  // AC-34 (vòng 8, CAP-BUG-01) — DECISIONS.md 2026-09-19 điểm (2): mọi chip là "thứ bấm
+  // điểm (2): mọi chip là "thứ bấm
   // được" theo §2.3, ép `--tap-min` 48px đồng loạt (trước ép nhầm 40px).
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0, minHeight: tapMin, justifyContent: 'center' },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   chipTextUnselected: { color: colors.onSurface },
   addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   addInput: { flex: 1 },
-  // C1 (vòng 8, AC-27) — Button mặc định của react-native-paper bo viên thuốc; ép
+  // Button mặc định của react-native-paper bo viên thuốc; ép
   // `--shape-small` như mọi nút chính khác trong app.
   actionButton: { borderRadius: shape.small },
 });

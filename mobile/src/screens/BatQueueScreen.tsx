@@ -16,7 +16,7 @@ function BatTaskRow({ task, onPress }: { task: Task; onPress: () => void }) {
       task={task}
       title={task.content}
       metaParts={[who, task.dueAt ? `hạn ${new Date(task.dueAt).toLocaleDateString('vi-VN')}` : null]}
-      // dogfood pha I vòng 4: trạng thái "Chưa nhận" hiện GIỐNG HỆT cho
+      // trạng thái "Chưa nhận" hiện GIỐNG HỆT cho
       // cả việc chưa-giao-ai lẫn việc đã-giao-nhưng-thợ-chưa-bấm-nhận, gây hiểu nhầm "chưa
       // chia" thành "đã chia rồi". Chỉ hiện trạng thái khi ĐÃ có người được giao — việc
       // chưa chia thì mục "Chờ bạn chia cho thợ" đã đủ nói.
@@ -27,11 +27,11 @@ function BatTaskRow({ task, onPress }: { task: Task; onPress: () => void }) {
   );
 }
 
-// S9 — "Việc bạt chờ chia" (PROTOTYPE.md §1). CAP-TASK-06 (AC-13): điều phối (hoặc chủ xưởng)
+// "Việc bạt chờ chia".: điều phối (hoặc chủ xưởng)
 // thấy việc bạt CHƯA chia trước (kèm số đo), việc ĐÃ chia trong nhóm sau — không lục Zalo.
 export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
-  // AC-30 (vòng 8, CAP-BUG-01) — giữ lỗi gốc (NetworkError/ApiError) thay vì gộp về boolean,
+  // giữ lỗi gốc (NetworkError/ApiError) thay vì gộp về boolean,
   // để LoadErrorBanner phân biệt mất mạng/401/500 (cùng khuôn MyTasksScreen/TaskDetailScreen).
   const [error, setError] = useState<unknown>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,7 +62,7 @@ export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
   const waiting = list.filter((t) => t.assignees.length === 0);
   const assigned = list.filter((t) => t.assignees.length > 0);
 
-  // AC-36 (vòng 8, CAP-BUG-01) — khuôn tải, xem MyTasksScreen cùng khuôn.
+  // khuôn tải, xem MyTasksScreen cùng khuôn.
   if (tasks === null && !error) {
     return (
       <View style={[styles.container, { padding: space.md }]}>
@@ -79,7 +79,7 @@ export function BatQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
       keyExtractor={(t) => t.id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       // Rỗng TOÀN MÀN (chưa-chia lẫn đã-chia đều không có gì) — không dựa vào rỗng của
-      // riêng `data` (bài học dogfood pha I vòng 3, MyTasksScreen: DECISIONS.md 2026-09-11).
+      // riêng `data` (MyTasksScreen).
       ListEmptyComponent={
         error || assigned.length > 0 ? null : (
           <View style={styles.empty}>
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   banner: { marginBottom: space.md, backgroundColor: colors.errorContainer },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
-  // C6 (DESIGN-SYSTEM.md §4): số đo giữ cỡ --text-headline dù nằm trong hàng việc — sai một
+  // số đo giữ cỡ --text-headline dù nằm trong hàng việc — sai một
   // chữ số là hỏng vật tư, không được thu nhỏ theo bố cục hàng.
   measure: { fontSize: fontSize.headline, color: colors.primary, fontWeight: '600' },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },

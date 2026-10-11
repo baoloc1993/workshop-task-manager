@@ -10,8 +10,8 @@ import { OwnerNavigator } from './OwnerNavigator';
 import { WorkerNavigator } from './WorkerNavigator';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 
-// Không đăng nhập: chọn "Tôi là chủ xưởng" (email/mật khẩu) hoặc quét mã (S8).
-// Owner dùng email/mật khẩu (PRD.md §7); worker/bat-coordinator dùng QR (AC-1).
+// Không đăng nhập: chọn "Tôi là chủ xưởng" (email/mật khẩu) hoặc quét mã.
+// Owner dùng email/mật khẩu; worker/bat-coordinator dùng QR.
 function EntryScreen() {
   const [mode, setMode] = useState<'choose' | 'owner' | 'scan'>('choose');
 

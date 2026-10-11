@@ -5,8 +5,8 @@ export interface AuthUser {
   userId: string;
   role: Role;
   pairingId?: string;
-  // vòng 7 — đọc tươi mỗi request ở JwtAuthGuard (không nằm trong JWT payload), vì
-  // "Phân vai thợ" (S26) đổi có hiệu lực ngay (DECISIONS.md vòng 7).
+  // đọc tươi mỗi request ở JwtAuthGuard (không nằm trong JWT payload), vì
+  // "Phân vai thợ" đổi có hiệu lực ngay.
   groups: WorkerGroup[];
 }
 

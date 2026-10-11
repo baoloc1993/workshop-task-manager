@@ -1,7 +1,7 @@
 import { IsIn, IsInt, IsNumber, IsOptional, IsPositive } from 'class-validator';
 
-// AC-22 — gối vuông (cỡ có sẵn, KHÔNG tách Task) hoặc gối tựa (số đo riêng, tự sinh
-// Task "may/nhồi gối tựa" ở chặng 2 — ARCHITECTURE.md §6). Lưu trong Order.pillows (Json).
+// gối vuông (cỡ có sẵn, KHÔNG tách Task) hoặc gối tựa (số đo riêng, tự sinh
+// Task "may/nhồi gối tựa" ở chặng 2). Lưu trong Order.pillows (Json).
 export class PillowDto {
   @IsIn(['square', 'back'])
   type: 'square' | 'back';

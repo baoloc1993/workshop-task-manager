@@ -9,9 +9,9 @@ import { ErrorIcon } from '../common/bannerParts';
 
 const TTL_MIN = 15;
 
-// S5 — "Cho người mới vào app" (PROTOTYPE.md §1). AC-1.
+// "Cho người mới vào app"..
 export function IssueQrScreen() {
-  // AC-32 (vòng 8, CAP-BUG-03) — trước đây lọc `paired=false`: thợ đã ghép máy biến mất
+  // trước đây lọc `paired=false`: thợ đã ghép máy biến mất
   // hẳn khỏi màn này, không còn cách "Cấp lại mã" khi thợ mất/đổi máy. Giờ tải TOÀN BỘ
   // kèm cờ `paired`, hiện đúng trạng thái + nút phù hợp cho từng người.
   const [workers, setWorkers] = useState<WorkerListItem[] | null>(null);
@@ -64,7 +64,7 @@ export function IssueQrScreen() {
             <View style={styles.qrBox}>
               <QRCode value={pairing.code} size={220} />
             </View>
-            {/* dogfood pha I vòng 6 (meta): mã chỉ nằm trong QR, không đọc được —
+            {/* (meta): mã chỉ nằm trong QR, không đọc được —
                 trái với EntryScreen "Nhờ chủ xưởng ... đọc mã 6 số cho bạn". Không
                 quét được thì không còn đường nào vào app. */}
             <Text variant="displaySmall" style={styles.code}>
@@ -90,7 +90,7 @@ export function IssueQrScreen() {
         <Button
           mode="contained"
           // Cấp lại mã cho CHÍNH người đang xem — ở lại đúng màn này, không rời
-          // về danh sách (dogfood pha I: rời màn giữa chừng làm mất ngữ cảnh
+          // về danh sách (rời màn giữa chừng làm mất ngữ cảnh
           // "đang cấp mã cho ai", và câu lỗi cũ "Không tải được danh sách" sai
           // hẳn với hành động người dùng vừa bấm).
           onPress={() => currentUserId && handlePick(currentUserId)}
@@ -104,8 +104,8 @@ export function IssueQrScreen() {
   }
 
   return (
-    // Banner bám mép trên, không cuộn theo (DESIGN-SYSTEM.md §4 — cùng lý do sửa ở
-    // CreateTaskScreen.tsx, dogfood pha I vòng 2 kiểm thử).
+    // Banner bám mép trên, không cuộn theo (cùng lý do sửa ở
+    // CreateTaskScreen.tsx, kiểm thử).
     <View style={styles.outer}>
       {error && (
         <Banner visible icon={ErrorIcon} style={styles.banner}>
@@ -131,7 +131,7 @@ export function IssueQrScreen() {
               style={styles.listItem}
               right={() =>
                 u.paired ? (
-                  // picky 2026-09-19 — trước là chữ xám 13px trơn (18dp, không giống nút): nay là nút
+                  // trước là chữ xám 13px trơn (18dp, không giống nút): nay là nút
                   // chữ `--color-primary` cao >= --tap-min. Bấm = cùng hành động bấm cả hàng.
                   <Button
                     mode="text"
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
   banner: { backgroundColor: colors.errorContainer },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   list: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small },
-  // dogfood pha I: List.Item mặc định ~49.5dp, dưới --tap-min
-  // (DESIGN-SYSTEM.md §2.3 — 48px từ 2026-09-15, xem §1b).
+  // List.Item mặc định ~49.5dp, dưới --tap-min
+  // (48px từ 2026-09-15, xem §1b).
   listItem: { minHeight: tapMin, justifyContent: 'center' },
   reissueButton: { alignSelf: 'center', minHeight: tapMin, justifyContent: 'center' },
   qrContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, backgroundColor: colors.surface },

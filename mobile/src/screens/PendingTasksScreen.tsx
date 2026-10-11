@@ -21,7 +21,7 @@ function writtenAt(iso: string): string {
   return sameDay ? `ghi lúc ${formatTime(iso)}` : `ghi ${d.toLocaleDateString('vi-VN')} lúc ${formatTime(iso)}`;
 }
 
-// S31 "Việc chờ duyệt" (PROTOTYPE.md §1, vòng 9 — AC-41, CAP-TASK-16). Chủ xưởng quyết việc
+// Chủ xưởng quyết việc
 // thợ tự ghi có vào hệ thống hay không. Việc chờ lâu nhất trước. Thẻ có nút bên trong nên
 // thẻ là View, không phải Pressable (§4b luật 2 "không lồng nút trong nút").
 export function PendingTasksScreen() {
@@ -30,7 +30,7 @@ export function PendingTasksScreen() {
   const [error, setError] = useState<unknown>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  // dogfood vòng 9 (rushed, NẶNG): hàng vừa quyết biến mất ngay → hàng dưới trượt lên đúng chỗ
+  // hàng vừa quyết biến mất ngay → hàng dưới trượt lên đúng chỗ
   // ngón tay, lần chạm lại 0,4–2 giây sau (người vội tưởng máy chưa nhận) duyệt nhầm việc của
   // NGƯỜI KHÁC. Giữ hàng tại chỗ với chữ kết quả ~1,5 giây rồi mới gỡ, và khoá mọi nút tới
   // ~0,8 giây sau khi gỡ (bố cục đã đứng yên).
@@ -66,7 +66,7 @@ export function PendingTasksScreen() {
     [tasks],
   );
 
-  // dogfood vòng 9 (rushed): "Không duyệt" không đảo ngược được (API chỉ pending → rejected)
+  // "Không duyệt" không đảo ngược được (API chỉ pending → rejected)
   // và nằm sát "Duyệt" — hỏi lại một lần trước khi bỏ.
   function confirmReject(task: Task) {
     if (busyId || locked) return;
@@ -87,7 +87,7 @@ export function PendingTasksScreen() {
       await api.post(`/tasks/${task.id}/${decision}`);
       if (user) track(decision === 'approve' ? 'duyet_viec_tu_ghi' : 'khong_duyet_viec_tu_ghi', user.id, { taskId: task.id });
       ok = true;
-      // Hàng rời danh sách (AC-41) — nhưng sau 1,5 giây, không phải ngay (xem ghi chú `decided`).
+      // Hàng rời danh sách — nhưng sau 1,5 giây, không phải ngay (xem ghi chú `decided`).
       setDecided((d) => ({ ...d, [task.id]: decision }));
       setTimeout(() => {
         setTasks((prev) => (prev ?? []).filter((t) => t.id !== task.id));
@@ -96,7 +96,7 @@ export function PendingTasksScreen() {
       setSnack(decision === 'approve' ? `Đã duyệt việc của ${who}.` : `Đã không duyệt việc của ${who}.`);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        // ARCHITECTURE.md §6 ca biên vòng 9: việc đã được quyết (chủ khác bấm trước) → 409.
+        // việc đã được quyết (chủ khác bấm trước) → 409.
         setSnack('Việc này đã được quyết rồi — đã tải lại danh sách.');
         await load();
       } else {
@@ -111,7 +111,7 @@ export function PendingTasksScreen() {
   const header = (
     <>
       <ScreenTitle>Việc chờ duyệt</ScreenTitle>
-      {/* dogfood vòng 9 (edge): giữ dòng giải thích cả khi rỗng — người mới vào màn rỗng vẫn cần biết
+      {/* giữ dòng giải thích cả khi rỗng — người mới vào màn rỗng vẫn cần biết
           màn này để làm gì. */}
       <Text style={styles.hint}>Thợ tự ghi. Duyệt thì việc vào danh sách cả xưởng như việc bạn giao.</Text>
     </>
@@ -160,7 +160,7 @@ export function PendingTasksScreen() {
             <View style={styles.card}>
               <Text style={styles.title}>{item.content}</Text>
               <View style={styles.subRow}>
-                {/* C22 — thợ có thể đã bắt đầu làm trong lúc chờ (ca biên vòng 9). Việc
+                {/* thợ có thể đã bắt đầu làm trong lúc chờ. Việc
                     đã xong không có chip C22, dùng chữ "Xong" màu tertiary như C8. */}
                 {kind ? <StatusPill kind={kind} /> : <Text style={styles.doneText}>Xong</Text>}
                 <Text style={styles.meta}>

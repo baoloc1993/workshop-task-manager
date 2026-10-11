@@ -1,4 +1,4 @@
-// Ca biên "Gửi hai lần" (ARCHITECTURE.md §6): bấm cùng một nút hai lần liên tiếp không
+// Ca biên "Gửi hai lần": bấm cùng một nút hai lần liên tiếp không
 // được sinh thêm mốc thời gian, và không được trả lỗi 500. Ràng buộc duy nhất
 // (task_id,user_id,kind) trên TaskEvent là lưới chắn ở tầng dữ liệu — test này bắt cả hai
 // đường: chặn sớm ở service (status đã ở đích) VÀ chặn ở constraint nếu hai request đua nhau.

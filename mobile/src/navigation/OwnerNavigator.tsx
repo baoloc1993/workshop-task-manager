@@ -28,7 +28,7 @@ import { VoiceCaptureScreen } from '../screens/VoiceCaptureScreen';
 
 export type OwnerStackParamList = {
   Home: undefined;
-  // AC-43 (vòng 9) — `line` = chip lọc bật sẵn khi mở S1 (mục "Việc may vá" ở S0).
+  // `line` = chip lọc bật sẵn khi mở S1 (mục "Việc may vá" ở S0).
   Overview: { line?: LineFilter } | undefined;
   PendingTasks: undefined;
   VoiceCapture: undefined;
@@ -41,7 +41,7 @@ export type OwnerStackParamList = {
   History: undefined;
   TaskDetail: { taskId: string };
   Feedback: undefined;
-  // vòng 7 — mảng đệm ghế
+  // mảng đệm ghế
   Orders: undefined;
   CreateOrder: undefined;
   OrderDetail: { orderId: string };
@@ -54,13 +54,13 @@ export type OwnerStackParamList = {
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
 
-// Chặn bấm 2 nút điều hướng khác nhau trong tích tắc (dogfood pha I vòng 2,
-// kiểm thử): cả hai đều navigate trước khi màn đầu kịp rời đi, đẩy chồng 2 màn
+// Chặn bấm 2 nút điều hướng khác nhau trong tích tắc
+// : cả hai đều navigate trước khi màn đầu kịp rời đi, đẩy chồng 2 màn
 // vào stack, Back phải bấm 2 lần mới đúng. Khoá ngay khi có một lượt điều hướng đang
 // chạy, tự mở lại khi Home lấy lại focus (quay về từ màn con — Back hoặc "Giao việc" xong).
-// S0 "Trang chủ" — gom lối vào theo mảng + cấu hình (OwnerMenuScreen). Trước vòng 7 đây là
+// gom lối vào theo mảng + cấu hình (OwnerMenuScreen). Trước đây là
 // một phần của OwnerHomeScreen (10 nút chữ nối đuôi cuối danh sách việc); tách ra thành màn
-// riêng khi mảng đệm mở, đủ 3 mảng để IA theo mảng có ý nghĩa thật (DECISIONS.md 2026-09-15).
+// riêng khi mảng đệm mở, đủ 3 mảng để IA theo mảng có ý nghĩa thật.
 function MenuRoute({ navigation }: { navigation: NativeStackNavigationProp<OwnerStackParamList, 'Home'> }) {
   const navigatingRef = useRef(false);
 
@@ -95,7 +95,7 @@ function MenuRoute({ navigation }: { navigation: NativeStackNavigationProp<Owner
   );
 }
 
-// S1 "Cả xưởng hôm nay" — danh sách việc, mở từ S0. Trước vòng 7 đây là màn "Home" gốc.
+// danh sách việc, mở từ S0. Trước đây là màn "Home" gốc.
 function OverviewRoute({
   navigation,
   line,
@@ -133,7 +133,7 @@ function OverviewRoute({
 export function OwnerNavigator() {
   const [prefill, setPrefill] = useState<CreateTaskPrefill | undefined>(undefined);
   const [orderPrefill, setOrderPrefill] = useState<CreateOrderPrefill | undefined>(undefined);
-  // dogfood pha I vòng 7: native-stack KHÔNG unmount
+  // native-stack KHÔNG unmount
   // màn cũ khi điều hướng đi (giữ cho vuốt-lùi mượt) — quay lại "Ghi đơn mới" bằng Back phần
   // cứng trả về ĐÚNG instance cũ, còn nguyên banner "Đã ghi đơn" và dữ liệu form đã gửi.
   // Đổi `key` mỗi lần MỞ MỚI màn này buộc React tạo instance mới, bỏ hẳn state cũ.
@@ -210,7 +210,7 @@ export function OwnerNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="Priority" options={{ title: 'Cả xưởng' }} component={PriorityScreen} />
-      {/* S16 — màn danh sách: C13(a) khối đầu mục, không phải thanh mảnh (DESIGN-SYSTEM.md §4) */}
+      {/* màn danh sách: C13(a) khối đầu mục, không phải thanh mảnh */}
       <Stack.Screen name="History" options={{ headerShown: false }}>
         {({ navigation }) => (
           <View style={{ flex: 1 }}>
@@ -226,7 +226,7 @@ export function OwnerNavigator() {
         {({ navigation }) => <FeedbackScreen onDone={() => navigation.goBack()} />}
       </Stack.Screen>
 
-      {/* vòng 7 — mảng đệm ghế (CAP-DEM-01..07) */}
+      {/* mảng đệm ghế (..07) */}
       <Stack.Screen name="Orders" options={{ headerShown: false }}>
         {({ navigation }) => (
           <OrderListScreen
@@ -280,7 +280,7 @@ export function OwnerNavigator() {
           />
         )}
       </Stack.Screen>
-      {/* S23 — màn danh sách: C13(a) */}
+      {/* màn danh sách: C13(a) */}
       <Stack.Screen name="Delivery" options={{ headerShown: false }}>
         {({ navigation }) => (
           <View style={{ flex: 1 }}>
@@ -293,7 +293,7 @@ export function OwnerNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="RouteSettings" options={{ title: 'Cả xưởng' }} component={RouteSettingsScreen} />
-      {/* S31 (vòng 9, AC-41) — màn chi tiết/form: C13(b) thanh mảnh, vụn đường dẫn "Trang chủ"
+      {/* màn chi tiết/form: C13(b) thanh mảnh, vụn đường dẫn "Trang chủ"
           như prototype S31. */}
       <Stack.Screen name="PendingTasks" options={{ title: 'Trang chủ' }} component={PendingTasksScreen} />
       <Stack.Screen name="AssignGroups" options={{ title: 'Cả xưởng' }} component={AssignGroupsScreen} />

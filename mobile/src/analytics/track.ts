@@ -1,7 +1,7 @@
-// Nhóm 4 production-ready (đo phản ứng thị trường) — H3 (PRD.md §6) chỉ đo được ở pilot
-// vòng 7 nếu event đã chạy TỪ NGÀY DEPLOY (vòng 6); không thể thêm hồi tố sau khi pilot
+// (đo phản ứng thị trường) — H3 chỉ đo được ở pilot
+// nếu event đã chạy TỪ NGÀY DEPLOY; không thể thêm hồi tố sau khi pilot
 // đã xong. Gọi HTTP capture API của PostHog trực tiếp (không dùng SDK `posthog-react-native`)
-// — SDK đó kéo theo native module (như `expo-notifications` đã từng gây sự cố dogfood vòng 6:
+// SDK đó kéo theo native module (như `expo-notifications` đã từng gây sự cố:
 // cài xong quên rebuild native làm app crash toàn bộ ngay trước demo), rủi ro không đáng cho
 // một sản phẩm chỉ cần vài event đặt tên, không cần autocapture/session replay.
 // KHÔNG chặn luồng chính nếu lỗi/thiếu key — cùng nguyên tắc với Expo Push

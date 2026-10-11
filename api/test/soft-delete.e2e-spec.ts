@@ -1,9 +1,9 @@
-// Ca biên "Xoá" (ARCHITECTURE.md §6): xoá mềm (`deleted_at`), KHÔNG xoá cứng TaskEvent —
-// mốc thời gian là dữ liệu nền của lịch sử (CAP-TASK-15) và báo cáo điểm nghẽn (vòng 8).
+// Ca biên "Xoá": xoá mềm (`deleted_at`), KHÔNG xoá cứng TaskEvent —
+// mốc thời gian là dữ liệu nền của lịch sử và báo cáo điểm nghẽn.
 //
-// Vòng 6 chưa có endpoint DELETE /tasks/:id (không có route nào gắn @Delete trong
+// chưa có endpoint DELETE /tasks/:id (không có route nào gắn @Delete trong
 // tasks.controller.ts) — nhưng mọi query đọc (findAll/findMine/findOne/bat-queue) đã lọc
-// `deletedAt: null` sẵn, đúng như ARCHITECTURE.md §6 mô tả. Test này set deletedAt thẳng
+// `deletedAt: null` sẵn, đúng như mô tả. Test này set deletedAt thẳng
 // qua Prisma (mô phỏng trạng thái "đã xoá mềm") để kiểm đúng phần lọc đó — không giả lập gì
 // khác. Thiếu endpoint xoá thật là phát hiện, báo ở cuối bài, không tự thêm route.
 import { INestApplication } from '@nestjs/common';

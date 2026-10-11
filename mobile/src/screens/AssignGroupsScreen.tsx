@@ -12,11 +12,11 @@ import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 const ALL_GROUPS: WorkerGroup[] = ['do', 'may', 'cat_mut', 'khau_lot', 'nhoi', 'theu'];
 
-// S26 "Phân vai thợ" (CAP-DEM-07, AC-21) — một người nhiều nhóm, đổi hiệu lực NGAY. Cảnh
+// một người nhiều nhóm, đổi hiệu lực NGAY. Cảnh
 // báo nhóm 0 người (việc sẽ không ai nhận được).
 export function AssignGroupsScreen() {
   const [workers, setWorkers] = useState<WorkerListItem[] | null>(null);
-  // AC-41 (vòng 9) — người được tự ghi việc: thợ may vá/bạt + điều phối (bat_coordinator).
+  // người được tự ghi việc: thợ may vá/bạt + điều phối (bat_coordinator).
   // Thợ mảng đệm không tự ghi việc được (API 400) nên không có công tắc.
   const [selfLoggers, setSelfLoggers] = useState<WorkerListItem[] | null>(null);
   const [error, setError] = useState(false);
@@ -40,7 +40,7 @@ export function AssignGroupsScreen() {
     const next = !person.autoApprove;
     const setFlag = (v: boolean) =>
       setSelfLoggers((prev) => (prev ?? []).map((u) => (u.id === person.id ? { ...u, autoApprove: v } : u)));
-    // dogfood vòng 9 (edge): mất mạng thì báo lỗi tới sau 3–5 giây; trong lúc đó chip phải KHOÁ
+    // mất mạng thì báo lỗi tới sau 3–5 giây; trong lúc đó chip phải KHOÁ
     // (khỏi bấm lại) và lỗi hiện bằng Snackbar — banner chèn giữa danh sách đẩy hàng xuống
     // ~380px, lượt bấm lại trúng nhầm người khác.
     setFlag(next);
@@ -58,7 +58,7 @@ export function AssignGroupsScreen() {
 
   useFocusEffect(load);
 
-  // AC-36 (picky 2026-09-19) — `workers === null` = chưa tải xong: KHÔNG tính nhóm trống / "chưa có thợ"
+  // `workers === null` = chưa tải xong: KHÔNG tính nhóm trống / "chưa có thợ"
   // (trước đây khuôn rỗng + cảnh báo giả chớp ra khi đang tải).
   const loaded = workers !== null;
   const emptyGroups = !loaded ? [] : ALL_GROUPS.filter((g) => !workers.some((w) => (w.groups ?? []).includes(g)));
@@ -97,7 +97,7 @@ export function AssignGroupsScreen() {
             {ALL_GROUPS.map((g) => {
               const selected = (w.groups ?? []).includes(g);
               return (
-                // C18 — dogfood pha I vòng 7: ép màu bật/tắt tường minh,
+                // ép màu bật/tắt tường minh,
                 // không dựa vào mặc định Paper (xem CreateOrderScreen cùng lượt sửa).
                 <Chip
                   key={g}
@@ -116,7 +116,7 @@ export function AssignGroupsScreen() {
         </View>
       ))}
 
-      {/* AC-41 (vòng 9) — prototype S26: khối riêng "Việc thợ tự ghi", mỗi người một chip C18
+      {/* prototype S26: khối riêng "Việc thợ tự ghi", mỗi người một chip C18
           "Tự duyệt" (mặc định tắt). */}
       {selfLoggers && selfLoggers.length > 0 && (
         <>
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant, marginTop: space.lg },
   row: { backgroundColor: colors.surfaceContainer, borderRadius: shape.small, padding: space.md, marginBottom: space.md, gap: space.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  // AC-34 (vòng 8) — 48px (--tap-min), trước ghi nhầm 40px, xem CreateOrderScreen.
+  // 48px (--tap-min), trước ghi nhầm 40px, xem CreateOrderScreen.
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
   chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },

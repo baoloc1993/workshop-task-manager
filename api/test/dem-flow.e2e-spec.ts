@@ -1,4 +1,4 @@
-// Smoke test luồng D — mảng đệm ghế gỗ (ARCHITECTURE.md §7 mục D, PRD.md §3 AC-18..23)
+// Smoke test luồng D — mảng đệm ghế gỗ (mục D)
 // qua HTTP thật (Supertest → Nest → Postgres thật), không mock. Cộng các ca biên tiền/dữ
 // liệu quan trọng nhất của mảng này (double-submit cut-done, claim() đua nhau, khoá sửa số
 // đo sau cut-done, phân quyền, field tiền không lộ cho thợ).
@@ -29,7 +29,7 @@ async function waitFor<T>(fn: () => Promise<T | undefined | null>, timeoutMs = 3
   }
 }
 
-describe('Luồng D — mảng đệm ghế gỗ (ARCHITECTURE.md §7 mục D)', () => {
+describe('Luồng D — mảng đệm ghế gỗ', () => {
   let ctx: TestCtx;
   let app: INestApplication<App>;
   const orderIds: string[] = [];
@@ -142,7 +142,7 @@ describe('Luồng D — mảng đệm ghế gỗ (ARCHITECTURE.md §7 mục D)',
       expect(done.body.status).toBe('done');
     };
 
-    // "goi_tua" dùng chung nhóm "may" (ARCHITECTURE.md §6) — cùng người mayWorker làm cả hai,
+    // "goi_tua" dùng chung nhóm "may" — cùng người mayWorker làm cả hai,
     // hoàn tất TRƯỚC để tránh claim trùng task khác của cùng người cùng lúc (không liên quan
     // race — chỉ tuần tự hoá test).
     await finishTask(byStep('may_vai').id, authHeader(ctx.jwt, mayWorker));
@@ -244,7 +244,7 @@ describe('Luồng D — mảng đệm ghế gỗ (ARCHITECTURE.md §7 mục D)',
     expect(b.status).toBeLessThan(500);
     const statuses = [a.status, b.status].sort();
     // Đúng MỘT request thắng (201), request kia phải bị chặn 409 ("đã có người nhận") —
-    // ARCHITECTURE.md §6 ca biên "Hai thợ cùng nhóm chạm Nhận việc gần như đồng thời":
+    // ca biên "Hai thợ cùng nhóm chạm Nhận việc gần như đồng thời":
     // "request thứ hai cho cùng task_id bị chặn (409), không ghi đè".
     expect(statuses).toEqual([201, 409]);
 

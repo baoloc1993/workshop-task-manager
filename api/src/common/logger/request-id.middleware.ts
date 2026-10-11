@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { requestContextStorage } from './request-context.js';
 
-// Nhóm 1 production-ready: mọi dòng log của một request phải lần lại được bằng
+// mọi dòng log của một request phải lần lại được bằng
 // đúng một request id — nhận lại từ upstream (nếu có) hoặc tự sinh.
 @Injectable()
 export class RequestIdMiddleware implements NestMiddleware {

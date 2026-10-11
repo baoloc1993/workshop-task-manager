@@ -9,7 +9,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
-    // Chưa có unit test thuần (không đuổi theo coverage — CONVENTIONS.md §8); smoke test
+    // Chưa có unit test thuần (không đuổi theo coverage); smoke test
     // thật nằm ở test:e2e (vitest.config.e2e.ts). `make test` chạy cả hai lệnh.
     passWithNoTests: true,
   },

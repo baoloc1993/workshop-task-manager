@@ -1,11 +1,11 @@
 import type { LoggerService, LogLevel } from '@nestjs/common';
 import { getRequestId } from './request-context.js';
 
-// Nhóm 1 production-ready: log JSON có timestamp + mức độ + request id — đủ để lần
+// log JSON có timestamp + mức độ + request id — đủ để lần
 // lại một lỗi trên production mà không cần đoán. Cài trực tiếp LoggerService thay vì
 // kế thừa nội bộ ConsoleLogger (API không công khai, dễ vỡ khi Nest đổi version).
 // Không log dữ liệu nhạy cảm (mật khẩu, token) — nơi gọi logger chịu trách nhiệm đó
-// (CONVENTIONS.md §5, xem auth/notifications: message không bao giờ mang giá trị đó).
+// (xem auth/notifications: message không bao giờ mang giá trị đó).
 export class JsonLogger implements LoggerService {
   private write(level: LogLevel, context: string | undefined, message: unknown, extra?: unknown[]) {
     const isError = message instanceof Error;

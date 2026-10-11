@@ -32,8 +32,8 @@ function OrderRow({ order, onPress }: { order: OrderListItem; onPress: () => voi
   );
 }
 
-// S17 — "Đơn đệm" (CAP-DEM-04, AC-20). Sắp trễ/kẹt trước, đang làm sau, chờ trả gấp cuối
-// (cùng tinh thần bốn nhóm của S1 — DECISIONS.md vòng 5, tính ở CLIENT bằng hàm thuần).
+// "Đơn đệm". Sắp trễ/kẹt trước, đang làm sau, chờ trả gấp cuối
+// (cùng tinh thần bốn nhóm của S1, tính ở CLIENT bằng hàm thuần).
 export function OrderListScreen({
   onOpenOrder,
   onCreateOrder,
@@ -81,7 +81,7 @@ export function OrderListScreen({
 
   const isEmpty = orders !== null && orders.length === 0;
 
-  // AC-36 (vòng 8, CAP-BUG-01) — DESIGN-SYSTEM.md §5 "Đang tải": trước khi có lần tải đầu
+  // trước khi có lần tải đầu
   // tiên (`orders === null`), `ListEmptyComponent` trả `null` — màn trắng trơn, không khung
   // xám nào giữ chỗ, dễ nhầm với "đứng máy" khi mạng chậm.
   if (orders === null && !error) {

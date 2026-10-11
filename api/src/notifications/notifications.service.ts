@@ -11,17 +11,17 @@ interface PushMessage {
   data?: Record<string, unknown>;
 }
 
-// CAP-TASK-14 (vòng 6) — một chỗ DUY NHẤT gọi Expo Push (ARCHITECTURE.md §8:
-// "task-manager-api/src/notifications/ ... Không đọc/ghi bảng Task trực tiếp").
+// một chỗ DUY NHẤT gọi Expo Push
+// (module notifications/, không đọc/ghi bảng Task trực tiếp).
 // Không bao giờ throw ra ngoài: "Không được để lỗi push làm hỏng việc tạo task"
-// (ARCHITECTURE.md §9) — mọi lỗi chỉ log, người gọi không cần try/catch.
+// mọi lỗi chỉ log, người gọi không cần try/catch.
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
-  // Nhắc một người — mọi máy ĐANG hoạt động của họ (nhiều máy cùng lúc, ARCHITECTURE.md §6).
+  // Nhắc một người — mọi máy ĐANG hoạt động của họ (nhiều máy cùng lúc).
   async notifyUser(userId: string, title: string, body: string, data?: Record<string, unknown>) {
     const pairings = await this.prisma.devicePairing.findMany({
       where: { userId, revokedAt: null, deviceToken: { not: null } },
@@ -31,8 +31,8 @@ export class NotificationsService {
   }
 
   // Nhắc mọi người đang hoạt động của một vai — dùng cho "việc bạt mới chờ chia"
-  // (không có assignee cụ thể để nhắc riêng từng người). vòng 9: thêm 'owner' cho "việc
-  // chờ duyệt" (AC-41).
+  // (không có assignee cụ thể để nhắc riêng từng người).: thêm 'owner' cho "việc
+  // chờ duyệt".
   async notifyRole(role: 'bat_coordinator' | 'owner', title: string, body: string, data?: Record<string, unknown>) {
     const pairings = await this.prisma.devicePairing.findMany({
       where: {
@@ -43,7 +43,7 @@ export class NotificationsService {
       select: { deviceToken: true },
     });
     const tokens = pairings.map((p) => p.deviceToken as string);
-    // vòng 9 — owner không có DevicePairing; token nằm ở `User.pushToken` (AC-41).
+    // owner không có DevicePairing; token nằm ở `User.pushToken`.
     if (role === 'owner') {
       const owners = await this.prisma.user.findMany({
         where: { role: 'owner', active: true, pushToken: { not: null } },
@@ -54,9 +54,9 @@ export class NotificationsService {
     await this.push([...new Set(tokens)].map((to) => ({ to, title, body, data })));
   }
 
-  // vòng 7 — CAP-DEM-07 (AC-21): việc hàng-đợi-nhóm mảng đệm không có assignee cụ thể
+  // việc hàng-đợi-nhóm mảng đệm không có assignee cụ thể
   // (khác "Việc bạt chờ chia" nhắc theo VAI) — nhắc mọi thợ ĐANG hoạt động thuộc nhóm đó,
-  // dùng `hasSome` trên `User.groups` (mảng, một người nhiều nhóm — ARCHITECTURE.md §6).
+  // dùng `hasSome` trên `User.groups` (mảng, một người nhiều nhóm).
   async notifyGroup(group: WorkerGroup, title: string, body: string, data?: Record<string, unknown>) {
     const pairings = await this.prisma.devicePairing.findMany({
       where: {
@@ -86,7 +86,7 @@ export class NotificationsService {
         this.logger.warn(`Expo Push trả về ${res.status}: ${await res.text()}`);
       }
     } catch (e) {
-      // Không có chuông thì việc vẫn hiện khi công nhân tự mở app (ARCHITECTURE.md §9) —
+      // Không có chuông thì việc vẫn hiện khi công nhân tự mở app —
       // lỗi push không bao giờ được chặn luồng tạo/gán/nhắc việc.
       this.logger.warn(`Gửi Expo Push thất bại: ${e instanceof Error ? e.message : e}`);
     }

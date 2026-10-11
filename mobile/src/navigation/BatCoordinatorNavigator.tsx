@@ -20,7 +20,7 @@ export type BatCoordinatorStackParamList = {
   SelfTask: undefined;
   BatQueue: undefined;
   AssignBatWorkers: { taskId: string };
-  // dogfood vòng 9 (newbie) — S30 ghi xong quay về S6 kèm kết quả duyệt (Snackbar C15).
+  // S30 ghi xong quay về S6 kèm kết quả duyệt (Snackbar C15).
   MyTasks: { selfResult?: SelfTaskResult } | undefined;
   TaskDetail: { taskId: string };
   History: undefined;
@@ -29,9 +29,9 @@ export type BatCoordinatorStackParamList = {
 
 const Stack = createNativeStackNavigator<BatCoordinatorStackParamList>();
 
-// Vai bat-coordinator (P-3, điều phối) — S9 là màn mở đầu (PROTOTYPE.md §2 sơ đồ điều hướng:
+// Vai bat-coordinator (P-3, điều phối) — S9 là màn mở đầu (sơ đồ điều hướng:
 // "S9 -- tab 'Việc của tôi' -> S6", điều phối cũng là người làm việc như thợ bình thường).
-// App này chưa dựng thanh tab đáy (C14) ở bất cứ vai nào (đã vậy từ vòng 1 —
+// App này chưa dựng thanh tab đáy ở bất cứ vai nào (đã vậy —
 // OwnerNavigator/WorkerNavigator cũng chỉ dùng Stack, không phải riêng quyết định của vòng
 // này) nên dùng nút góc trên bên phải để chuyển qua lại, vẫn giữ đúng ngân sách ≤2 chạm.
 export function BatCoordinatorNavigator() {
@@ -42,7 +42,7 @@ export function BatCoordinatorNavigator() {
         headerLeft: ({ canGoBack }) => (canGoBack ? <HeaderBackButton /> : undefined),
       }}
     >
-      {/* S0 điều phối (vòng 9, AC-39) — màn mở đầu mới, thay S9. S9 vẫn giữ nguyên nút "Việc của
+      {/* S0 điều phối — màn mở đầu mới, thay S9. S9 vẫn giữ nguyên nút "Việc của
           tôi" ở khối đầu mục (không phá lối cũ điều phối đã quen). */}
       <Stack.Screen name="Menu" options={{ headerShown: false }}>
         {({ navigation }) => (
@@ -60,8 +60,8 @@ export function BatCoordinatorNavigator() {
       >
         {({ navigation }) => (
           <View style={{ flex: 1 }}>
-            {/* S9 — màn danh sách: C13(a) khối đầu mục. Nút CHỮ (không icon trần) giữ từ
-                dogfood pha I vòng 4 — icon một mình làm điều phối phải bấm
+            {/* màn danh sách: C13(a) khối đầu mục. Nút CHỮ (không icon trần) giữ từ
+                icon một mình làm điều phối phải bấm
                 thử mới biết dẫn tới đâu, trái luật §4b. */}
             <ScreenHeader
               title="Việc bạt chờ chia"
@@ -87,7 +87,7 @@ export function BatCoordinatorNavigator() {
       >
         {({ navigation, route }) => (
           <View style={{ flex: 1 }}>
-            {/* S6 — màn danh sách: C13(a). hitSlop giữ từ dogfood pha I vòng 5. */}
+            {/* màn danh sách: C13(a). hitSlop giữ. */}
             <ScreenHeader
               title="Việc của tôi"
               canGoBack
@@ -97,13 +97,13 @@ export function BatCoordinatorNavigator() {
                   onPress={() => navigation.navigate('History')}
                   hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                 >
-                  {/* AC-40 điểm (5), DECISIONS.md 2026-09-19: đổi nhãn — trùng chữ với nhãn
+                  {/* điểm (5): đổi nhãn — trùng chữ với nhãn
                       trạng thái "Xong" trên thẻ việc, route vẫn tới History như cũ */}
                   Lịch sử
                 </Button>
               }
             />
-            {/* AC-40 (vòng 9) — điều phối tự ghi việc như thợ (mảng = bạt, server tự lấy). */}
+            {/* điều phối tự ghi việc như thợ (mảng = bạt, server tự lấy). */}
             <MyTasksScreen
               onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
               onSelfTask={() => navigation.navigate('SelfTask')}
@@ -112,7 +112,7 @@ export function BatCoordinatorNavigator() {
           </View>
         )}
       </Stack.Screen>
-      {/* S30 (vòng 9) — form: C13(b) thanh mảnh, vụn đường dẫn "Việc của tôi". */}
+      {/* form: C13(b) thanh mảnh, vụn đường dẫn "Việc của tôi". */}
       <Stack.Screen name="SelfTask" options={{ title: 'Việc của tôi' }}>
         {({ navigation }) => (
           <SelfTaskScreen
@@ -130,12 +130,12 @@ export function BatCoordinatorNavigator() {
         options={{ headerShown: false }}
       >
         {({ navigation }) => {
-          // AC-31 (vòng 8, CAP-BUG-03) — điều phối cũng chưa có S0/màn "Cài đặt" riêng, gắn
+          // điều phối cũng chưa có S0/màn "Cài đặt" riêng, gắn
           // "Đăng xuất" ở màn phụ "Việc đã xong" như worker.
           const { logout } = useAuth();
           return (
             <View style={{ flex: 1 }}>
-              {/* S16 — màn danh sách: C13(a) */}
+              {/* màn danh sách: C13(a) */}
               <ScreenHeader
                 title="Việc đã xong"
                 canGoBack

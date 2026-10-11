@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-// S18 (autocomplete theo SĐT khi ghi đơn) + S21 "Tra khách cũ" (CAP-DEM-02, AC-18/19) —
+// S18 (autocomplete theo SĐT khi ghi đơn) + S21 "Tra khách cũ" —
 // cùng một nguồn dữ liệu, chỉ khác độ sâu hiển thị ở client.
 const ORDER_SUMMARY_SELECT = {
   id: true,
@@ -23,7 +23,7 @@ export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Tìm theo SĐT hoặc tên, chuỗi con không phân biệt hoa/thường — quy mô ~1.000
-  // khách/năm không cần full-text search riêng (ARCHITECTURE.md §10 "chưa có tải để cần").
+  // khách/năm không cần full-text search riêng.
   async search(q: string) {
     const term = q.trim();
     if (!term) return [];

@@ -1,6 +1,6 @@
-// Vòng 9 — CAP-TASK-16 (AC-40, AC-41) + AC-39 (điều phối là người nhận). Ma trận PERSONAS.md §2
-// các dòng "(vòng 9)": mỗi ô ✗ là một ca gọi thẳng API phải bị chặn ở server; lọc danh sách
-// theo ARCHITECTURE.md §6 "Mở rộng vòng 9" (việc chờ duyệt không lọt danh sách toàn xưởng).
+// + (điều phối là người nhận). Ma trận
+// các dòng "": mỗi ô ✗ là một ca gọi thẳng API phải bị chặn ở server; lọc danh sách
+// (việc chờ duyệt không lọt danh sách toàn xưởng).
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types';
@@ -12,7 +12,7 @@ import {
   type TestCtx,
 } from './utils/test-app.js';
 
-describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều phối nhận việc', () => {
+describe('thợ tự ghi việc + chủ xưởng duyệt + điều phối nhận việc', () => {
   let ctx: TestCtx;
   let app: INestApplication<App>;
   const userIds: string[] = [];
@@ -245,7 +245,7 @@ describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều p
     expect(fresh.autoApprove).toBe(false);
   });
 
-  it('dogfood vòng 9 (breaker): ký tự NUL → 400 (không 500), hạn quá 2 năm → 400, việc đã không duyệt không nhận mốc (409)', async () => {
+  it('ký tự NUL → 400 (không 500), hạn quá 2 năm → 400, việc đã không duyệt không nhận mốc (409)', async () => {
     const owner = await createTestUser(ctx.prisma, { role: 'owner' });
     const worker = await createTestUser(ctx.prisma, { role: 'worker', line: 'may_va' });
     userIds.push(owner.id, worker.id);
@@ -300,7 +300,7 @@ describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều p
     expect(byWorker.status).toBe(403);
   });
 
-  it('AC-39 — điều phối được giao việc may vá và việc bạt, tự báo nhận/bắt đầu/xong; quyền chia vẫn chỉ mảng bạt', async () => {
+  it('điều phối được giao việc may vá và việc bạt, tự báo nhận/bắt đầu/xong; quyền chia vẫn chỉ mảng bạt', async () => {
     const owner = await createTestUser(ctx.prisma, { role: 'owner' });
     const coordinator = await createTestUser(ctx.prisma, { role: 'bat_coordinator' });
     userIds.push(owner.id, coordinator.id);
@@ -323,7 +323,7 @@ describe('Vòng 9 — thợ tự ghi việc + chủ xưởng duyệt + điều p
       .send({ content: 'Bạt che sân', line: 'bat', measurements: '4x5' });
     taskIds.push(bat.body.id);
 
-    // S10 — danh sách người nhận việc bạt có điều phối.
+    // danh sách người nhận việc bạt có điều phối.
     const batWorkers = await http().get('/users/bat-workers').set('Authorization', authHeader(ctx.jwt, owner));
     expect(batWorkers.body.map((u: { id: string }) => u.id)).toContain(coordinator.id);
 

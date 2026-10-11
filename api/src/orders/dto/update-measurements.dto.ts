@@ -2,10 +2,10 @@ import { Type } from 'class-transformer';
 import { IsArray, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, ValidateNested } from 'class-validator';
 import { PillowDto } from './pillow.dto.js';
 
-// S20 "Số đo" (CAP-DEM-02, AC-19) — mọi field tuỳ chọn: "chụp tờ giấy đo là đủ, ô số
-// điền sau cũng được" (PROTOTYPE.md §1 S20 rỗng). Validate "bắt buộc ảnh nếu bộ khó" nằm
+// mọi field tuỳ chọn: "chụp tờ giấy đo là đủ, ô số
+// điền sau cũng được" (rỗng). Validate "bắt buộc ảnh nếu bộ khó" nằm
 // ở lúc báo XONG (TasksService.advance, step='do'), không ở đây — lưu nháp phải luôn được.
-// dogfood pha I vòng 7: không có trần cho số đo — lưu được số phi
+// không có trần cho số đo — lưu được số phi
 // thực tế (999999999999cm). Trần 500cm rộng rãi cho mọi bộ ghế sofa/salon thật.
 export class UpdateMeasurementsDto {
   @IsOptional()

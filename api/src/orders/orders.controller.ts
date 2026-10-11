@@ -11,14 +11,14 @@ import { OrdersService } from './orders.service.js';
 export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
-  // CAP-DEM-01 (AC-18) — S18. Chỉ owner ghi đơn.
+  // Chỉ owner ghi đơn.
   @Roles('owner')
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateOrderDto) {
     return this.orders.create(user, dto);
   }
 
-  // S17 — chỉ owner (mảng đệm chưa có màn tổng hợp nào cho thợ; thợ dùng /tasks/mine
+  // chỉ owner (mảng đệm chưa có màn tổng hợp nào cho thợ; thợ dùng /tasks/mine
   // + /tasks/dem-queue, không cần xem TOÀN BỘ đơn).
   @Roles('owner')
   @Get()
@@ -32,22 +32,22 @@ export class OrdersController {
     return this.orders.findOne(id);
   }
 
-  // CAP-DEM-02 (AC-19) — S20. Không @Roles: owner HOẶC người đo đang giữ Task 'do' của
-  // đơn này (kiểm ở service, giống findOne()/findMine() của TasksService — PERSONAS.md §2
+  // Không @Roles: owner HOẶC người đo đang giữ Task 'do' của
+  // đơn này (kiểm ở service, giống findOne()/findMine() của TasksService
   // là ma trận theo vai/quan hệ, không phải một danh sách cố định).
   @Patch(':id/measurements')
   updateMeasurements(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: UpdateMeasurementsDto) {
     return this.orders.updateMeasurements(user, id, dto);
   }
 
-  // CAP-DEM-04 (AC-20) — S24. Chỉ owner (DECISIONS.md vòng 7 — không có nhóm "tính cắt").
+  // Chỉ owner (không có nhóm "tính cắt").
   @Roles('owner')
   @Post(':id/cut-done')
   cutDone(@Param('id') id: string, @Body() dto: CutDoneDto) {
     return this.orders.cutDone(id, dto);
   }
 
-  // CAP-DEM-05 (AC-23) — S23. Chỉ owner.
+  // Chỉ owner.
   @Roles('owner')
   @Post(':id/delivered')
   delivered(@Param('id') id: string) {

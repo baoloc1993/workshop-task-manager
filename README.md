@@ -171,3 +171,7 @@ service container, and a type check for the mobile app.
 - `@nestjs/throttler` 6.5 declares a peer range up to NestJS 11 while the API uses NestJS 12, so
   `api/.npmrc` sets `legacy-peer-deps=true` for `npm ci` to succeed.
 - All people, customer and place names in seed data and tests are placeholders.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

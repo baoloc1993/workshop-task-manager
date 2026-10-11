@@ -2,7 +2,7 @@ import { MD3LightTheme } from 'react-native-paper';
 import { colors, fontFamily, fontSize } from './tokens';
 
 // Đổ bảng token §2.1 thẳng vào MD3LightTheme — tên vai trò khớp nhau nên không phải
-// dịch tên (context/DESIGN-SYSTEM.md §6.2, context/TECHSTACK.md lý do chọn Paper).
+// dịch tên (lý do chọn Paper).
 export const paperTheme = {
   ...MD3LightTheme,
   colors: {

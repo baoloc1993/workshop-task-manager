@@ -1,5 +1,5 @@
 // Prisma 7: URL kết nối cho CLI (migrate/introspect) khai ở đây, không còn trong
-// schema.prisma. Repo này đã tách khỏi repo gốc (DECISIONS.md 2026-09-10) —
+// schema.prisma. Repo này đã tách khỏi repo gốc —
 // đọc .env ngay tại gốc repo, không còn đường dẫn tương đối sang deployment/local/.
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

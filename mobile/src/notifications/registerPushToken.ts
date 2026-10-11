@@ -1,10 +1,10 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
-// CAP-TASK-14 (vòng 6) — lấy Expo push token để gửi kèm khi ghép máy (S8). Best-effort:
+// lấy Expo push token để gửi kèm khi ghép máy. Best-effort:
 // permission bị từ chối, chạy trên simulator không hỗ trợ, hay bất kỳ lỗi nào khác đều trả
-// undefined thay vì throw — ghép máy KHÔNG được phép hỏng vì thiếu push (ARCHITECTURE.md
-// §9 áp dụng cả hai chiều: lỗi push không hỏng việc, và không hỏng cả việc vào app).
+// undefined thay vì throw — ghép máy KHÔNG được phép hỏng vì thiếu push.
+// Áp dụng cả hai chiều: lỗi push không hỏng việc, và không hỏng cả việc vào app.
 export async function getExpoPushTokenAsync(): Promise<string | undefined> {
   try {
     if (Platform.OS === 'android') {

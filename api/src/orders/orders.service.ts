@@ -8,8 +8,8 @@ import { CreateOrderDto } from './dto/create-order.dto.js';
 import { UpdateMeasurementsDto } from './dto/update-measurements.dto.js';
 import { CutDoneDto } from './dto/cut-done.dto.js';
 
-// S17/S19/S23 — dùng chung, KHÔNG bao giờ gồm `price`/`deposit`/`createdBy` (chỉ
-// findOne() owner-only mới trả tiền — DECISIONS.md 2026-09-18, challenge pha I).
+// dùng chung, KHÔNG bao giờ gồm `price`/`deposit`/`createdBy` (chỉ
+// findOne() owner-only mới trả tiền).
 const ORDER_LIST_SELECT = {
   id: true,
   mode: true,
@@ -25,8 +25,8 @@ const ORDER_LIST_SELECT = {
   createdAt: true,
 } as const;
 
-// S20 — response của updateMeasurements() (owner HOẶC thợ đang đo, KHÔNG owner-only như
-// findOne()) — review bảo mật pha P vòng 7: trước đây trả thẳng kết quả
+// response của updateMeasurements() (owner HOẶC thợ đang đo, KHÔNG owner-only như
+// findOne()): trước đây trả thẳng kết quả
 // `prisma.order.update()` không `select`, lộ nguyên `price`/`deposit`/`createdById` cho
 // thợ. Cùng khuôn ORDER_LIST_SELECT, cộng các field số đo/gối mà chính S20 vừa ghi.
 const MEASUREMENTS_SELECT = {
@@ -63,7 +63,7 @@ export class OrdersService {
     return (_max.priority ?? -1) + 1;
   }
 
-  // CAP-DEM-01 (AC-18) — S18 "Ghi đơn mới": khách cũ (customerId) hoặc khách mới (customer),
+  // khách cũ (customerId) hoặc khách mới (customer),
   // đúng một trong hai. Tạo Order + Task đầu tiên "đi đo" (step='do') trong một transaction.
   async create(user: AuthUser, dto: CreateOrderDto) {
     if (!dto.customerId && !dto.customer) {
@@ -141,8 +141,8 @@ export class OrdersService {
     return this.findOne(order.id);
   }
 
-  // S17 — "Đơn đệm": toàn bộ đơn chưa xoá mềm, client tự gom nhóm (đang kẹt/đang làm/chờ
-  // trả) bằng hàm thuần, cùng khuôn `taskBucket()` đã chọn cho S1 (DECISIONS.md vòng 5).
+  // "Đơn đệm": toàn bộ đơn chưa xoá mềm, client tự gom nhóm (đang kẹt/đang làm/chờ
+  // trả) bằng hàm thuần, cùng khuôn `taskBucket()` đã chọn cho S1.
   findAll() {
     return this.prisma.order.findMany({
       where: { deletedAt: null },
@@ -151,7 +151,7 @@ export class OrdersService {
     });
   }
 
-  // S19 "Chi tiết đơn" — CHỈ owner (PROTOTYPE.md §1: "chỉ owner"), duy nhất nơi trả tiền.
+  // CHỈ owner ("chỉ owner"), duy nhất nơi trả tiền.
   async findOne(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
@@ -162,8 +162,8 @@ export class OrdersService {
           where: { deletedAt: null },
           include: {
             assignees: { include: { user: { select: { id: true, name: true } } } },
-            // AC-27 (vòng 8) — StepsRow (S19 "Công đoạn") cần events để tính "ai · khi nào"
-            // xong; thiếu field này gây crash `task.events.find` (dogfood vòng 8).
+            // StepsRow cần events để tính "ai · khi nào"
+            // xong; thiếu field này gây crash `task.events.find`.
             events: true,
           },
           orderBy: { createdAt: 'asc' },
@@ -174,7 +174,7 @@ export class OrdersService {
     return order;
   }
 
-  // S20 "Số đo" (CAP-DEM-02, AC-19) — owner HOẶC người đang là assignee của Task "đi đo"
+  // owner HOẶC người đang là assignee của Task "đi đo"
   // (step='do') còn hiệu lực của chính đơn này. Không kiểm `User.groups` ở đây — nhóm chỉ
   // quyết ai NHẬN được việc (claim), không quyết ai được sửa sau khi đã nhận.
   async updateMeasurements(user: AuthUser, orderId: string, dto: UpdateMeasurementsDto) {
@@ -191,10 +191,10 @@ export class OrdersService {
       if (!isAssignee) throw new ForbiddenException('Bạn không phải người đang đo đơn này');
     }
 
-    // dogfood pha I vòng 7: sau khi "Chốt số cắt" (cut-done sinh Task
+    // sau khi "Chốt số cắt" (cut-done sinh Task
     // chặng 2), số đo đã dùng để tính fabricMeters/foamSheets — sửa số đo lúc này làm số đo
     // hiện tại lệch khỏi số vải/mút đã cắt thật ngoài xưởng, không có cách nào biết đơn nào
-    // bị lệch. Khoá sửa từ đây, đúng "không sửa trực tiếp bản ghi cũ" (AC-19/DECISIONS vòng 7).
+    // bị lệch. Khoá sửa từ đây, đúng "không sửa trực tiếp bản ghi cũ".
     if (order.tasks.some((t) => t.step !== 'do')) {
       throw new ForbiddenException('Đơn đã chốt số cắt — không sửa số đo được nữa');
     }
@@ -213,9 +213,9 @@ export class OrdersService {
     });
   }
 
-  // CAP-DEM-04 (AC-20) — S24 "Chốt số cắt": chỉ owner (DECISIONS.md vòng 7 — không có
+  // chỉ owner (không có
   // nhóm "tính cắt" trong 6 nhóm chuyên trách đã chốt). Đòi Task "đi đo" đã xong trước —
-  // đúng chuỗi TUẦN TỰ của chặng 1 (`_PROPOSAL.md` "Luồng nghiệp vụ — ba chặng").
+  // đúng chuỗi TUẦN TỰ của chặng 1.
   async cutDone(orderId: string, dto: CutDoneDto) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -261,7 +261,7 @@ export class OrdersService {
         ),
       ]);
     } catch (e) {
-      // review pha P vòng 7: kiểm "đã chốt chưa" (dòng 225) đọc TRƯỚC
+      // kiểm "đã chốt chưa" (dòng 225) đọc TRƯỚC
       // transaction ghi — hai request "Chốt số cắt" gần như đồng thời (double-tap) đều đọc
       // thấy "chưa chốt" rồi cùng tạo Task chặng 2, sinh trùng cả bộ. Ràng buộc DB mới
       // `@@unique([orderId, step])` (migration `20260918164547`) chặn request thứ hai ở
@@ -282,8 +282,8 @@ export class OrdersService {
   }
 
   // Gọi bởi TasksService.advance() ngay sau khi một Task line=dem chuyển sang 'done'
-  // (ARCHITECTURE.md §7 luồng D bước 5-6). Đây là quy luật vòng đời ĐƠN, không phải quy
-  // luật việc chung — đặt ở orders/ theo đúng ranh giới domain (ARCHITECTURE.md §8).
+  // (luồng D bước 5-6). Đây là quy luật vòng đời ĐƠN, không phải quy
+  // luật việc chung — đặt ở orders/ theo đúng ranh giới domain.
   async onDemTaskDone(taskId: string): Promise<void> {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task || !task.orderId || !task.step) return;
@@ -294,7 +294,7 @@ export class OrdersService {
     }
     if (task.step === 'do' || task.step === 'tinh_cat') return; // chặng 1 — không kích hoạt gì thêm ở đây
 
-    // Chặng 2: kiểm TOÀN BỘ Task chặng 2 của đơn đã done chưa (AC-20).
+    // Chặng 2: kiểm TOÀN BỘ Task chặng 2 của đơn đã done chưa.
     const siblings = await this.prisma.task.findMany({
       where: { orderId: task.orderId, deletedAt: null, step: { notIn: ['do', 'tinh_cat', 'nhoi'] } },
     });
@@ -317,7 +317,7 @@ export class OrdersService {
         },
       });
     } catch (e) {
-      // review pha P vòng 7: hai Task chặng 2 cuối cùng "Xong" gần như
+      // hai Task chặng 2 cuối cùng "Xong" gần như
       // đồng thời có thể khiến hai lời gọi onDemTaskDone() cùng thấy "allDone" rồi cùng tạo
       // Task "nhồi" — ràng buộc DB mới `@@unique([orderId, step])` chặn bản trùng, đây là
       // kết quả BÌNH THƯỜNG của việc thắng-thua khi đua nhau, không phải lỗi cần báo lại
@@ -330,8 +330,8 @@ export class OrdersService {
     void this.notifications.notifyGroup('nhoi', 'Việc nhồi chờ nhận', order.description, { orderId: order.id });
   }
 
-  // S23 "Hàng trả" — "Báo đã trả hàng · thu <còn lại>" là MỘT hành động (DECISIONS.md
-  // vòng 7): trả hàng và thu đủ tiền còn lại cùng lúc, không tách bước.
+  // "Báo đã trả hàng · thu <còn lại>" là MỘT hành động:
+  // trả hàng và thu đủ tiền còn lại cùng lúc, không tách bước.
   async markDelivered(orderId: string) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order || order.deletedAt) throw new NotFoundException('Không tìm thấy đơn này');

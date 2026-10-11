@@ -1,12 +1,12 @@
-// Tách câu giọng nói thành các trường của S3 (ARCHITECTURE.md §8: "không tự phát việc —
+// Tách câu giọng nói thành các trường của S3 ("không tự phát việc —
 // luôn trả về S3 để người soát"). Rule-based, chạy trên máy, không gọi dịch vụ ngoài —
-// khớp quyết định "on-device, không LLM" (DECISIONS.md, vòng 2).
+// khớp quyết định "on-device, không LLM".
 //
-// Vòng 4 (CAP-TASK-05/06, AC-12/AC-13): nghe thấy từ "bạt" → line='bat', không tìm người
+// nghe thấy từ "bạt" → line='bat', không tìm người
 // nhận trong câu (mảng bạt luôn vào "Việc bạt chờ chia", không giao đích danh qua giọng
 // nói); bắt cụm số + đơn vị đo ("mét"/"m") gần đó làm measurements, GIỮ NGUYÊN dạng thô đã
-// nghe được — không tách number/unit có cấu trúc (DECISIONS.md, vòng 4: không ai đối chiếu
-// tự động, PRD.md §5 đã loại trừ nghiệm thu).
+// nghe được — không tách number/unit có cấu trúc (không ai đối chiếu
+// tự động, đã loại trừ nghiệm thu).
 
 import { matchAssignees, stripDiacritics, type NameCandidate } from './matchAssignees';
 
@@ -20,7 +20,7 @@ export interface ParsedUtterance {
   rawText: string;
   line: 'may_va' | 'bat';
   measurements: string | null;
-  // AC-38 (vòng 9) — người gần đúng / khớp chắc ở phương án nghe sau, tối đa 3. S3 chỉ gợi
+  // người gần đúng / khớp chắc ở phương án nghe sau, tối đa 3. S3 chỉ gợi
   // ý, KHÔNG tự tick (matchAssignees.ts).
   suggestedAssigneeIds: string[];
 }
@@ -40,7 +40,7 @@ function lastToken(name: string): string {
   return parts[parts.length - 1];
 }
 
-/** Tìm hạn: hôm nay / mai / mốt / thứ trong tuần → ngày ISO tới gần nhất. Export từ vòng 9
+/** Tìm hạn: hôm nay / mai / mốt / thứ trong tuần → ngày ISO tới gần nhất. Export
  * để S30 (tự ghi việc) cho gõ hạn bằng chữ ("thứ Sáu", "mai") như lúc nói. */
 export function findDueAt(text: string, now: Date): { dueAt: string | null; matchedPhrase: string | null } {
   const norm = stripDiacritics(text);
@@ -115,7 +115,7 @@ function cleanContent(
     out = out.replace(new RegExp(`\\bcho\\s+${key}\\b`, 'i'), '');
   }
   if (out === beforeName && stripGenericName) {
-    // Vòng 9 (AC-37) — tên nghe lệch ("Toán" cho "Toàn", khớp ở phương án sau, hoặc chỉ gần
+    // tên nghe lệch ("Toán" cho "Toàn", khớp ở phương án sau, hoặc chỉ gần
     // đúng): tên thật không nằm nguyên văn trong câu nên bóc theo tên không ăn — bóc chung
     // "giao cho <từ>", không để chữ nghe sai lọt vào tên việc.
     out = out.replace(/giao\s+cho\s+\S+/i, '');
@@ -141,7 +141,7 @@ function cleanContent(
 }
 
 /**
- * `alternatives` (vòng 9, AC-37): các phương án nghe khác của bộ nhận dạng, theo độ tin cậy
+ * `alternatives`: các phương án nghe khác của bộ nhận dạng, theo độ tin cậy
  * giảm dần — phương án đầu chính là `rawText`. Nội dung/hạn/số đo vẫn tách từ `rawText`;
  * riêng người nhận khớp trên mọi phương án (matchAssignees.ts).
  */
@@ -153,7 +153,7 @@ export function parseUtterance(
 ): ParsedUtterance {
   const text = rawText.trim();
   const { line, measurements, matchedPhrase: measureMatch } = findLineAndMeasurements(text);
-  // Mảng bạt luôn vào "Việc bạt chờ chia" (CAP-TASK-06) — không đoán người nhận trong câu nói.
+  // Mảng bạt luôn vào "Việc bạt chờ chia" — không đoán người nhận trong câu nói.
   const match = line === 'bat' ? { matchedId: null, suggestedIds: [] } : matchAssignees([text, ...alternatives], workers);
   const assignee = match.matchedId ? workers.find((w) => w.id === match.matchedId) ?? null : null;
   const due = findDueAt(text, now);

@@ -1,12 +1,11 @@
-// C21 "Ô ảnh" (DESIGN-SYSTEM.md §4) — khung bo `--shape-small` nét đứt `--color-outline`
+// C21 "Ô ảnh" — khung bo `--shape-small` nét đứt `--color-outline`
 // khi chưa có ảnh, nét liền `--color-primary` khi đã có; chữ nói rõ chụp gì. Trước đây
-// dùng chung khuôn nút C1 (nền đặc), không phân biệt được với hành động thường — dogfood
-// pha I vòng 7.
+// dùng chung khuôn nút C1 (nền đặc), không phân biệt được với hành động thường
 //
-// Vòng 9 (AC-42, feedback B3) — trạng thái "xem trước": chụp xong KHÔNG dùng ngay mà mở ảnh
-// toàn màn (nền `--color-on-surface`) với "Dùng ảnh này" (C1) / "Chụp lại"; huỷ (nút Huỷ
+// (feedback B3) — trạng thái "xem trước": chụp xong KHÔNG dùng ngay mà mở ảnh
+// toàn màn (nền `--color-on-surface`) với "Dùng ảnh này" / "Chụp lại"; huỷ (nút Huỷ
 // hoặc phím Back) KHÔNG xoá ảnh cũ. Chạm ảnh đã có → xem to, có "Chụp lại". PhotoBox tự lo
-// cả luồng chụp nên mọi nơi dùng (S18, S20) cùng một hành vi — trước đây S18 gán thẳng kết
+// cả luồng chụp nên mọi nơi dùng cùng một hành vi — trước đây S18 gán thẳng kết
 // quả camera, huỷ camera là mất luôn ảnh cũ (`setPhoto(null)`).
 import { useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
@@ -130,7 +129,7 @@ export function PhotoBox({
 const styles = StyleSheet.create({
   box: { borderRadius: shape.small, minHeight: 120, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   boxEmpty: { borderWidth: 1, borderStyle: 'dashed', borderColor: colors.outline, backgroundColor: colors.surfaceContainer },
-  // dogfood vòng 9: Android giữ lại `dashed` của boxEmpty khi đổi style nếu không ghi đè
+  // Android giữ lại `dashed` của boxEmpty khi đổi style nếu không ghi đè
   // tường minh — ô đã có ảnh vẫn nét đứt, lệch C21 ("nét liền khi đã có").
   boxFilled: { borderWidth: 1, borderStyle: 'solid', borderColor: colors.primary },
   image: { width: '100%', height: 160 },

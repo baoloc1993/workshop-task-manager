@@ -24,10 +24,10 @@ function resolveDue(raw: string): { iso: string | null; error: string | null } {
   return { iso: null, error: 'Chưa hiểu hạn này. Gõ "mai", "thứ Sáu" hoặc 2026-09-25.' };
 }
 
-// S30 "Ghi việc tôi làm" (PROTOTYPE.md §1, vòng 9 — AC-40, CAP-TASK-16). Thợ may vá/bạt và
+// Thợ may vá/bạt và
 // điều phối tự đưa việc mình đang làm lên hệ thống: nội dung + hạn tuỳ chọn, người nhận luôn là
-// chính mình, mảng do server lấy theo `User.line` (ARCHITECTURE.md §6 mở rộng vòng 9).
-// dogfood vòng 9 (newbie): `onDone` mang `approval` của response về S6 để S6 hiện Snackbar C15
+// chính mình, mảng do server lấy theo `User.line` ().
+// `onDone` mang `approval` của response về S6 để S6 hiện Snackbar C15
 // nói rõ việc vừa ghi đang chờ duyệt hay đã vào danh sách (§4c: im lặng không phải thành công).
 export function SelfTaskScreen({ onDone }: { onDone: (approval?: TaskApproval) => void }) {
   const { user } = useAuth();
@@ -79,7 +79,7 @@ export function SelfTaskScreen({ onDone }: { onDone: (approval?: TaskApproval) =
         )}
         <ScrollView contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
           <ScreenTitle>Ghi việc tôi làm</ScreenTitle>
-          {/* C2 — ô nhập, nhãn nhỏ phía trên, sai = viền --color-error + câu báo. */}
+          {/* ô nhập, nhãn nhỏ phía trên, sai = viền --color-error + câu báo. */}
           <TextInput
             label="Việc gì"
             mode="outlined"
@@ -111,7 +111,7 @@ export function SelfTaskScreen({ onDone }: { onDone: (approval?: TaskApproval) =
             }}
             error={!!dueError}
             style={styles.input}
-            // dogfood vòng 9 (mobile): máy 360×640dp bàn phím che nút "Ghi việc", cuộn cũng không
+            // máy 360×640dp bàn phím che nút "Ghi việc", cuộn cũng không
             // kéo ra được — phím ✓ ở ô cuối gửi luôn, khỏi phải đóng bàn phím rồi chạm thêm.
             returnKeyType="send"
             onSubmitEditing={() => void handleSubmit()}
@@ -124,7 +124,7 @@ export function SelfTaskScreen({ onDone }: { onDone: (approval?: TaskApproval) =
           </Text>
           {/* Một dòng nói trước kết quả. Máy thợ không biết cờ "Tự duyệt" của mình (API không
               trả về cho thợ) nên dùng câu trung tính đúng cho cả hai trường hợp.
-              dogfood vòng 9 (newbie): câu cũ "Nếu chủ xưởng cần duyệt…" bắt thợ đoán, và chữ
+              Trước đây câu "Nếu chủ xưởng cần duyệt…" bắt thợ đoán, và chữ
               "Xong" khác nút thật "Báo xong" — nay gọi đúng chữ trên nút (taskStatus ACTION_LABEL);
               kết quả thật (chờ duyệt hay không) báo bằng Snackbar ở S6 sau khi ghi. */}
           <Text style={styles.note}>

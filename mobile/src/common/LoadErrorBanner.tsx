@@ -4,7 +4,7 @@ import { ApiError, NetworkError } from '../api/client';
 import { colors, space } from '../theme/tokens';
 import { ErrorIcon, bannerActionStyle } from './bannerParts';
 
-// AC-30 (vòng 8, CAP-BUG-01) — trước đây mọi màn dữ liệu (`catch { setError(true) }`) hiện
+// trước đây mọi màn dữ liệu (`catch { setError(true) }`) hiện
 // đúng MỘT câu chung ("Không tải được...") cho mọi loại lỗi — mất mạng, quyền hết hạn
 // (401/403), lỗi máy chủ (500) đều giống hệt nhau, người dùng không biết phải làm gì khác
 // nhau (thử lại tại chỗ hay đăng nhập lại). Component dùng chung đọc `error` gốc (giữ
@@ -38,8 +38,8 @@ export function LoadErrorBanner({
   const actions =
     isAuth && onReauth ? [{ ...bannerActionStyle, label: 'Đăng nhập lại', onPress: onReauth }] : [{ ...bannerActionStyle, label: 'Thử lại', onPress: onRetry }];
   return (
-    // C5 — banner bám mép trên, KHÔNG cuộn theo (DESIGN-SYSTEM.md §4) — nơi gọi phải đặt
-    // component này NGOÀI ScrollView/FlatList, đúng khuôn đã sửa ở CreateTaskScreen vòng 2.
+    // banner bám mép trên, KHÔNG cuộn theo — nơi gọi phải đặt
+    // component này NGOÀI ScrollView/FlatList, đúng khuôn đã sửa ở CreateTaskScreen.
     <Banner visible icon={ErrorIcon} style={styles.banner} actions={actions}>
       <Text style={styles.text}>{message}</Text>
     </Banner>

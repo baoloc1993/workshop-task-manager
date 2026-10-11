@@ -1,4 +1,4 @@
-// C3 — Hàng việc (DESIGN-SYSTEM.md §4), dùng chung S1/S6/S9 — thay cho Card MD3. Nền trắng
+// Hàng việc, dùng chung S1/S6/S9 — thay cho Card MD3. Nền trắng
 // bo --shape-small, vòng tròn trạng thái bên trái, tên việc + dòng phụ ghép bằng " · ", sao
 // đỏ bên phải khi quá hạn.
 import type { ReactNode } from 'react';
@@ -29,10 +29,10 @@ export function TaskRow({
   metaParts?: (string | null | undefined | false)[];
   showStatus?: boolean;
   topLine?: ReactNode;
-  /** C22 (vòng 9, AC-44) — chip trạng thái đứng ĐẦU dòng phụ; chỉ S1/S6/S31 truyền vào. */
+  /** chip trạng thái đứng ĐẦU dòng phụ; chỉ S1/S6/S31 truyền vào. */
   pill?: ReactNode;
-  /** picky vòng 9 (L2) — ép khuôn "sắp trễ" của C3 (viền + sao đỏ) cho việc không quá hạn theo
-   *  `dueAt` nhưng đứng yên ≥24 giờ (nhóm "Quá hạn hoặc đứng yên" của S1, AC-15). */
+  /** ép khuôn "sắp trễ" của C3 (viền + sao đỏ) cho việc không quá hạn theo
+   * `dueAt` nhưng đứng yên ≥24 giờ (nhóm "Quá hạn hoặc đứng yên" của S1). */
   alert?: boolean;
   onPress: () => void;
 }) {
@@ -46,7 +46,7 @@ export function TaskRow({
       <StatusDot task={task} alert={late && task.status !== 'done'} />
       <View style={styles.body}>
         {topLine}
-        {/* AC-27 (vòng 8, CAP-BUG-01) — C3 "xong": gạch ngang + chữ --color-on-surface-variant,
+        {/* C3 "xong": gạch ngang + chữ --color-on-surface-variant,
             trước đây TaskRow không có nhánh riêng cho trạng thái này. */}
         <Text style={[styles.title, done && styles.titleDone]} numberOfLines={2}>
           {title}

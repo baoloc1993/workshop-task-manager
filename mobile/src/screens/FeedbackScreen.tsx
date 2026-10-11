@@ -6,9 +6,9 @@ import { api, ApiError } from '../api/client';
 import { colors, shape, space, tapMin } from '../theme/tokens';
 import { ErrorIcon } from '../common/bannerParts';
 
-// Nhóm 4 production-ready — "kênh feedback" (review pha P vòng 6). Một form gửi thẳng
-// là đủ theo shared-production-ready/SKILL.md; chưa cần màn đọc lại (owner tra qua DB
-// trong lúc pilot vòng 7, ROADMAP.md §3 nếu cần dựng màn riêng sau).
+// "kênh feedback". Một form gửi thẳng
+// là đủ theo tài liệu nội bộ; chưa cần màn đọc lại (owner tra qua DB
+// trong lúc pilot, nếu cần dựng màn riêng sau).
 export function FeedbackScreen({ onDone }: { onDone: () => void }) {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);

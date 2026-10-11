@@ -12,7 +12,7 @@ import { useAuth } from '../auth/AuthContext';
 import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// AC-25 (vòng 8, CAP-BUG-02) — cùng khuôn nháp đã có ở CreateTaskScreen từ vòng 2 (S3),
+// cùng khuôn nháp đã có ở CreateTaskScreen,
 // S18 "Ghi đơn mới" trước đây CHƯA có gì tương tự — khách gọi lúc chủ xưởng đang gõ dở
 // (điện thoại rung, app bị hệ điều hành force-stop) làm mất trắng y hệt bug đã vá ở S3.
 const DRAFT_KEY = 'workshop-app.create-order-draft';
@@ -54,8 +54,8 @@ async function clearOrderDraft() {
   await SecureStore.deleteItemAsync(DRAFT_KEY);
 }
 
-// AC-19 (S21) — "Dùng lại số đo này cho đơn mới": chép SANG đơn mới, không sửa bản cũ
-// (ARCHITECTURE.md §6). CreateOrderDto nhận thẳng field số đo tuỳ chọn (DECISIONS.md vòng 7).
+// "Dùng lại số đo này cho đơn mới": chép SANG đơn mới, không sửa bản cũ
+// CreateOrderDto nhận thẳng field số đo tuỳ chọn.
 export interface CreateOrderPrefill {
   customer: Customer;
   measurements?: {
@@ -67,9 +67,9 @@ export interface CreateOrderPrefill {
   };
 }
 
-// S18 "Ghi đơn mới" (CAP-DEM-01, AC-18) — nhập trong ~30 giây lúc khách gọi (`_PROPOSAL.md`
-// "Rủi ro phải xử"): SĐT trước (nhận ra khách cũ) → bộ ghế → buôn/lẻ → khu vực gợi ý →
-// "Thêm chi tiết" (C20) gấp lại phần ít dùng ngay lúc mới vào.
+// nhập trong ~30 giây lúc khách gọi
+// SĐT trước (nhận ra khách cũ) → bộ ghế → buôn/lẻ → khu vực gợi ý →
+// "Thêm chi tiết" gấp lại phần ít dùng ngay lúc mới vào.
 export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; prefill?: CreateOrderPrefill }) {
   const { user } = useAuth();
   const [phone, setPhone] = useState(prefill?.customer.phone ?? '');
@@ -91,14 +91,14 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
-  // dogfood pha I vòng 7: sau khi "Ghi đơn" thành công, `onDone()` điều
+  // sau khi "Ghi đơn" thành công, `onDone()` điều
   // hướng đi (`navigation.navigate`, không `replace`) nên màn này vẫn còn trong ngăn xếp —
   // bấm Back (phần cứng) quay LẠI đúng form cũ còn banner xanh cũ + nút "Ghi đơn" còn bật,
   // dễ khiến người bấm vội tưởng chưa gửi và bấm lại, tạo đơn trùng. Khoá hẳn form sau khi
   // gửi thành công, không đợi điều hướng.
   const [submitted, setSubmitted] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // có prefill (AC-19, "dùng lại số đo") thì bỏ qua nháp cũ — ý định mới nhất thắng,
+  // có prefill ("dùng lại số đo") thì bỏ qua nháp cũ — ý định mới nhất thắng,
   // đúng khuôn `draftLoaded` của CreateTaskScreen.
   const draftLoaded = useRef(!!prefill);
   const [hasOldDraft, setHasOldDraft] = useState(false);
@@ -163,14 +163,14 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
 
   // Gợi ý khu vực khi có đủ địa chỉ + danh sách khu vực — chỉ tự gợi ý nếu chủ xưởng
   // CHƯA tự tay chọn (routeTouched), đúng "app gợi ý, chủ xưởng xác nhận hoặc chạm khác"
-  // (DECISIONS.md vòng 7 — tính ở client).
+  // (tính ở client).
   useEffect(() => {
     if (routeTouched || !address.trim() || routes.length === 0) return;
     const s = suggestRoute(address, routes, selectedCustomer?.areaId);
     setRouteId(s.routeId);
   }, [address, routes, selectedCustomer, routeTouched]);
 
-  // Debounce tìm khách theo SĐT — S18 "SĐT (nhận ra khách cũ...)".
+  // Debounce tìm khách theo SĐT.
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (phone.trim().length < 3 || selectedCustomer) {
@@ -232,8 +232,8 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
         measurementPhoto: prefill?.measurements?.photo ?? undefined,
       });
       if (user) track('ghi_don_dem', user.id, { orderId: order.id });
-      // §4b luật 3 "làm xong phải nói là đã xong" — dogfood pha I vòng 7 (meta): trước đây
-      // quay thẳng về S17 không có xác nhận nào, giống lỗi CreateTaskScreen đã sửa từ vòng 2.
+      // §4b luật 3 "làm xong phải nói là đã xong" — (meta): trước đây
+      // quay thẳng về S17 không có xác nhận nào, giống lỗi CreateTaskScreen đã sửa.
       setBanner('Đã ghi đơn. Đơn mới hiện ở đầu danh sách.');
       setSubmitted(true);
       clearOrderDraft();
@@ -246,12 +246,12 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
     }
   }
 
-  // dogfood pha I vòng 7 (cùng phát hiện ở CustomerLookupScreen) — xem giải thích ở đó.
+  // (cùng phát hiện ở CustomerLookupScreen) — xem giải thích ở đó.
   return (
     <KeyboardAvoider>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: space.md }} keyboardShouldPersistTaps="handled">
       {hasOldDraft && (
-        // picky vòng 9 (L1): chữ "Xoá" --color-primary trên nền surface-container-high chỉ 4.16:1 và
+        // chữ "Xoá" --color-primary trên nền surface-container-high chỉ 4.16:1 và
         // vùng chạm 41×38dp — đổi sang on-primary-container (~8:1) + bannerActionStyle (≥48dp).
         <Banner
           visible
@@ -319,7 +319,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
       <Text variant="bodyLarge" style={styles.label}>
         Chế độ
       </Text>
-      {/* dogfood pha I vòng 7: SegmentedButtons của react-native-paper
+      {/* SegmentedButtons của react-native-paper
           không có chỗ chỉnh chiều cao — đo được 38dp, dưới --tap-min 48px (§2.3). Thay bằng
           hai Button thường cùng khuôn contentStyle={{height: tapMin}} đã dùng toàn app. */}
       <View style={styles.modeRow}>
@@ -358,7 +358,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
                 setRouteId(r.id);
                 setRouteTouched(true);
               }}
-              // dogfood pha I vòng 7: mặc định react-native-paper tô chip
+              // mặc định react-native-paper tô chip
               // "selected" bằng secondaryContainer (amber, trùng C17 nhãn BUÔN) và chip
               // thường/chọn gần như không phân biệt được — C18 đòi bật = primary-container,
               // tắt = chỉ viền outline-variant. Ép màu tường minh thay vì tin theme mặc định.
@@ -402,7 +402,7 @@ export function CreateOrderScreen({ onDone, prefill }: { onDone: () => void; pre
           </Chip>
           <TextInput label="Giá (đ)" mode="outlined" keyboardType="numeric" value={price} onChangeText={setPrice} style={styles.input} />
           <TextInput label="Đã cọc (đ)" mode="outlined" keyboardType="numeric" value={deposit} onChangeText={setDeposit} style={styles.input} />
-          {/* AC-42 (vòng 9) — PhotoBox tự chụp + xem trước; chỉ gán khi "Dùng ảnh này". */}
+          {/* PhotoBox tự chụp + xem trước; chỉ gán khi "Dùng ảnh này". */}
           <PhotoBox photo={photo} label="Chụp ảnh bộ ghế" onConfirm={setPhoto} />
         </View>
       </List.Accordion>
@@ -434,8 +434,8 @@ const styles = StyleSheet.create({
   label: { marginBottom: space.sm },
   hint: { color: colors.onSurfaceVariant, marginTop: -space.sm, marginBottom: space.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
-  // C18 (DESIGN-SYSTEM.md §4): bật = nền --color-primary-container, tắt = chỉ viền
-  // --color-outline-variant; cao ≥ --tap-min (48px — sửa AC-34 vòng 8, trước ghi nhầm 40px:
+  // bật = nền --color-primary-container, tắt = chỉ viền
+  // color-outline-variant; cao ≥ --tap-min (48px — sửa, trước ghi nhầm 40px:
   // chip là hành động bấm được, §2.3 "mọi thứ bấm được" áp cả chip lọc/chọn).
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },

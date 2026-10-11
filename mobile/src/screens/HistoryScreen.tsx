@@ -13,9 +13,9 @@ import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
 type Range = 'week' | 'month';
 
-// S16 — "Việc đã xong" (CAP-TASK-15, AC-16). Dùng chung cho cả ba vai — server tự lọc theo
+// "Việc đã xong". Dùng chung cho cả ba vai — server tự lọc theo
 // vai (owner: toàn xưởng · worker: của mình · bat_coordinator: của mình + nhóm bạt), màn
-// chỉ hiển thị đúng những gì API trả (PERSONAS.md §2, ARCHITECTURE.md §8).
+// chỉ hiển thị đúng những gì API trả.
 export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
   const [range, setRange] = useState<Range>('week');
   const [tasks, setTasks] = useState<Task[] | null>(null);
@@ -48,8 +48,8 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
   const list = tasks ?? [];
   const rangeLabel = range === 'week' ? 'tuần này' : 'tháng này';
 
-  // AC-36 (vòng 8, CAP-BUG-01) — cùng lớp lỗi: trước tải xong lần đầu, chớp câu rỗng
-  // "Chưa có việc nào xong" (DESIGN-SYSTEM.md §5 đòi khung xám lúc đang tải).
+  // cùng lớp lỗi: trước tải xong lần đầu, chớp câu rỗng
+  // "Chưa có việc nào xong" (đòi khung xám lúc đang tải).
   if (tasks === null && !error) {
     return (
       <View style={styles.container}>
@@ -123,8 +123,8 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
               lineLabel(item.line),
               doneAt ? `xong ${new Date(doneAt).toLocaleDateString('vi-VN')} lúc ${formatTime(doneAt)}` : null,
             ]}
-            // AC-41 (vòng 9) — việc tự ghi bị chủ không duyệt chỉ còn thấy ở lịch sử của
-            // chính người ghi, kèm nhãn rõ ràng (ARCHITECTURE.md §6 mở rộng vòng 9). Chữ đỏ đậm
+            // việc tự ghi bị chủ không duyệt chỉ còn thấy ở lịch sử của
+            // chính người ghi, kèm nhãn rõ ràng (). Chữ đỏ đậm
             // như phần "kẹt" của C8 — "không duyệt" không có chip C22.
             topLine={
               item.approval === 'rejected' ? <Text style={styles.rejected}>Chủ không duyệt</Text> : undefined
@@ -133,7 +133,7 @@ export function HistoryScreen({ onOpenTask }: { onOpenTask: (id: string) => void
             // <giờ>", nhắc lại trạng thái "Xong" lần nữa là thừa. Riêng việc bị không duyệt
             // có thể chưa xong → hiện trạng thái để khỏi tưởng là đã xong.
             showStatus={item.status !== 'done'}
-            // dogfood vòng 9 (newbie): việc tự ghi đã xong mà chủ chưa duyệt vẫn giữ chip C22
+            // việc tự ghi đã xong mà chủ chưa duyệt vẫn giữ chip C22
             // "Chờ chủ duyệt" — trước đây sang tới lịch sử là mất, thợ tưởng đã được duyệt.
             pill={item.approval === 'pending' ? <StatusPill kind="pending" /> : undefined}
             onPress={() => onOpenTask(item.id)}
@@ -150,8 +150,8 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   chips: { flexDirection: 'row', gap: space.sm, marginBottom: space.md },
-  // dogfood pha I vòng 6: Chip mặc định của Paper ~34dp, dưới
-  // --tap-min 48px (DESIGN-SYSTEM.md §2.3) — ép chiều cao + canh giữa chữ.
+  // Chip mặc định của Paper ~34dp, dưới
+  // tap-min 48px — ép chiều cao + canh giữa chữ.
   chip: { borderColor: colors.outline, minHeight: tapMin, justifyContent: 'center' },
   // Chip lọc (không phải chip trạng thái việc — those are gone, xem tasks/TaskRow.tsx C8)
   // đang chọn dùng --color-primary-container, KHÔNG dùng secondary-container mặc định của

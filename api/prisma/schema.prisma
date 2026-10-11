@@ -1,6 +1,6 @@
-// Mô hình dữ liệu lõi — chốt ở context/ARCHITECTURE.md §6 (pha V, đường intake).
-// Vòng 1 chỉ dùng một phần các trường/thực thể — xem context/CAPABILITIES-MAP.md §2
-// và context/DECISIONS.md (2026-09-10, "schema Prisma dựng đủ 5 thực thể ngay ở vòng 1").
+// Mô hình dữ liệu lõi — (đường intake).
+// chỉ dùng một phần các trường/thực thể —
+// và (2026-09-10, "schema Prisma dựng đủ 5 thực thể ngay").
 
 generator client {
   provider = "prisma-client-js"
@@ -21,7 +21,7 @@ enum Role {
 enum Line {
   may_va
   bat
-  // vòng 7 — ARCHITECTURE.md §6 "Mở rộng mảng đệm ghế". Thêm giá trị enum là additive
+  // Thêm giá trị enum là additive
   // (BACKWARD-COMPATIBILITY-CHECKLIST.md §2) — không đổi nghĩa hai giá trị cũ.
   dem
 }
@@ -36,12 +36,12 @@ enum TaskStatus {
 enum TaskSource {
   voice
   manual
-  // vòng 9 — CAP-TASK-16 (AC-40): thợ/điều phối tự ghi việc cho chính mình. Thêm giá trị enum
+  // thợ/điều phối tự ghi việc cho chính mình. Thêm giá trị enum
   // là additive (BACKWARD-COMPATIBILITY-CHECKLIST.md §2).
   self
 }
 
-// vòng 9 — CAP-TASK-16 (AC-41, ARCHITECTURE.md §6 "Mở rộng vòng 9"). Mặc định `approved`
+// Mặc định `approved`
 // để mọi việc cũ (chủ xưởng giao, đơn đệm) giữ nguyên nghĩa; `pending`/`rejected` chỉ xuất
 // hiện khi source=self. Máy trạng thái: chỉ pending → approved|rejected, không lùi.
 enum TaskApproval {
@@ -56,7 +56,7 @@ enum TaskEventKind {
   done
 }
 
-// vòng 7 — nhóm chuyên trách của mảng đệm (ARCHITECTURE.md §6 "User (mở rộng)").
+// nhóm chuyên trách của mảng đệm.
 // Một người có thể thuộc nhiều nhóm cùng lúc (User.groups là mảng).
 enum WorkerGroup {
   do
@@ -67,7 +67,7 @@ enum WorkerGroup {
   theu
 }
 
-// vòng 7 — công đoạn của một Task khi line=dem (ARCHITECTURE.md §6 "Task (mở rộng)").
+// công đoạn của một Task khi line=dem.
 // tinh_cat KHÔNG sinh việc hàng-đợi-nhóm — nó là hành động của S24 (owner), gộp cả
 // "tính cắt vải" lẫn "tính cắt mút" thành một Task duy nhất theo prototype S24.
 enum TaskStep {
@@ -110,20 +110,20 @@ model User {
   role      Role
   line      Line?
   active    Boolean  @default(true)
-  email     String?  @unique // chỉ owner dùng — email/mật khẩu (PRD.md §7)
+  email     String?  @unique // chỉ owner dùng — email/mật khẩu
   password  String? // hash bcrypt — chỉ owner
-  // Review pha P vòng 6 (SECURITY.md §3 "đăng xuất được"): token owner không có
+  // token owner không có
   // pairingId nên JwtAuthGuard bỏ qua kiểm thu hồi — bump field này (qua
   // POST /auth/logout-everywhere) là cách duy nhất vô hiệu hoá token owner cũ mà
   // không phải đổi JWT_SECRET (kéo theo đăng xuất toàn bộ công nhân/điều phối).
   tokenVersion Int @default(0) @map("token_version")
-  // vòng 7 — ARCHITECTURE.md §6 "User (mở rộng)": chỉ có ý nghĩa khi line=dem. Mảng
+  // chỉ có ý nghĩa khi line=dem. Mảng
   // rỗng = chưa được phân vào nhóm nào, không nhận được việc hàng-đợi-nhóm nào.
   groups    WorkerGroup[] @default([])
-  // vòng 9 — CAP-TASK-16 (AC-41): việc người này tự ghi có vào thẳng danh sách không.
-  // Mặc định TẮT (DECISIONS.md 2026-09-22) — chỉ có nghĩa với worker/bat_coordinator.
+  // việc người này tự ghi có vào thẳng danh sách không.
+  // Mặc định TẮT — chỉ có nghĩa với worker/bat_coordinator.
   autoApprove Boolean @default(false) @map("auto_approve")
-  // vòng 9 — AC-41: owner đăng nhập bằng email, không có DevicePairing nên trước đây
+  // owner đăng nhập bằng email, không có DevicePairing nên trước đây
   // không có chỗ lưu push token → "có việc chờ duyệt" không tới được máy chủ xưởng.
   // Chỉ owner dùng; thợ/điều phối vẫn giữ token trên DevicePairing như cũ.
   pushToken String? @map("push_token")
@@ -145,20 +145,20 @@ model Task {
   id           String     @id @default(uuid())
   content      String
   line         Line
-  measurements String? // chỉ dùng cho line = bat (vòng 4)
+  measurements String? // chỉ dùng cho line = bat
   dueAt        DateTime?  @map("due_at")
   priority     Int        @default(0)
   status       TaskStatus @default(new)
   source       TaskSource @default(manual)
-  // vòng 9 — CAP-TASK-16: danh sách toàn xưởng chỉ lấy `approved` (ARCHITECTURE.md §6).
+  // danh sách toàn xưởng chỉ lấy `approved`.
   approval     TaskApproval @default(approved)
   createdById  String     @map("created_by")
   createdBy    User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
   deletedAt    DateTime?  @map("deleted_at")
-  // CAP-TASK-14 (vòng 6) — mốc lần cuối cùng gửi nhắc "chưa ack"/"sắp tới hạn", chặn spam
-  // khi cron chạy lại trước hết cooldown (DECISIONS.md 2026-09-15).
+  // mốc lần cuối cùng gửi nhắc "chưa ack"/"sắp tới hạn", chặn spam
+  // khi cron chạy lại trước hết cooldown.
   lastReminderAt DateTime? @map("last_reminder_at")
-  // vòng 7 — ARCHITECTURE.md §6 "Task (mở rộng, chỉ khi line=dem)". orderId NULL nghĩa
+  // orderId NULL nghĩa
   // là line != dem (may vá/bạt không đổi). Cả hai cột nullable — additive.
   orderId String?   @map("order_id")
   order   Order?    @relation(fields: [orderId], references: [id])
@@ -169,7 +169,7 @@ model Task {
   assignees TaskAssignee[]
   events    TaskEvent[]
 
-  // review pha P vòng 7: cutDone() và onDemTaskDone()
+  // cutDone() và onDemTaskDone()
   // đọc-rồi-ghi ngoài transaction có khoá — hai request đồng thời (double-submit "Chốt số
   // cắt", hoặc hai Task chặng 2 cuối cùng "Xong" gần như cùng lúc) có thể sinh TRÙNG Task
   // cùng step cho cùng đơn (2 bộ chặng 2, hoặc 2 Task "nhồi"). Mỗi đơn chỉ có đúng MỘT Task
@@ -222,10 +222,10 @@ model TaskEvent {
   @@map("task_events")
 }
 
-// Nhóm 4 production-ready — "kênh feedback": người dùng phản hồi được ngay trong sản
-// phẩm (review pha P vòng 6). Chưa có màn nào để owner ĐỌC lại danh sách này ở vòng 6 —
-// đọc trực tiếp qua DB trong lúc pilot vòng 7 là đủ cho quy mô xưởng nhỏ; màn đọc riêng
-// (nếu cần) là việc của vòng sau, không phải AC nào của vòng 6.
+// "kênh feedback": người dùng phản hồi được ngay trong sản
+// phẩm. Chưa có màn nào để owner ĐỌC lại danh sách này —
+// đọc trực tiếp qua DB trong lúc pilot là đủ cho quy mô xưởng nhỏ; màn đọc riêng
+// (nếu cần) là việc của vòng sau, không phải nào.
 model Feedback {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
@@ -236,14 +236,14 @@ model Feedback {
   @@map("feedback")
 }
 
-// vòng 7 — ARCHITECTURE.md §6 "Mở rộng mảng đệm ghế". Khách hàng KHÔNG phải User —
-// không tài khoản, không đăng nhập, không persona (DECISIONS.md 2026-09-14 qua chat).
+// Khách hàng KHÔNG phải User —
+// không tài khoản, không đăng nhập, không persona (qua chat).
 model Customer {
   id        String   @id @default(uuid())
   name      String
   phone     String
   address   String
-  // Khu vực trả lần trước — gợi ý cho đơn kế tiếp (tính ở client, DECISIONS.md 2026-09-18).
+  // Khu vực trả lần trước — gợi ý cho đơn kế tiếp (tính ở client).
   areaId    String?  @map("area_id")
   area      Route?   @relation(fields: [areaId], references: [id])
   note      String?
@@ -253,13 +253,13 @@ model Customer {
   orders Order[]
 
   // Không unique trên phone — "Trùng dữ liệu" giữ triết lý chung của app
-  // (ARCHITECTURE.md §6: "không tự phát hiện/gộp, chủ xưởng tự chịu").
+  // ("không tự phát hiện/gộp, chủ xưởng tự chịu").
   @@index([phone])
   @@map("customers")
 }
 
-// vòng 7 — "khu vực" trả hàng (ARCHITECTURE.md §6). Danh sách phẳng chủ xưởng tự cấu
-// hình (S25), 4-7 khu vực dự kiến. "Xe ôm chuyến lẻ"/"Khách tự lấy" KHÔNG phải Route —
+// "khu vực" trả hàng. Danh sách phẳng chủ xưởng tự cấu
+// hình, 4-7 khu vực dự kiến. "Xe ôm chuyến lẻ"/"Khách tự lấy" KHÔNG phải Route —
 // là giá trị cố định của Order.deliveryMethod.
 model Route {
   id        String   @id @default(uuid())
@@ -275,8 +275,8 @@ model Route {
   @@map("routes")
 }
 
-// vòng 7 — ARCHITECTURE.md §6. `remaining = price - deposit` tính ở tầng đọc, không lưu
-// cột riêng. Đây là loại trừ công nợ DUY NHẤT được mở, chỉ cho line=dem (PRD.md §5).
+// `remaining = price - deposit` tính ở tầng đọc, không lưu
+// cột riêng. Đây là loại trừ công nợ DUY NHẤT được mở, chỉ cho line=dem.
 model Order {
   id          String          @id @default(uuid())
   customerId  String          @map("customer_id")
@@ -284,9 +284,9 @@ model Order {
   mode        OrderMode
   description String
   difficulty  OrderDifficulty @default(de)
-  photos      String[]        @default([]) // data-URI base64 (DECISIONS.md 2026-09-18 — không có blob storage)
+  photos      String[]        @default([]) // data-URI base64 (không có blob storage)
 
-  // Số đo — nullable tới khi người đo điền xong (CAP-DEM-02). Tách 4 cột riêng (không
+  // Số đo — nullable tới khi người đo điền xong. Tách 4 cột riêng (không
   // gộp text như Task.measurements của mảng bạt) vì C6 hiện từng trục riêng, cỡ tabular.
   measurementLength    Float?  @map("measurement_length")
   measurementDepth     Float?  @map("measurement_depth")
@@ -309,8 +309,8 @@ model Order {
 
   status OrderStatus @default(moi)
 
-  // Nhập tay ở S24 sau khi chốt số cắt — CAP-DEM-03 (công thức gợi ý) đẩy backlog,
-  // không có field "gợi ý" riêng vì chưa có gì để gợi ý (DECISIONS.md 2026-09-18).
+  // Nhập tay ở S24 sau khi chốt số cắt — (công thức gợi ý) đẩy backlog,
+  // không có field "gợi ý" riêng vì chưa có gì để gợi ý.
   fabricMeters Float? @map("fabric_meters")
   foamSheets   Float? @map("foam_sheets")
 

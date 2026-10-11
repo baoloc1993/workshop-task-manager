@@ -10,8 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { LogoutMenuRow, MenuRow } from '../common/MenuRow';
 
-// S0 "Trang chủ" (PROTOTYPE.md §1, DECISIONS.md 2026-09-15: trì hoãn tới khi đủ 3 mảng để
-// IA có ý nghĩa thật — vòng 7 mở mảng đệm là mảng thứ 3, điều kiện đó nay đã đủ). Không
+// S0 "Trang chủ" (trì hoãn tới khi đủ 3 mảng để
+// IA có ý nghĩa thật — mở mảng đệm là mảng thứ 3, điều kiện đó nay đã đủ). Không
 // dựng lại nguyên bản S0 của prototype (avatar/ô tìm kiếm) — chỉ phần cốt lõi phân biệt
 // nó khỏi S1 cũ: MỘT trang gom lối vào theo mảng + cấu hình, thay vì 10 nút chữ nối đuôi
 // cuối danh sách việc như trước.
@@ -33,7 +33,7 @@ export function OwnerMenuScreen({
   onVoiceCapture,
 }: {
   onOverview: () => void;
-  // AC-43 (vòng 9) — trước đây mục "Việc may vá" gọi `onOverview` (lỗi thật, DECISIONS.md
+  // trước đây mục "Việc may vá" gọi `onOverview` (lỗi thật
   // 2026-09-22): mở S1 không lọc. Nay mở S1 với chip May vá bật sẵn.
   onMayVa: () => void;
   onPendingTasks: () => void;
@@ -65,7 +65,7 @@ export function OwnerMenuScreen({
       .join('') || 'CX';
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [orders, setOrders] = useState<OrderListItem[] | null>(null);
-  // AC-41 (vòng 9) — số việc chờ duyệt, tải riêng: lỗi (vd API cũ chưa có endpoint) thì
+  // số việc chờ duyệt, tải riêng: lỗi (vd API cũ chưa có endpoint) thì
   // chỉ bỏ số, không làm mất số đếm của các mục khác.
   const [pendingCount, setPendingCount] = useState<number | undefined>(undefined);
 
@@ -73,7 +73,7 @@ export function OwnerMenuScreen({
     api
       .get<Task[]>('/tasks/pending')
       .then((p) => setPendingCount(p.length))
-      // dogfood vòng 9 (edge): mục không số = khuôn "không có việc" — mất mạng mà bỏ số thì chủ
+      // mục không số = khuôn "không có việc" — mất mạng mà bỏ số thì chủ
       // xưởng đọc thành "không có gì chờ duyệt". Giữ số lần trước (như các mục khác).
       .catch(() => {});
     try {
@@ -101,7 +101,7 @@ export function OwnerMenuScreen({
 
   return (
     <View style={styles.container}>
-      {/* C14 (DESIGN-SYSTEM.md §4) — đầu S0 là hàng avatar + tên + tên xưởng rồi ô tìm,
+      {/* đầu S0 là hàng avatar + tên + tên xưởng rồi ô tìm,
           KHÔNG phải khối đầu mục chuyển sắc: C13(a) chỉ khai cho S1/S6/S9/S16/S17/S22/S23,
           S0 không nằm trong danh sách đó (prototype S0 dùng `.top` + `.search`). */}
       <View style={[styles.top, { paddingTop: insets.top + 14 }]}>
@@ -137,13 +137,13 @@ export function OwnerMenuScreen({
         <MenuRow icon="👥" tone="cfg" label="Phân vai thợ" onPress={onAssignGroups} />
         <View style={styles.divider} />
         <MenuRow icon="✎" tone="cfg" label="Góp ý" onPress={onFeedback} />
-        {/* AC-31 (vòng 8, CAP-BUG-03) — owner trước đó không có lối nào đăng xuất trong app */}
+        {/* owner trước đó không có lối nào đăng xuất trong app */}
         <LogoutMenuRow />
       </ScrollView>
-      {/* C7 — thanh thêm ghim đáy (DESIGN-SYSTEM.md §4; prototype S0 `.addbar`). Thiếu nó thì
+      {/* thanh thêm ghim đáy (prototype S0 `.addbar`). Thiếu nó thì
           chủ xưởng ở S0 phải vào "Cả xưởng hôm nay" mới giao được việc bằng giọng nói, đội
           ngân sách §4c "giao việc bằng giọng nói ≤3 chạm" lên 4. */}
-      {/* picky 2026-09-19: mép dưới thanh nằm dưới vạch cử chỉ Android (đáy y=2369/2400).
+      {/* mép dưới thanh nằm dưới vạch cử chỉ Android (đáy y=2369/2400).
           Trừ safe-area đáy, giữ 12px tối thiểu như cũ khi máy không có vạch. */}
       <Pressable
         onPress={onVoiceCapture}

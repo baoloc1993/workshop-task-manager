@@ -1,4 +1,4 @@
-// C8 — Dòng phụ trạng thái (DESIGN-SYSTEM.md §4), dùng ở S7 (đứng riêng, không ghép vào
+// Dòng phụ trạng thái, dùng ở S7 (đứng riêng, không ghép vào
 // dòng phụ của hàng việc — xem tasks/TaskRow.tsx cho S1/S6/S9). Không còn nền chip, chỉ chữ
 // tô màu theo trạng thái (statusColor()).
 import { Text } from 'react-native-paper';

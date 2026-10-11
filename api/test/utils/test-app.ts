@@ -3,7 +3,7 @@
 //
 // Bootstrap app thật (AppModule) trên Postgres thật của máy dev (DATABASE_URL ở .env
 // gốc repo — cùng DB `docker ps` đang chạy ở deployment/local/docker-compose.yml của
-// repo gốc). Không có endpoint "tạo nhân viên" ở vòng 1 (chỉ seed.ts) nên test
+// repo gốc). Không có endpoint "tạo nhân viên" (chỉ seed.ts) nên test
 // tạo User trực tiếp qua PrismaService, ký token trực tiếp qua JwtService — đúng cơ chế
 // AuthService dùng thật, không phải mock.
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -92,7 +92,7 @@ export async function cleanupTestData(
   }
 }
 
-// Dọn dữ liệu mảng đệm (vòng 7): orderIds kéo theo mọi Task sinh RA từ cut-done/claim
+// Dọn dữ liệu mảng đệm: orderIds kéo theo mọi Task sinh RA từ cut-done/claim
 // (không track hết được taskId từng cái vì server tự sinh chặng 2/3) — tìm theo orderId
 // trước rồi mới xoá theo đúng thứ tự FK, sau đó orders → customers → users (dùng chung
 // cleanupTestData ở trên cho phần user/task lẻ nếu có).

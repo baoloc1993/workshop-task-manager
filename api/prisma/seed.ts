@@ -1,6 +1,6 @@
-// Dữ liệu mẫu — nguồn: context/PRD.md §7 "Dữ liệu mẫu". Đây là chỗ DUY NHẤT tạo User
-// ở vòng 1 (không có endpoint "tạo nhân viên" — xem context/DECISIONS.md 2026-09-10
-// và context/ROADMAP.md §3 backlog).
+// Dữ liệu mẫu — nguồn:. Đây là chỗ DUY NHẤT tạo User
+// (không có endpoint "tạo nhân viên" —
+// và backlog).
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
@@ -21,7 +21,7 @@ const MAY_VA_NAMES = ['Thợ A', 'Thợ B', 'Thợ C', 'Thợ D', 'Thợ E', 'Th
 const BAT_NAMES = ['Thợ M', 'Thợ N', 'Thợ O', 'Thợ P', 'Thợ Q'];
 
 async function main() {
-  // Review pha P vòng 6: mật khẩu mặc định 'doicaimatkhaunay' công khai trong git history —
+  // mật khẩu mặc định 'doicaimatkhaunay' công khai trong git history —
   // âm thầm rơi về giá trị này trên production (chạy nhầm `db:seed` mà quên set biến) là
   // cấp quyền owner cho bất kỳ ai đọc được repo. Local/dev thì fallback vẫn tiện.
   if (process.env.APP_ENV === 'production' && !process.env.OWNER_SEED_PASSWORD) {

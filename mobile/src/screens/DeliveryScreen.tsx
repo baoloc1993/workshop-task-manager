@@ -8,10 +8,10 @@ import { chipHitSlop, colors, fontSize, shape, space, tapMin } from '../theme/to
 import { SkeletonCard } from '../common/SkeletonCard';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S23 "Hàng trả" (CAP-DEM-05, AC-23) — chọn khu vực + ngày → mọi đơn hẹn trả khu vực đó,
+// chọn khu vực + ngày → mọi đơn hẹn trả khu vực đó,
 // tô đỏ đơn CHƯA nhồi (status != cho_tra/da_tra). "Chốt chuyến" hàng loạt KHÔNG dựng —
-// không AC/endpoint nào yêu cầu; chạm thẻ → S19 để báo trả TỪNG đơn là đủ (ROADMAP.md §3
-// nếu pilot cho thấy cần gộp chuyến).
+// không endpoint nào yêu cầu; chạm thẻ → S19 để báo trả TỪNG đơn là đủ
+// (có thể gộp chuyến nếu sau này cần).
 const DAY_FILTERS = ['today', 'tomorrow', 'week'] as const;
 type DayFilter = (typeof DAY_FILTERS)[number];
 const DAY_LABEL: Record<DayFilter, string> = { today: 'Hôm nay', tomorrow: 'Mai', week: 'Cả tuần' };
@@ -63,7 +63,7 @@ export function DeliveryScreen({
     setRefreshing(false);
   }
 
-  // AC-34 (vòng 8, CAP-BUG-01) — trước đây số đếm `(N)` mỗi chip khu vực tính trên TOÀN BỘ
+  // trước đây số đếm `(N)` mỗi chip khu vực tính trên TOÀN BỘ
   // `orders` (bỏ qua chip ngày/trạng thái đang chọn) — chủ xưởng chọn "Mai" nhưng số đếm
   // vẫn hiện như đang xem "Tất cả", lệch hẳn danh sách thật hiện dưới đó. Số đếm phải theo
   // đúng bộ lọc ngày + trạng thái hiện tại (`byDay`), chỉ khác `filtered` ở chỗ CHƯA áp
@@ -85,9 +85,9 @@ export function DeliveryScreen({
     { id: 'xe_om', name: 'Xe ôm chuyến lẻ', count: byDay.filter((o) => !o.route).length },
   ];
 
-  // AC-36 (vòng 8, CAP-BUG-01) — trước đây `orders === null` (chưa tải lần đầu) rơi thẳng
+  // trước đây `orders === null` (chưa tải lần đầu) rơi thẳng
   // vào khuôn rỗng bên dưới, chớp qua "Không có hàng hẹn trả" + nút "Ghi đơn mới" trước khi
-  // dữ liệu thật tới (DESIGN-SYSTEM.md §5 "Đang tải" đòi khung xám, không phải khuôn rỗng).
+  // dữ liệu thật tới (đòi khung xám, không phải khuôn rỗng).
   if (orders === null && !error) {
     return (
       <View style={[styles.container, { padding: space.md }]}>
@@ -105,8 +105,8 @@ export function DeliveryScreen({
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       ListEmptyComponent={
         error ? null : (
-          // AC-29 (vòng 8, CAP-BUG-01) — khuôn rỗng S23 trước đây chỉ một câu, không nút,
-          // khớp C7 đã khai cho màn này (DESIGN-SYSTEM.md §4): đúng MỘT nút "＋ Ghi đơn mới".
+          // khuôn rỗng S23 trước đây chỉ một câu, không nút,
+          // khớp C7 đã khai cho màn này: đúng MỘT nút "＋ Ghi đơn mới".
           <View style={styles.empty}>
             <Text variant="bodyLarge" style={styles.emptyText}>
               Không có hàng hẹn trả trong khoảng đã chọn.
@@ -124,7 +124,7 @@ export function DeliveryScreen({
               Mất kết nối — đang thử lại
             </Banner>
           )}
-          {/* AC-27 (vòng 8, CAP-BUG-01) — trước đây không ép màu, Paper tô chip "selected"
+          {/* trước đây không ép màu, Paper tô chip "selected"
               bằng secondaryContainer (nhãn BUÔN #FFF4CE/#3D2600) — nhầm token C18 (bật =
               primary-container, tắt = chỉ viền outline-variant), cùng lỗi đã sửa ở
               CreateOrderScreen/RouteSettingsScreen. */}
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   emptyButton: { borderRadius: shape.small },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.sm },
-  // AC-34 (vòng 8) — chip khu vực/ngày ở S23 chưa từng có minHeight, mặc định Paper ~32dp.
+  // chip khu vực/ngày ở S23 chưa từng có minHeight, mặc định Paper ~32dp.
   chip: { marginBottom: space.xs, minHeight: tapMin, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.primaryContainer, borderWidth: 0 },
   chipUnselected: { backgroundColor: 'transparent', borderColor: colors.outline, borderWidth: 1 },

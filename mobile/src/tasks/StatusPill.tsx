@@ -1,6 +1,6 @@
-// C22 — Chip trạng thái (DESIGN-SYSTEM.md §4, vòng 9 feedback B4, AC-44). Nhãn chữ
+// Chip trạng thái. Nhãn chữ
 // `--text-label` đậm, bo 3px, nền theo trạng thái — CHỈ dùng ở S1, S6 (nhãn "Chờ chủ duyệt")
-// và S31; riêng nhãn "Chờ chủ duyệt" thêm S7 + S16 (dogfood vòng 9, newbie) —
+// và S31; riêng nhãn "Chờ chủ duyệt" thêm S7 + S16 (newbie) —
 // các màn khác vẫn C8 dòng phụ chữ màu (tasks/TaskRow.tsx, StatusChip.tsx).
 // Chỉ dùng token + cặp tương phản đã có ở §2/§3 — không đẻ màu mới.
 import { StyleSheet, View } from 'react-native';
@@ -27,7 +27,7 @@ const TONE: Record<PillKind, { bg: string; fg: string; border: string }> = {
   in_progress: { bg: colors.primaryContainer, fg: colors.onPrimaryContainer, border: colors.primaryContainer },
   late: { bg: colors.errorContainer, fg: colors.onErrorContainer, border: colors.errorContainer },
   stale: { bg: colors.errorContainer, fg: colors.onErrorContainer, border: colors.errorContainer },
-  // chờ duyệt = cặp mới on-surface / surface-container-high (DECISIONS.md 2026-09-22, ~12:1)
+  // chờ duyệt = cặp mới on-surface / surface-container-high (~12:1)
   pending: { bg: colors.surfaceContainerHigh, fg: colors.onSurface, border: colors.surfaceContainerHigh },
 };
 

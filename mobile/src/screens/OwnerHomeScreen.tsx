@@ -12,14 +12,14 @@ import { ScreenHeader } from '../common/ScreenHeader';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S1 — "Cả xưởng hôm nay" (CAP-TASK-08, AC-15). Đúng bốn nhóm của PROTOTYPE.md §1: quá
+// "Cả xưởng hôm nay". Đúng bốn nhóm của: quá
 // hạn/đứng yên → đang làm → chưa ai nhận → đã xong hôm nay (gấp lại cuối màn). Dữ liệu từ
-// GET /tasks (owner-only), gom nhóm bằng hàm thuần taskBucket() (DECISIONS.md vòng 5).
-// AC-44 (vòng 9) — chip trạng thái C22 đầu dòng phụ thay cho chữ trạng thái C8; việc đã xong
+// GET /tasks (owner-only), gom nhóm bằng hàm thuần taskBucket().
+// chip trạng thái C22 đầu dòng phụ thay cho chữ trạng thái C8; việc đã xong
 // không có chip C22 (§4 C22 chỉ bốn trạng thái chưa xong) nên giữ chữ "Xong" C8 như cũ.
 function OverviewRow({ task, onPress }: { task: Task; onPress: () => void }) {
   const kind = pillKindOf(task);
-  // picky vòng 9 (L13): chip C22 "Chưa nhận" đã nói ý này — không lặp "Chưa ai nhận" ở dòng phụ.
+  // chip C22 "Chưa nhận" đã nói ý này — không lặp "Chưa ai nhận" ở dòng phụ.
   const who = task.assignees.length > 0 ? task.assignees.map((a) => a.user.name).join(', ') : kind ? null : 'Chưa ai nhận';
   return (
     <TaskRow
@@ -34,7 +34,7 @@ function OverviewRow({ task, onPress }: { task: Task; onPress: () => void }) {
   );
 }
 
-// AC-43 (vòng 9) — hàng chip lọc C18 "Tất cả · May vá · Bạt · Đệm" kèm số đếm.
+// hàng chip lọc C18 "Tất cả · May vá · Bạt · Đệm" kèm số đếm.
 export type LineFilter = 'all' | Task['line'];
 const FILTERS: { key: LineFilter; label: string }[] = [
   { key: 'all', label: 'Tất cả' },
@@ -52,7 +52,7 @@ export function OwnerHomeScreen({
   onOpenTask: (id: string) => void;
   onCreateTask: () => void;
   onVoiceCapture: () => void;
-  // AC-43 — mục "Việc may vá" ở S0 mở màn này với chip May vá bật sẵn (route param).
+  // mục "Việc may vá" ở S0 mở màn này với chip May vá bật sẵn (route param).
   initialFilter?: LineFilter;
 }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
@@ -84,7 +84,7 @@ export function OwnerHomeScreen({
   }
 
   // Số đếm trên chip = đúng số hàng màn này hiện với chip đó (việc chưa xong + xong hôm nay),
-  // không phải tổng mọi việc server trả — "số đếm khớp danh sách" (AC-43).
+  // không phải tổng mọi việc server trả — "số đếm khớp danh sách".
   const shown = useMemo(
     () => (tasks ?? []).filter((t) => t.status !== 'done' || isDoneToday(t)),
     [tasks],
@@ -117,8 +117,8 @@ export function OwnerHomeScreen({
   const isEmpty = tasks !== null && tasks.length === 0;
   const filterEmpty = !isEmpty && tasks !== null && sections.length === 0;
 
-  // AC-36 (vòng 8, CAP-BUG-01) — trước tải xong lần đầu màn này trắng trơn (không khung
-  // xám nào) — DESIGN-SYSTEM.md §5 đòi khuôn "đang tải" giữ đúng chỗ.
+  // trước tải xong lần đầu màn này trắng trơn (không khung
+  // xám nào) — đòi khuôn "đang tải" giữ đúng chỗ.
   if (tasks === null && !error) {
     return (
       <View style={styles.container}>
@@ -153,13 +153,13 @@ export function OwnerHomeScreen({
           <>
             {error ? (
               <Banner visible icon={ErrorIcon} actions={[{ ...bannerActionStyle, label: 'Thử lại', onPress: load }]} style={styles.banner}>
-                {/* picky vòng 9 (L8): chưa từng tải được thì không có danh sách nào để hứa. */}
+                {/* chưa từng tải được thì không có danh sách nào để hứa. */}
                 {tasks && tasks.length > 0
                   ? 'Mất kết nối — đang thử lại. Danh sách bên dưới là lần cập nhật gần nhất.'
                   : 'Mất kết nối — đang thử lại.'}
               </Banner>
             ) : null}
-            {/* C18 — xuống dòng, không cuộn ngang (§4b luật 3). Ẩn khi cả xưởng chưa có việc. */}
+            {/* xuống dòng, không cuộn ngang (§4b luật 3). Ẩn khi cả xưởng chưa có việc. */}
             {!isEmpty && (
               <View style={styles.chipRow}>
                 {FILTERS.map((f) => {
@@ -190,7 +190,7 @@ export function OwnerHomeScreen({
         )}
         renderItem={({ item }) => <OverviewRow task={item} onPress={() => onOpenTask(item.id)} />}
       />
-      {/* C7 — thanh thêm ghim đáy (DESIGN-SYSTEM.md §4), thay cho FAB micro nổi. */}
+      {/* thanh thêm ghim đáy, thay cho FAB micro nổi. */}
       <View style={styles.addBar}>
         <Button
           mode="text"
@@ -201,7 +201,7 @@ export function OwnerHomeScreen({
         >
           ＋ Nói để giao việc
         </Button>
-        {/* dogfood pha I vòng 6: thiếu contentStyle height so với
+        {/* thiếu contentStyle height so với
             mọi nút khác trên màn — đo được 38dp, dưới --tap-min 48px (§2.3). */}
         <Button mode="text" onPress={onCreateTask} compact contentStyle={{ height: tapMin }}>
           Gõ tay
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: colors.onSurfaceVariant },
   sec: { color: colors.onSurfaceVariant, marginBottom: space.sm, marginTop: space.sm },
   secOk: { color: colors.tertiary },
-  // picky vòng 9 (L12): bốn chip thiếu ~17dp để vừa một hàng ở máy 1080px — khe 8→6dp và Chip `compact`
+  // bốn chip thiếu ~17dp để vừa một hàng ở máy 1080px — khe 8→6dp và Chip `compact`
   // (đệm chữ hẹp hơn); vẫn xuống dòng (không cuộn ngang) ở máy hẹp hơn, đúng §4b luật 3.
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: space.sm },
   chip: { minHeight: tapMin, justifyContent: 'center' },

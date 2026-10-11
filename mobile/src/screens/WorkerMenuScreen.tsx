@@ -9,8 +9,8 @@ import { colors, fontSize, shape, space } from '../theme/tokens';
 import { useAuth } from '../auth/AuthContext';
 import { LogoutMenuRow, MenuRow } from '../common/MenuRow';
 
-// S0 của thợ (vai `worker`, PROTOTYPE.md §1 "Năm khối mục của S0, theo vai") — dogfood
-// vòng 9 (newbie). Trước đây thợ mở thẳng S6 mà S6 lại có nút ‹ (C13(a) `canGoBack`) — màn
+// S0 của thợ (vai `worker`)
+// Trước đây thợ mở thẳng S6 mà S6 lại có nút ‹ (C13(a) `canGoBack`) — màn
 // gốc của stack nên bấm ‹ không đi đâu cả, người mới tưởng app treo. Nay S0 là màn đầu,
 // cùng khuôn C14 với S0 chủ xưởng / điều phối (MenuRow), ‹ ở S6 quay về đây.
 // Khối mục gộp hai dòng `worker` (may vá/bạt) và `may` (thợ mảng đệm) của bảng prototype:
@@ -67,7 +67,7 @@ export function WorkerMenuScreen({
 
   return (
     <View style={styles.container}>
-      {/* C14 — đầu S0 là hàng avatar + tên, không phải khối đầu mục C13(a) (xem OwnerMenuScreen). */}
+      {/* đầu S0 là hàng avatar + tên, không phải khối đầu mục C13(a) (xem OwnerMenuScreen). */}
       <View style={[styles.top, { paddingTop: insets.top + 14 }]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>

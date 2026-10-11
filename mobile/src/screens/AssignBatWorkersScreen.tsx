@@ -9,10 +9,9 @@ import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S10 — "Chọn thợ để giao" (PROTOTYPE.md §1). CAP-TASK-06 (AC-13): điều phối (hoặc chủ xưởng)
+// "Chọn thợ để giao": điều phối (hoặc chủ xưởng)
 // chọn 1..n thợ bạt ĐANG HOẠT ĐỘNG. Chọn lại một việc đã chia thì GHI ĐÈ toàn bộ danh sách
-// cũ, không cộng dồn (ARCHITECTURE.md §6 "Sửa đồng thời" — bản ghi sau thắng; DECISIONS.md
-// vòng 4).
+// cũ, không cộng dồn (bản ghi sau thắng).
 export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onDone: () => void }) {
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
@@ -109,12 +108,12 @@ export function AssignBatWorkersScreen({ taskId, onDone }: { taskId: string; onD
             <List.Item
               key={w.id}
               title={w.name}
-              // AC-39 (vòng 9) — API trả thêm mọi bat_coordinator (điều phối) trong danh sách này
-              // (ARCHITECTURE.md §6 mở rộng vòng 9); ghi rõ vai để không lẫn với thợ bạt.
+              // API trả thêm mọi bat_coordinator (điều phối) trong danh sách này
+              // (); ghi rõ vai để không lẫn với thợ bạt.
               description={`${w.role === 'bat_coordinator' ? 'Điều phối bạt · ' : ''}Đang giữ ${w.activeTaskCount} việc`}
               onPress={() => toggle(w.id)}
               style={selected.has(w.id) ? styles.itemSelected : undefined}
-              // C9 (DESIGN-SYSTEM.md §4, AC-27 vòng 8) — vòng tròn chọn, không phải ô vuông.
+              // vòng tròn chọn, không phải ô vuông.
               left={() => (
                 <RadioButton
                   value={w.id}

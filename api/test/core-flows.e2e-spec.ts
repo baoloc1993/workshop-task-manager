@@ -1,4 +1,4 @@
-// Smoke test luồng lõi end-to-end (ARCHITECTURE.md §7, luồng A + luồng B) qua HTTP thật
+// Smoke test luồng lõi end-to-end (luồng A + luồng B) qua HTTP thật
 // (Supertest → Nest → Postgres thật), không mock service nào. Một test này đi hết đường
 // chính — hỏng bất cứ đâu trên đường là đỏ ở đây trước khi tới bất kỳ ai dùng thử.
 import { INestApplication } from '@nestjs/common';
@@ -12,7 +12,7 @@ import {
   type TestCtx,
 } from './utils/test-app.js';
 
-describe('Luồng lõi end-to-end (ARCHITECTURE.md §7)', () => {
+describe('Luồng lõi end-to-end ', () => {
   let ctx: TestCtx;
   let app: INestApplication<App>;
   const userIds: string[] = [];
@@ -109,10 +109,10 @@ describe('Luồng lõi end-to-end (ARCHITECTURE.md §7)', () => {
     expect(createRes.status).toBe(201);
     const taskId = createRes.body.id as string;
     taskIds.push(taskId);
-    // Task mảng bạt tạo ra LUÔN không có assignee (ARCHITECTURE.md §6).
+    // Task mảng bạt tạo ra LUÔN không có assignee.
     expect(createRes.body.assignees).toHaveLength(0);
 
-    // 5–6. Nằm ở hàng đợi (S9) → điều phối mở thấy việc + số đo
+    // 5–6. Nằm ở hàng đợi → điều phối mở thấy việc + số đo
     const queueRes = await request(app.getHttpServer())
       .get('/tasks/bat-queue')
       .set('Authorization', coordinatorAuth);

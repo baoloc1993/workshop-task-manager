@@ -5,7 +5,7 @@ import { UpdateRouteDto } from './dto/update-route.dto.js';
 import { RoutesService } from './routes.service.js';
 
 // GET không @Roles('owner') riêng — S18 (mọi vai ghi đơn = chỉ owner thật ra, nhưng danh
-// sách khu vực còn cần cho S23 hàng trả) đều là owner ở vòng 7 (không thợ nào chạm khu
+// sách khu vực còn cần cho S23 hàng trả) đều là owner (không thợ nào chạm khu
 // vực), nên khoá cả @Controller là đủ, không cần phân theo method như UsersController.
 @Roles('owner')
 @Controller('routes')

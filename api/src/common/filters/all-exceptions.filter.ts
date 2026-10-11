@@ -2,7 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import type { Response } from 'express';
 import * as Sentry from '@sentry/node';
 
-// Nhóm 1 (error tracking) + Nhóm 2 (SECURITY.md §4 "không trả stack trace hay thông
+// Nhóm 1 (error tracking) + Nhóm 2 ("không trả stack trace hay thông
 // tin nội bộ ra response lỗi"). Lỗi đã biết (HttpException — 4xx nghiệp vụ) giữ nguyên
 // message tiếng Việt đã viết ở service. Lỗi KHÔNG lường trước (500) thì: log đủ để lần
 // lại, báo Sentry, và trả một câu chung — không bao giờ lộ message/stack thật của lỗi

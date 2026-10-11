@@ -10,8 +10,8 @@ import { track } from '../analytics/track';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S24 "Tính cắt vải, mút" (CAP-DEM-04, AC-20). CAP-DEM-03 (công thức) đẩy backlog
-// (DECISIONS.md vòng 7) — luôn nhập tay, không có gợi ý điền sẵn.
+// (công thức) đẩy backlog
+// luôn nhập tay, không có gợi ý điền sẵn.
 export function CutDoneScreen({ orderId, onDone }: { orderId: string; onDone: () => void }) {
   const { user } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);

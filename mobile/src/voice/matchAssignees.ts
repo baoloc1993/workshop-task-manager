@@ -1,16 +1,15 @@
-// AC-37/AC-38 (vòng 9, CAP-FB-01) — khớp tên người nhận trên MỌI phương án nghe của bộ
+// khớp tên người nhận trên MỌI phương án nghe của bộ
 // nhận dạng (`maxAlternatives`), không chỉ phương án đầu. Hàm thuần, không gọi dịch vụ ngoài
-// (ARCHITECTURE.md §6 "Mở rộng vòng 9 — Giọng nói (client)").
 //
-// Quy tắc (DECISIONS.md 2026-09-22 (I)):
-// - Tên gọi = từ cuối của `User.name` (người Việt gọi tên, không gọi họ), so sau khi bỏ dấu,
+// Quy tắc ((I)):
+// Tên gọi = từ cuối của `User.name` (người Việt gọi tên, không gọi họ), so sau khi bỏ dấu,
 //   `đ`→`d`, chữ thường.
-// - Phương án ĐẦU TIÊN (độ tin cậy cao nhất) có khớp chắc thắng → điền sẵn người nhận. Nếu
+// Phương án ĐẦU TIÊN (độ tin cậy cao nhất) có khớp chắc thắng → điền sẵn người nhận. Nếu
 //   phương án đó khớp chắc NHIỀU người (trùng tên gọi, hoặc nói hai tên) thì không đoán —
-//   những người đó xuống hàng "Gợi ý" (giữ tinh thần "không đoán" của vòng 2).
-// - Người khớp chắc ở phương án sau + người gần đúng (Levenshtein ≤2 trên tên gọi) gộp vào
+// những người đó xuống hàng "Gợi ý" (giữ tinh thần "không đoán").
+// Người khớp chắc ở phương án sau + người gần đúng (Levenshtein ≤2 trên tên gọi) gộp vào
 //   "Gợi ý" tối đa 3, bỏ trùng, gần nhất trước rồi theo tên. Không bao giờ tự chọn người gợi ý.
-//   Gần đúng chỉ dò khi không phương án nào khớp chắc (AC-38 "không phương án nào khớp chắc
+// Gần đúng chỉ dò khi không phương án nào khớp chắc ("không phương án nào khớp chắc
 //   nhưng có tên gần đúng").
 
 export interface NameCandidate {
@@ -124,7 +123,7 @@ export function matchAssignees(alternatives: string[], workers: NameCandidate[])
     exact.forEach((w) => note(w.id, 0));
   }
 
-  // AC-38 — gần đúng chỉ khi KHÔNG phương án nào khớp chắc; đã có người khớp chắc thì gợi ý
+  // gần đúng chỉ khi KHÔNG phương án nào khớp chắc; đã có người khớp chắc thì gợi ý
   // thêm người "na ná" chỉ làm rối (người khớp chắc ở phương án sau vẫn giữ ở trên).
   const anyExact = firstExactFound;
   for (const alt of anyExact ? [] : alts) {

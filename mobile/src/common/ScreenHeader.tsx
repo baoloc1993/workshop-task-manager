@@ -5,18 +5,18 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize, space, tapMin } from '../theme/tokens';
 
-// C13(a) — khối đầu mục (DESIGN-SYSTEM.md §4), dùng cho các màn danh sách (S1, S6, S9,
+// C13(a) — khối đầu mục, dùng cho các màn danh sách (S1, S6, S9,
 // S16, S17, S22, S23). KHÔNG dùng ở S0: C13(a) không khai S0, trang chủ dùng `.top` +
-// `.search` của C14 (DECISIONS.md 2026-09-19).
+// `.search` của C14.
 //
 // Chuyển sắc THẬT `--color-header-start → --color-header-end` bằng
 // `experimental_backgroundImage` — style prop trong CORE của React Native 0.86, không phải
-// native module, nên không dính rủi ro rebuild đã gây sự cố dogfood vòng 6
-// (`expo-notifications`, DECISIONS.md 2026-09-16). Trước 2026-09-19 ở đây là màu ĐẶC
+// native module, nên không dính rủi ro rebuild đã gây sự cố
+// (`expo-notifications`). Trước 2026-09-19 ở đây là màu ĐẶC
 // `--color-header-end`; kiểm thử đo được `--color-header-start` render **0 pixel**
 // trên cả ba màn kiểm được — §2.1 ghi rõ "khai token không dùng là gate đỏ".
 // `backgroundColor` giữ nguyên làm đường lùi nếu prop experimental đổi tên ở bản RN sau.
-// `useSafeAreaInsets` (dogfood khi vừa dựng): không trừ tai thỏ/status bar thì nút back
+// `useSafeAreaInsets` (khi vừa dựng): không trừ tai thỏ/status bar thì nút back
 // nằm lấn lên vùng status bar — bấm không ăn trên emulator thật (đã tự bấm thử phát hiện).
 export function ScreenHeader({
   title,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   title: { fontSize: fontSize.headline, fontWeight: '700', color: colors.onPrimary, lineHeight: 34 },
   // `opacity: .92` (chép từ `.hdr .d` của prototype) làm trắng thành #EEF3FB trên nền
   // #3670CF = tương phản 4.31, DƯỚI ngưỡng 4.5 của §3 cặp on-primary/header-end
-  // (kiểm thử đo trên pixel thật 2026-09-19 — gate pha V tính từ hex trong tài liệu
+  // (kiểm thử đo trên pixel thật 2026-09-19 — gate tính từ hex trong tài liệu
   // nên không bắt được). Bỏ opacity, giữ trắng đặc: 4.80 đạt.
   subtitle: { fontSize: fontSize.label, color: colors.onPrimary, marginTop: space.xs },
 });

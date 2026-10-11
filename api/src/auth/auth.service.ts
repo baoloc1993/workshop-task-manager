@@ -39,14 +39,14 @@ export class AuthService {
     return { ok: true };
   }
 
-  // Chủ xưởng cấp mã QR cho một người chưa ghép máy (S5). Mã 6 số: hiện thành QR,
-  // nhưng vẫn đọc/gõ được nếu camera lỗi — không có đường dự phòng nào khác ở vòng 1.
+  // Chủ xưởng cấp mã QR cho một người chưa ghép máy. Mã 6 số: hiện thành QR,
+  // nhưng vẫn đọc/gõ được nếu camera lỗi — không có đường dự phòng nào khác.
   async createPairing(dto: CreatePairingDto) {
     const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
     if (!user) throw new NotFoundException('Không tìm thấy người này');
 
     // Cấp mã mới cho CÙNG một người thì mã cũ chưa dùng phải hết hiệu lực ngay —
-    // dogfood pha I: không thu hồi thì hai mã sống song song,
+    // không thu hồi thì hai mã sống song song,
     // chủ xưởng "bỏ quên" màn QR cũ (không đưa cho ai) vẫn còn dùng được 15 phút.
     await this.prisma.devicePairing.updateMany({
       where: { userId: user.id, usedAt: null, revokedAt: null },
@@ -62,7 +62,7 @@ export class AuthService {
     return { pairingId: pairing.id, code, expiresAt, userName: user.name };
   }
 
-  // Người mới quét mã (S8) → đổi mã lấy token dài hạn, một lần duy nhất.
+  // Người mới quét mã → đổi mã lấy token dài hạn, một lần duy nhất.
   async redeemPairing(dto: RedeemPairingDto) {
     const pairing = await this.prisma.devicePairing.findUnique({ where: { code: dto.code } });
     if (!pairing) throw new BadRequestException('Mã không đúng');
@@ -87,10 +87,10 @@ export class AuthService {
     return { token, user: { id: user.id, name: user.name, role: user.role, groups: user.groups } };
   }
 
-  // S15 — "Máy của thợ": chủ xưởng xem ai đang dùng máy nào.
+  // "Máy của thợ": chủ xưởng xem ai đang dùng máy nào.
   // `select` tường minh cho `user` (không `include`) — DevicePairing không giới hạn theo vai
   // ở tầng schema, và `User.password` (hash bcrypt của owner) không bao giờ được serialize
-  // ra ngoài dưới bất kỳ hình thức nào, kể cả cho chính owner (SECURITY.md §4).
+  // ra ngoài dưới bất kỳ hình thức nào, kể cả cho chính owner.
   async listDevices() {
     return this.prisma.devicePairing.findMany({
       where: { usedAt: { not: null } },

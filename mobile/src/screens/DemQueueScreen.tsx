@@ -12,9 +12,9 @@ import { useAuth } from '../auth/AuthContext';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { ErrorIcon, bannerActionStyle } from '../common/bannerParts';
 
-// S22 "Việc nhóm chờ nhận" (CAP-DEM-07, AC-21) — ai rảnh thì nhận, không ai chia (khác
+// ai rảnh thì nhận, không ai chia (khác
 // hẳn S9 của mảng bạt). Một thợ nhiều nhóm thấy việc GỘP của mọi nhóm mình thuộc trong
-// MỘT danh sách (DECISIONS.md vòng 7 — client không chọn 1 nhóm).
+// MỘT danh sách (client không chọn 1 nhóm).
 export function DemQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => void }) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
@@ -65,9 +65,9 @@ export function DemQueueScreen({ onOpenTask }: { onOpenTask: (id: string) => voi
   const groups = user?.groups ?? [];
   const title = groups.length === 1 ? GROUP_LABEL[groups[0]] : 'Việc nhóm chờ nhận';
 
-  // AC-36 (vòng 8, CAP-BUG-01) — cùng lớp lỗi đã sửa ở MyTasksScreen/DeliveryScreen: trước
-  // khi tải xong lần đầu, màn này chớp qua câu rỗng "chưa có việc nào chờ" (DESIGN-SYSTEM.md
-  // §5 đòi khung xám, không phải khuôn rỗng, trong lúc đang tải).
+  // Cùng lớp lỗi đã sửa ở MyTasksScreen/DeliveryScreen: trước
+  // khi tải xong lần đầu, màn này chớp qua câu rỗng "chưa có việc nào chờ"
+  // Cần khung xám, không phải khuôn rỗng, trong lúc đang tải.
   if (tasks === null && !error) {
     return (
       <View style={styles.container}>

@@ -2,12 +2,12 @@ import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@ne
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { TasksService } from './tasks.service.js';
 
-// CAP-TASK-14 (vòng 6, AC vòng 6) — "nhắc việc khi chưa ack hoặc sắp tới hạn". Không tài
-// liệu nào (PRD/ARCHITECTURE) chốt sẵn ngưỡng thời gian — quyết ở đây, ghi DECISIONS.md
+// "nhắc việc khi chưa ack hoặc sắp tới hạn". Không tài
+// liệu nào chốt sẵn ngưỡng thời gian — quyết ở đây, ghi
 // 2026-09-15: xưởng nhỏ, không cần độ chính xác phút — poll đơn giản bằng
 // setInterval thay vì thêm dependency @nestjs/schedule cho một job duy nhất (luật
 // "không thêm trừu tượng ngoài nhu cầu"). Sống ở `tasks/` (không phải `notifications/`)
-// vì đọc/ghi bảng Task — review pha P vòng 6 (ARCHITECTURE.md §8).
+// vì đọc/ghi bảng Task.
 const POLL_INTERVAL_MS = 15 * 60_000; // 15 phút — đủ gần thời gian thực cho quy mô này
 const ACK_REMINDER_AFTER_MS = 2 * 60 * 60_000; // 2 giờ chưa ai bấm "Nhận việc"
 const DUE_SOON_WINDOW_MS = 2 * 60 * 60_000; // còn ≤2 giờ tới hạn
@@ -60,7 +60,7 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
 
   // "Sắp tới hạn" — còn ≤2 giờ (hoặc đã quá hạn) mà chưa xong. Có assignee → nhắc thẳng
   // người giữ việc. Việc bạt còn ở hàng đợi (không assignee) → nhắc điều phối/bat_coordinator,
-  // đúng vai đang phải hành động (ARCHITECTURE.md §7 luồng B bước 5).
+  // đúng vai đang phải hành động (luồng B bước 5).
   private async remindDueSoon(now: number, cooldownBefore: Date) {
     const dueBefore = new Date(now + DUE_SOON_WINDOW_MS);
     const tasks = await this.tasks.findDueSoonNeedingReminder(dueBefore, cooldownBefore);

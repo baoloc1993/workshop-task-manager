@@ -1,8 +1,8 @@
-// Kiểu dữ liệu của CT-1 (context/ARCHITECTURE.md §5) — khớp response của task-manager-api.
+// Kiểu dữ liệu của CT-1 — khớp response của task-manager-api.
 
 export type Role = 'owner' | 'worker' | 'bat_coordinator';
 
-// vòng 7 — nhóm chuyên trách mảng đệm (ARCHITECTURE.md §6). Rỗng = chưa được phân nhóm.
+// nhóm chuyên trách mảng đệm. Rỗng = chưa được phân nhóm.
 export type WorkerGroup = 'do' | 'may' | 'cat_mut' | 'khau_lot' | 'nhoi' | 'theu';
 
 export interface AuthUser {
@@ -10,7 +10,7 @@ export interface AuthUser {
   name: string;
   role: Role;
   groups: WorkerGroup[];
-  // Vòng 9 — optional: API chỉ trả nếu có; S6 dùng để ẩn "Ghi việc tôi làm" với thợ đệm.
+  // optional: API chỉ trả nếu có; S6 dùng để ẩn "Ghi việc tôi làm" với thợ đệm.
   line?: WorkerListItem['line'];
 }
 
@@ -23,18 +23,18 @@ export interface WorkerListItem {
   id: string;
   name: string;
   role: Role;
-  // 'dem' — thợ mảng đệm (vòng 7); trước vòng 9 type cắt mất giá trị này dù DB có.
+  // 'dem' — thợ mảng đệm; type cắt mất giá trị này dù DB có.
   line: 'may_va' | 'bat' | 'dem' | null;
   groups?: WorkerGroup[];
-  // AC-32 (vòng 8) — chỉ có mặt khi gọi `GET /users?paired=all` (S5).
+  // chỉ có mặt khi gọi `GET /users?paired=all`.
   paired?: boolean;
-  // AC-41 (vòng 9) — cờ "Tự duyệt việc tự ghi" (ARCHITECTURE.md §6 mở rộng vòng 9), chỉ có
+  // cờ "Tự duyệt việc tự ghi" (), chỉ có
   // nghĩa với worker/bat_coordinator. Optional: API cũ chưa trả thì coi như tắt.
   autoApprove?: boolean;
 }
 
-// S10 (CAP-TASK-06, vòng 4) — GET /users/bat-workers: "danh sách thợ bạt (ai đang cầm
-// mấy việc)" là thông tin bắt buộc của màn này (PROTOTYPE.md §1 S10).
+// GET /users/bat-workers: "danh sách thợ bạt (ai đang cầm
+// mấy việc)" là thông tin bắt buộc của màn này.
 export interface BatWorkerItem extends WorkerListItem {
   activeTaskCount: number;
 }
@@ -60,13 +60,13 @@ export interface DevicePairing {
 export interface TaskAssignee {
   userId: string;
   user: WorkerListItem;
-  // AC-11 (S7 "Việc này đã đi qua" phải hiện dòng "chia" cho việc mảng bạt) — API đã trả
+  // (S7 "Việc này đã đi qua" phải hiện dòng "chia" cho việc mảng bạt) — API đã trả
   // sẵn field này qua TASK_INCLUDE (task-manager-api/src/tasks/tasks.service.ts), nhưng
-  // type ở đây từng cắt mất nên TaskDetailScreen không render được (review pha P vòng 6).
+  // type ở đây từng cắt mất nên TaskDetailScreen không render được.
   assignedAt: string;
 }
 
-// CAP-TASK-09 — mốc thời gian ngầm, task-manager-api trả sẵn theo đúng thứ tự xảy ra.
+// mốc thời gian ngầm, task-manager-api trả sẵn theo đúng thứ tự xảy ra.
 export interface TaskEvent {
   id: string;
   kind: 'acked' | 'started' | 'done';
@@ -74,7 +74,7 @@ export interface TaskEvent {
   userId: string;
 }
 
-// vòng 7 — bảng cố định step ↔ nhóm (ARCHITECTURE.md §6), dùng ở client để gom S22.
+// bảng cố định step ↔ nhóm, dùng ở client để gom S22.
 export type TaskStep = 'do' | 'tinh_cat' | 'may_vai' | 'cat_mut' | 'khau_lot' | 'theu' | 'goi_tua' | 'nhoi';
 
 export type Pillow =
@@ -82,7 +82,7 @@ export type Pillow =
   | { type: 'back'; length: number; width: number; count: number };
 
 // Thông tin Order gắn kèm Task (`TASK_INCLUDE.order`, tasks.service.ts) — CỐ Ý không có
-// price/deposit (DESIGN-SYSTEM.md §4d #9 "vai worker không bao giờ thấy tiền").
+// price/deposit (#9 "vai worker không bao giờ thấy tiền").
 export interface TaskOrderInfo {
   id: string;
   mode: 'buon' | 'le';
@@ -102,7 +102,7 @@ export interface TaskOrderInfo {
   route: { id: string; name: string } | null;
 }
 
-// Vòng 9 (CAP-TASK-16) — `pending`/`rejected` chỉ có khi `source='self'` (thợ tự ghi).
+// `pending`/`rejected` chỉ có khi `source='self'` (thợ tự ghi).
 export type TaskApproval = 'approved' | 'pending' | 'rejected';
 
 export interface Task {
@@ -116,16 +116,16 @@ export interface Task {
   assignees: TaskAssignee[];
   events: TaskEvent[];
   createdAt: string;
-  // vòng 9 — optional để đọc được response API cũ (thiếu = việc chủ giao, đã duyệt).
+  // optional để đọc được response API cũ (thiếu = việc chủ giao, đã duyệt).
   source?: 'voice' | 'manual' | 'self';
   approval?: TaskApproval;
-  // vòng 7 — chỉ có ý nghĩa khi line='dem'.
+  // chỉ có ý nghĩa khi line='dem'.
   orderId?: string | null;
   step?: TaskStep | null;
   order?: TaskOrderInfo | null;
 }
 
-// vòng 7 — Customer KHÔNG phải User (ARCHITECTURE.md §6: không tài khoản, không persona).
+// Customer KHÔNG phải User (không tài khoản, không persona).
 export interface Customer {
   id: string;
   name: string;
@@ -159,7 +159,7 @@ export interface Route {
   active: boolean;
 }
 
-// S17 — GET /orders (owner). KHÔNG có price/deposit (chỉ OrderDetail mới có).
+// GET /orders (owner). KHÔNG có price/deposit (chỉ OrderDetail mới có).
 export interface OrderListItem {
   id: string;
   mode: 'buon' | 'le';
@@ -175,7 +175,7 @@ export interface OrderListItem {
   createdAt: string;
 }
 
-// S19 — GET /orders/:id (owner-only). Duy nhất nơi có price/deposit.
+// GET /orders/:id (owner-only). Duy nhất nơi có price/deposit.
 export interface OrderDetail extends Omit<OrderListItem, 'tasks'> {
   customer: Customer;
   route: Route | null;

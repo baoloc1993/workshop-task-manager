@@ -15,10 +15,10 @@ export class ApiError extends Error {
 }
 
 // Lỗi mạng riêng để screen phân biệt được với lỗi nghiệp vụ (ApiError) — quyết định ở
-// DESIGN-SYSTEM.md §5 "Lỗi": banner mất mạng khác câu với lỗi API thường.
+// banner mất mạng khác câu với lỗi API thường.
 export class NetworkError extends Error {}
 
-// Target thật là Android/iOS (TECHSTACK.md) — expo-secure-store không có bản web.
+// Target thật là Android/iOS — expo-secure-store không có bản web.
 // Nhánh web chỉ để xem giao diện lúc chưa có emulator, không phải đường chạy thật.
 export async function saveToken(token: string) {
   if (Platform.OS === 'web') {
@@ -42,9 +42,9 @@ export async function clearToken() {
 }
 
 // Lưu kèm hồ sơ nhỏ (id/name/role/groups, KHÔNG phải "profile" hay "việc" —
-// ARCHITECTURE.md §10 chỉ cấm lưu việc xuống máy) để khôi phục phiên khi app bị hệ điều
-// hành kill — dogfood pha I: thiếu bước này làm mất phiên hoàn toàn,
-// phải gõ lại email/mật khẩu mỗi lần mở app, trái PRD §7 "không phải đăng nhập lại".
+// chỉ cấm lưu việc xuống máy) để khôi phục phiên khi app bị hệ điều
+// hành kill: thiếu bước này làm mất phiên hoàn toàn,
+// phải gõ lại email/mật khẩu mỗi lần mở app, trái "không phải đăng nhập lại".
 export async function saveUser(user: { id: string; name: string; role: string; groups?: string[] }) {
   const raw = JSON.stringify(user);
   if (Platform.OS === 'web') {

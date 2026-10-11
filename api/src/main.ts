@@ -13,7 +13,7 @@ if (process.env.SENTRY_DSN) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: new JsonLogger() });
-  // review pha P vòng 7: mặc định Express `json()` giới hạn 100kb —
+  // mặc định Express `json()` giới hạn 100kb —
   // `UpdateMeasurementsDto.measurementPhoto` khai trần 5.000.000 ký tự (base64, "ảnh đã
   // nén phía client") không bao giờ tới được tầng validate, chặn cứng bởi body-parser
   // trước đó (500 lỗi chung, không phải 413 — xác nhận thật bằng request 200KB). Nâng lên
@@ -27,8 +27,7 @@ async function bootstrap() {
 
   // Chỉ app mobile (workshop-app) gọi vào — RN/Expo không phải trình duyệt nên không bị
   // CORS chặn dù để trống. `ALLOWED_ORIGINS` (phân tách bằng dấu phẩy) chỉ cần khi
-  // owner-dashboard (web, vòng 8) lên production và gọi từ trình duyệt thật
-  // (SECURITY.md §4 "CORS chỉ mở cho domain của mình").
+  // owner-dashboard (web) lên production và gọi từ trình duyệt thật
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean);
   if (allowedOrigins && allowedOrigins.length > 0) {
     app.enableCors({ origin: allowedOrigins });

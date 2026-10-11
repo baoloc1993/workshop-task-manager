@@ -7,7 +7,7 @@ import { colors, shape, space, tapMin } from '../theme/tokens';
 import { ErrorIcon } from '../common/bannerParts';
 
 // Màn bootstrap riêng cho chủ xưởng (email/mật khẩu) — không thuộc bộ mã S<n> của
-// PROTOTYPE.md §1, xem context/DECISIONS.md 2026-09-10 (bản đồ màn chưa phủ bước này).
+// (bản đồ màn chưa phủ bước này).
 export function OwnerLoginScreen() {
   const { loginOwner } = useAuth();
   const [email, setEmail] = useState('');

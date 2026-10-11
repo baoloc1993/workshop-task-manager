@@ -9,8 +9,8 @@ import { colors, fontSize, shape, space } from '../theme/tokens';
 import { useAuth } from '../auth/AuthContext';
 import { LogoutMenuRow, MenuRow } from '../common/MenuRow';
 
-// S0 của điều phối (vai `bat`, PROTOTYPE.md §1 "Năm khối mục của S0, theo vai") — vòng 9, AC-39.
-// Trước vòng 9 điều phối mở thẳng S9 và đi sang "Việc của tôi" bằng nút góc trên; bản đồ vòng 1
+// S0 của điều phối (vai `bat`).
+// Trước điều phối mở thẳng S9 và đi sang "Việc của tôi" bằng nút góc trên; bản đồ
 // đã có S0 cho vai này nhưng app chưa dựng. Nay điều phối được giao việc ở MỌI mảng (trừ đệm)
 // nên "Việc của tôi" thành một lối ngang hàng với "Việc bạt chờ chia", không còn là nút phụ.
 // Mục "! Nhắc việc → S11" của prototype chưa dựng: app chưa có màn S11 riêng (push mở thẳng
@@ -59,7 +59,7 @@ export function BatMenuScreen({
 
   return (
     <View style={styles.container}>
-      {/* C14 — đầu S0 là hàng avatar + tên, không phải khối đầu mục C13(a) (xem OwnerMenuScreen). */}
+      {/* đầu S0 là hàng avatar + tên, không phải khối đầu mục C13(a) (xem OwnerMenuScreen). */}
       <View style={[styles.top, { paddingTop: insets.top + 14 }]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>

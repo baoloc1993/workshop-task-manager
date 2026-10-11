@@ -8,7 +8,7 @@ export class UsersService {
 
   // `select` tường minh (không trả nguyên entity) — dù `where role != owner` khiến
   // `password` luôn null trong dữ liệu hiện tại, `email` vẫn bị lộ không cần thiết cho
-  // một màn chỉ cần tên (review pha P vòng 6, cùng khuôn `listActiveBatWorkers()` bên dưới).
+  // một màn chỉ cần tên (cùng khuôn `listActiveBatWorkers()` bên dưới).
   private static readonly SAFE_SELECT = {
     id: true,
     name: true,
@@ -16,7 +16,7 @@ export class UsersService {
     line: true,
     active: true,
     groups: true,
-    // vòng 9 — CAP-TASK-16 (AC-41): S26 hiện trạng thái công tắc "Tự duyệt" (additive).
+    // S26 hiện trạng thái công tắc "Tự duyệt" (additive).
     autoApprove: true,
   } as const;
 
@@ -37,7 +37,7 @@ export class UsersService {
     return new Set(paired.map((p) => p.userId));
   }
 
-  // S5 — danh sách người CHƯA có máy đang hoạt động, để chủ xưởng chọn cấp mã.
+  // danh sách người CHƯA có máy đang hoạt động, để chủ xưởng chọn cấp mã.
   async listUnpaired() {
     const pairedIds = await this.pairedUserIds();
     return this.prisma.user.findMany({
@@ -47,9 +47,9 @@ export class UsersService {
     });
   }
 
-  // AC-32 (vòng 8, CAP-BUG-03) — S5 trước đây lọc `paired=false` nên thợ đã ghép máy BIẾN
+  // S5 trước đây lọc `paired=false` nên thợ đã ghép máy BIẾN
   // MẤT khỏi danh sách, chủ xưởng không còn cách nào tìm lại người đó để "Cấp lại mã" khi
-  // thợ mất/đổi máy — phải gõ tay tìm qua "Phân vai thợ" (S26). Trả TOÀN BỘ kèm cờ `paired`,
+  // thợ mất/đổi máy — phải gõ tay tìm qua "Phân vai thợ". Trả TOÀN BỘ kèm cờ `paired`,
   // màn tự hiện đúng trạng thái + nút phù hợp cho từng người thay vì ẩn hẳn.
   async listAllWithPairedFlag() {
     const [users, pairedIds] = await Promise.all([
@@ -63,12 +63,12 @@ export class UsersService {
     return users.map((u) => ({ ...u, paired: pairedIds.has(u.id) }));
   }
 
-  // S10 (CAP-TASK-06, vòng 4) — danh sách thợ bạt đang hoạt động để điều phối/chủ xưởng chọn
-  // giao, kèm "đang giữ mấy việc" (PROTOTYPE.md §1 S10, thông tin bắt buộc). `select` riêng
+  // danh sách thợ bạt đang hoạt động để điều phối/chủ xưởng chọn
+  // giao, kèm "đang giữ mấy việc" (thông tin bắt buộc). `select` riêng
   // (không dùng lại listAll) vì điều phối được gọi endpoint này — không lộ email/password hash
   // của owner qua một đường vòng.
-  // AC-39 (vòng 9) — điều phối (mọi bat_coordinator đang hoạt động) cũng là người nhận việc bạt
-  // (ARCHITECTURE.md §6 "Điều phối là người nhận"); client phân biệt bằng `role`.
+  // điều phối (mọi bat_coordinator đang hoạt động) cũng là người nhận việc bạt
+  // client phân biệt bằng `role`.
   async listActiveBatWorkers() {
     const workers = await this.prisma.user.findMany({
       where: { active: true, OR: [{ role: 'worker', line: 'bat' }, { role: 'bat_coordinator' }] },
@@ -77,7 +77,7 @@ export class UsersService {
     });
     if (workers.length === 0) return [];
 
-    // vòng 9 — việc tự ghi bị từ chối không còn là việc "đang giữ".
+    // việc tự ghi bị từ chối không còn là việc "đang giữ".
     const counts = await this.prisma.taskAssignee.groupBy({
       by: ['userId'],
       where: {
@@ -90,7 +90,7 @@ export class UsersService {
     return workers.map((w) => ({ ...w, activeTaskCount: countByUserId.get(w.id) ?? 0 }));
   }
 
-  // S26 "Phân vai thợ" (CAP-DEM-07, AC-21) — gán thợ vào nhóm chuyên trách mảng đệm.
+  // gán thợ vào nhóm chuyên trách mảng đệm.
   // Không giới hạn theo `line` hiện tại: một thợ may vá/bạt vẫn gán được vào nhóm đệm
   // nếu chủ xưởng muốn (xưởng nhỏ, người làm chéo mảng — không tài liệu nào cấm điều này).
   async updateGroups(userId: string, groups: WorkerGroup[]) {
@@ -103,9 +103,9 @@ export class UsersService {
     });
   }
 
-  // vòng 9 — CAP-TASK-16 (AC-41, S26). Chỉ có nghĩa với worker/bat_coordinator (người tự ghi
+  // Chỉ có nghĩa với worker/bat_coordinator (người tự ghi
   // việc được) — đích là owner hoặc không tồn tại → 404, cùng khuôn updateGroups(). Hiệu lực
-  // cho việc tự ghi từ lúc này trở đi; việc đang chờ KHÔNG tự được duyệt (ARCHITECTURE.md §6).
+  // cho việc tự ghi từ lúc này trở đi; việc đang chờ KHÔNG tự được duyệt.
   async updatePushToken(userId: string, token: string | null) {
     await this.prisma.user.update({ where: { id: userId }, data: { pushToken: token } });
     return { ok: true };

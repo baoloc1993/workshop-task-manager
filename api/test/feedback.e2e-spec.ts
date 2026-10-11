@@ -1,4 +1,4 @@
-// Nhóm 4 production-ready (kênh feedback, review pha P vòng 6) — xác nhận endpoint mới
+// (kênh feedback) — xác nhận endpoint mới
 // thật sự lắp đúng vào app (module đăng ký, guard áp dụng), không phải chỉ build qua.
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
