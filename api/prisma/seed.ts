@@ -16,8 +16,7 @@ const prisma = new PrismaClient({
 const SEED_NAMESPACE = '3f7f6c9e-6b8a-4f0a-9b3a-8f4b8a2b0a11';
 const seedId = (key: string) => uuidv5(key, SEED_NAMESPACE);
 
-// 10 thợ mảng may vá + 5 thợ mảng bạt + 1 điều phối (điều phối bạt) + 1 owner = 17 người
-// (context/DECISIONS.md 2026-09-10, "seed 17 người: 1 owner · 10 worker may vá · 5 worker bạt · 1 bat-coordinator")
+// Dữ liệu mẫu: 10 thợ mảng may vá + 5 thợ mảng bạt + 1 điều phối mảng bạt + 1 owner (tên đều là tên giả).
 const MAY_VA_NAMES = ['Thợ A', 'Thợ B', 'Thợ C', 'Thợ D', 'Thợ E', 'Thợ G', 'Thợ H', 'Thợ I', 'Thợ K', 'Thợ L'];
 const BAT_NAMES = ['Thợ M', 'Thợ N', 'Thợ O', 'Thợ P', 'Thợ Q'];
 
